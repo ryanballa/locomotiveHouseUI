@@ -24,7 +24,7 @@ export type Env = {
 
 //TODO break this file up
 
-const checkAuth = async function (c, next) {
+const checkAuth = async function (c: any, next: any) {
 	const { CLERK_PRIVATE_KEY } = env<{
 		CLERK_PRIVATE_KEY: string;
 	}>(c, 'workerd');
@@ -60,20 +60,20 @@ const checkAuth = async function (c, next) {
 		console.log('Token verified, userId:', verification.sub);
 		c.set('userId', verification.sub);
 		return next();
-	} catch (error) {
-		console.error('Auth error:', error.message || error);
+	} catch (error: any) {
+		console.error('Auth error:', error?.message || error);
 		return c.json({ error: 'Unauthenticated' }, 403);
 	}
 };
 
-const checkUserPermission = async function (c, next) {
+const checkUserPermission = async function (c: any, next: any) {
 	const { CLERK_PRIVATE_KEY } = env<{
 		CLERK_PRIVATE_KEY: string;
 	}>(c, 'workerd');
 	const clerkClient = await createClerkClient({ secretKey: CLERK_PRIVATE_KEY });
-	const user = await clerkClient.users.getUser(c.var.userId);
+	const user = await clerkClient.users.getUser((c.var as any).userId);
 
-	console.log('Checking permission for user:', c.var.userId, 'lhUserId:', user.privateMetadata.lhUserId);
+	console.log('Checking permission for user:', (c.var as any).userId, 'lhUserId:', user.privateMetadata.lhUserId);
 
 	if (user.privateMetadata.lhUserId) {
 		return next();
@@ -258,7 +258,7 @@ app.put('/api/clubs/:id', checkAuth, async (c) => {
 app.post('/api/clubs/assignments/', checkAuth, async (c) => {
 	const db = dbInitalizer({ c });
 	const data = await c.req.json();
-	const newClubAssignments = await clubsModel.createClubAssignments(db, data as clubsModel.AssignmentResult);
+	const newClubAssignments = await clubsModel.createClubAssignments(db, data as clubsModel.ClubAssignment);
 	if (newClubAssignments.error) {
 		return c.json(
 			{
@@ -381,7 +381,7 @@ app.get('/api/users/', checkAuth, async (c) => {
 app.post('/api/users/register', checkAuth, async (c) => {
 	const { CLERK_PRIVATE_KEY } = env<{ CLERK_PRIVATE_KEY: string }>(c, 'workerd');
 	const db = dbInitalizer({ c });
-	const clerkUserId = c.var.userId;
+	const clerkUserId = (c.var as any).userId;
 	const clerkClient = await createClerkClient({ secretKey: CLERK_PRIVATE_KEY });
 
 	console.log('Register endpoint hit, clerkUserId:', clerkUserId);
@@ -429,7 +429,7 @@ app.post('/api/users/register', checkAuth, async (c) => {
 			);
 		}
 
-		const userId = newUser.data[0].id;
+		const userId = newUser.data?.[0]?.id;
 
 		// Update Clerk user metadata with the new lhUserId
 		await clerkClient.users.updateUserMetadata(clerkUserId, {
@@ -446,11 +446,11 @@ app.post('/api/users/register', checkAuth, async (c) => {
 			},
 			200
 		);
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Register endpoint error:', error);
 		return c.json(
 			{
-				error: error.message || 'Failed to register user',
+				error: error?.message || 'Failed to register user',
 			},
 			500
 		);
@@ -475,7 +475,7 @@ app.post('/api/users/', checkAuth, checkUserPermission, async (c) => {
 	return c.json(
 		{
 			created: true,
-			id: newUser.data[0].id,
+			id: newUser.data?.[0]?.id,
 		},
 		200
 	);
@@ -485,7 +485,7 @@ app.put('/api/users/:id/', checkAuth, checkUserPermission, async (c) => {
 	const db = dbInitalizer({ c });
 	const id = c.req.param('id');
 	const data = await c.req.json();
-	const formattedData = { id: id, token: data.token, permission: data.permission };
+	const formattedData = { id: parseInt(id, 10), token: data.token, permission: data.permission };
 
 	const updatedUser = await usersModel.updateUser(db, id, formattedData as usersModel.User);
 
@@ -562,7 +562,7 @@ app.post('/api/appointments/', checkAuth, checkUserPermission, async (c) => {
 	return c.json(
 		{
 			created: true,
-			id: newAppointment.data[0].id,
+			id: newAppointment.data?.[0]?.id,
 		},
 		200
 	);
@@ -573,7 +573,7 @@ app.put('/api/appointments/:id', checkAuth, checkUserPermission, async (c) => {
 	const db = dbInitalizer({ c });
 	const id = c.req.param('id');
 	const data = await c.req.json();
-	const clerkUserId = c.var.userId;
+	const clerkUserId = (c.var as any).userId;
 
 	console.log('Update appointment endpoint hit, id:', id, 'data:', JSON.stringify(data));
 
@@ -628,7 +628,7 @@ app.delete('/api/appointments/:id', checkAuth, checkUserPermission, async (c) =>
 	const { CLERK_PRIVATE_KEY } = env<{ CLERK_PRIVATE_KEY: string }>(c, 'workerd');
 	const db = dbInitalizer({ c });
 	const id = c.req.param('id');
-	const clerkUserId = c.var.userId;
+	const clerkUserId = (c.var as any).userId;
 
 	// Get the current user's lhUserId
 	const clerkClient = await createClerkClient({ secretKey: CLERK_PRIVATE_KEY });
@@ -699,7 +699,7 @@ app.post('/api/webhooks/', async (c) => {
 	// Create a new Svix instance with secret.
 	const wh = new Webhook(WEBHOOK_SECRET);
 
-	let evt;
+	let evt: any;
 	const data = await c.req.json();
 
 	// Attempt to verify the incoming webhook
@@ -711,10 +711,10 @@ app.post('/api/webhooks/', async (c) => {
 			'svix-timestamp': svixTime,
 			'svix-signature': svixSig,
 		});
-	} catch (err) {
+	} catch (err: any) {
 		return c.json(
 			{
-				error: err.message,
+				error: err?.message,
 			},
 			400
 		);

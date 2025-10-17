@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 
 export interface Appointment {
 	id: number;
-	schedule: Date;
+	schedule: Date | null;
 	duration: number;
 	user_id: number;
 }
@@ -55,8 +55,8 @@ export const updateAppointment = async (db: NeonHttpDatabase<Record<string, neve
 		};
 
 	console.log('updateAppointment model - input data.schedule:', data.schedule);
-	const scheduleDate = new Date(data.schedule);
-	console.log('updateAppointment model - converted Date:', scheduleDate.toISOString());
+	const scheduleDate = data.schedule ? new Date(data.schedule) : null;
+	console.log('updateAppointment model - converted Date:', scheduleDate?.toISOString());
 
 	try {
 		const results = await db

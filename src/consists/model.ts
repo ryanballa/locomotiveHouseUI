@@ -15,13 +15,13 @@ export interface Result {
 	data?: Consist[] | null;
 }
 
-const checkIfConsistInUse = async (db: NeonHttpDatabase<Record<string, never>>, number: number, id: number | null): Promise<Result> => {
+const checkIfConsistInUse = async (db: NeonHttpDatabase<Record<string, never>>, number: number, id: number | string | null): Promise<Result> => {
 	try {
 		const queryExisting = await selectAddress(db, number);
 		if (queryExisting?.data) {
 			let inUse = queryExisting.data.filter((item) => item.in_use);
 			if (id) {
-				inUse = inUse.filter((item) => parseInt(item.id, 10) !== parseInt(id, 10));
+				inUse = inUse.filter((item) => parseInt(item.id.toString(), 10) !== parseInt(id.toString(), 10));
 			}
 			if (queryExisting.data && inUse.length > 0) {
 				return {

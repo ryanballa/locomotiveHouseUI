@@ -9,7 +9,7 @@ export interface Club {
 
 export interface ClubAssignment {
 	user_id: number;
-	club_id: string;
+	club_id: number;
 }
 
 export interface Result {
@@ -76,7 +76,7 @@ export const updateClub = async (db: NeonHttpDatabase<Record<string, never>>, id
 	}
 };
 
-export const createClubAssignments = async (db: NeonHttpDatabase<Record<string, never>>, data: AssignmentResult): Promise<Result> => {
+export const createClubAssignments = async (db: NeonHttpDatabase<Record<string, never>>, data: ClubAssignment): Promise<AssignmentResult> => {
 	if (!data.user_id || !data.club_id) {
 		return {
 			error: 'Missing body',

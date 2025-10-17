@@ -15,6 +15,8 @@ interface ApiResponse<T> {
   result?: T[];
   error?: string;
   created?: boolean;
+  updated?: boolean;
+  deleted?: boolean;
   id?: number;
 }
 

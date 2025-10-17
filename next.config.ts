@@ -4,8 +4,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Cloudflare Pages compatibility
-  output: "export" as const,
+  // Cloudflare Pages compatibility with edge runtime
   images: {
     unoptimized: true,
   },

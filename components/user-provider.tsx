@@ -12,7 +12,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const ensureUserRegistered = async () => {
       if (!isSignedIn || !user) return;
 
-      const lhUserId = user.privateMetadata?.lhUserId;
+      const lhUserId = (user.unsafeMetadata as any)?.lhUserId;
 
       if (!lhUserId) {
         try {
