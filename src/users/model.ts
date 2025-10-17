@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 export interface User {
 	id: number;
 	token: string;
-	permission: number;
+	permission: number | null;
 }
 
 export interface Result {
@@ -69,7 +69,7 @@ export const updateUser = async (db: NeonHttpDatabase<Record<string, never>>, id
 			error: 'Missing body',
 		};
 
-	if (!data.permission)
+	if (data.permission === undefined)
 		return {
 			error: 'Missing permission',
 		};
