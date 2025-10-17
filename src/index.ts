@@ -735,10 +735,11 @@ app.post('/api/webhooks/', async (c) => {
 	}
 
 	if (evt.type === 'user.deleted') {
+		const { CLERK_PRIVATE_KEY } = env<{ CLERK_PRIVATE_KEY: string }>(c, 'workerd');
 		const formattedData = { ...data.data };
 		formattedData.token = data.data.id;
 
-		const deletedUser = await usersModel.deleteUser(db, formattedData.token);
+		const deletedUser = await usersModel.deleteUser(CLERK_PRIVATE_KEY, formattedData as usersModel.User);
 		if (deletedUser.error) {
 			return c.json(
 				{
