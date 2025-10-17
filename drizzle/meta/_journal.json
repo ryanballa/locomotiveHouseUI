@@ -1,0 +1,97 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1716653593717,
+      "tag": "0000_dapper_toro",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1717116691627,
+      "tag": "0001_black_thor_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1718054856502,
+      "tag": "0002_magical_ravenous",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1723492746727,
+      "tag": "0003_slimy_earthquake",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1723564151049,
+      "tag": "0004_lazy_shocker",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1723675708464,
+      "tag": "0005_low_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1740593248650,
+      "tag": "0006_modern_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1741289085413,
+      "tag": "0007_tough_luminals",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1741290402663,
+      "tag": "0008_spicy_greymalkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1741290441558,
+      "tag": "0009_jittery_odin",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1741290634170,
+      "tag": "0010_ambiguous_bucky",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1760653472065,
+      "tag": "0011_even_cammi",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1760706480776,
+      "tag": "0012_square_wither",
+      "breakpoints": true
+    }
+  ]
+}
