@@ -15,7 +15,7 @@ interface UserMap {
 }
 
 export default function Home() {
-	const { getToken } = useAuth();
+	const { getToken, isSignedIn } = useAuth();
 	const router = useRouter();
 	const [appointments, setAppointments] = useState<Appointment[]>([]);
 	const [users, setUsers] = useState<User[]>([]);
@@ -64,7 +64,13 @@ export default function Home() {
 				await Promise.all(clerkUserPromises);
 				setClerkUsers(userMap);
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to load data');
+				const errorMessage = err instanceof Error ? err.message : 'Failed to load data';
+				// Provide a more user-friendly message for authentication errors
+				if (errorMessage.includes('Unauthenticated') || errorMessage.includes('401')) {
+					setError('Please sign in to view and manage appointments.');
+				} else {
+					setError(errorMessage);
+				}
 			} finally {
 				setLoading(false);
 			}
@@ -246,8 +252,8 @@ export default function Home() {
 
 				{error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}</div>}
 
-				{/* Friday Evening Sessions */}
-				{!loading && (
+				{/* Friday Evening Sessions - Only show when user is signed in */}
+				{!loading && isSignedIn && (
 					<div className="mb-12">
 						<h2 className="text-3xl font-bold text-gray-900 mb-6">Friday Evening Sessions</h2>
 						<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
