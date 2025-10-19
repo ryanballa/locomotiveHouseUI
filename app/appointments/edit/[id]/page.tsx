@@ -298,9 +298,12 @@ export default function EditAppointment() {
                 {formData.date && formData.time && (
                   <li>
                     Scheduled:{" "}
-                    {new Date(
-                      formData.date + "T" + formData.time
-                    ).toLocaleDateString()}{" "}
+                    {(() => {
+                      const [year, month, day] = formData.date.split("-").map(Number);
+                      const { hour, minute } = parse12HourTime(formData.time);
+                      const scheduleDate = new Date(year, month - 1, day, hour, minute);
+                      return scheduleDate.toLocaleDateString();
+                    })()}{" "}
                     at {formData.time}
                   </li>
                 )}
