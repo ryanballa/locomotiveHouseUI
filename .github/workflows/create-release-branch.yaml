@@ -1,0 +1,41 @@
+name: Create Weekly Release Branch
+
+on:
+  schedule:
+    # Runs every Wednesday at 5:00 AM CT (10:00 AM UTC in standard time, 11:00 AM UTC in daylight time)
+    # Using 10:00 UTC as baseline (adjust if needed for DST)
+    - cron: '0 10 * * 3'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release branch
+        run: |
+          # Get current date in MM-DD-YYYY format
+          RELEASE_DATE=$(date -u +"%m-%d-%Y")
+          BRANCH_NAME="release-${RELEASE_DATE}"
+
+          # Check if branch already exists
+          if git ls-remote --heads origin "${BRANCH_NAME}" | grep -q "${BRANCH_NAME}"; then
+            echo "Branch ${BRANCH_NAME} already exists"
+            exit 0
+          fi
+
+          # Create and push the new branch
+          git checkout -b "${BRANCH_NAME}"
+          git push origin "${BRANCH_NAME}"
+
+          echo "Created and pushed branch: ${BRANCH_NAME}"
