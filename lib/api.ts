@@ -11,6 +11,11 @@ export interface User {
   permission: number | null;
 }
 
+export interface Club {
+  id: number;
+  name: string;
+}
+
 interface ApiResponse<T> {
   result?: T[];
   error?: string;
@@ -18,6 +23,11 @@ interface ApiResponse<T> {
   updated?: boolean;
   deleted?: boolean;
   id?: number;
+  club?: {
+    data?: T[];
+    error?: string;
+  } | T[]; // Can be either { data: [...] } or directly [...]
+  address?: any;
 }
 
 class ApiClient {
@@ -159,6 +169,85 @@ class ApiClient {
     return {
       created: response.created || false,
       id: response.id,
+    };
+  }
+
+  // Clubs API
+  async getClubs(token: string): Promise<Club[]> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Club>('/clubs/', {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+    });
+
+    return response.result || [];
+  }
+
+  async createClub(
+    data: Omit<Club, 'id'>,
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Club>('/clubs/', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    // The API returns { club: { data: [...] } } format
+    const created = !!(response.club?.data && response.club.data.length > 0);
+    const id = created ? response.club?.data?.[0]?.id : undefined;
+
+    return {
+      created,
+      id,
+    };
+  }
+
+  async updateClub(
+    id: number,
+    data: Partial<Omit<Club, 'id'>>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Club>(`/clubs/${id}`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    // The API returns { club: [...] } format (array directly)
+    const updated = !!(response.club && Array.isArray(response.club) && response.club.length > 0);
+
+    return {
+      updated,
+    };
+  }
+
+  async deleteClub(
+    id: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Club>(`/clubs/${id}`, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+    });
+
+    return {
+      deleted: response.deleted || false,
     };
   }
 }

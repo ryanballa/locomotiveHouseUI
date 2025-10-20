@@ -26,6 +26,12 @@ export function Navbar() {
                 >
                   Create Appointment
                 </Link>
+                <Link
+                  href="/admin/clubs"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                >
+                  Admin: Clubs
+                </Link>
               </SignedIn>
             </div>
           </div>
