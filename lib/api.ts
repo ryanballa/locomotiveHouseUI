@@ -8,7 +8,9 @@ export interface Appointment {
 export interface User {
   id: number;
   token: string;
+  name?: string;
   permission: number | null;
+  club_id?: number | null;
 }
 
 export interface Club {
@@ -172,6 +174,26 @@ class ApiClient {
     };
   }
 
+  async updateUser(
+    id: number,
+    data: Partial<Omit<User, 'id'>>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<User>(`/users/${id}`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    return {
+      updated: response.updated || false,
+    };
+  }
+
   // Clubs API
   async getClubs(token: string): Promise<Club[]> {
     const authPayload = JSON.stringify({ jwt: token });
@@ -249,6 +271,50 @@ class ApiClient {
     return {
       deleted: response.deleted || false,
     };
+  }
+
+  async getClubById(id: number, token: string): Promise<Club | null> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Club>(`/clubs/${id}`, {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+    });
+
+    // Handle different response formats
+    if (response.club) {
+      // If club is a single object (not an array)
+      if (!Array.isArray(response.club) && typeof response.club === 'object') {
+        return response.club as Club;
+      }
+      // If club is an array
+      if (Array.isArray(response.club)) {
+        return response.club[0] || null;
+      }
+      // If club has a nested data array
+      if (response.club.data && response.club.data.length > 0) {
+        return response.club.data[0];
+      }
+    }
+    if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+    return null;
+  }
+
+  async getClubUsers(clubId: number, token: string): Promise<User[]> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<User>(`/clubs/${clubId}/users`, {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+    });
+
+    return response.result || [];
   }
 }
 
