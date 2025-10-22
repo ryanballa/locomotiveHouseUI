@@ -9,6 +9,7 @@ export interface User {
   id: number;
   token: string;
   name?: string;
+  email?: string;
   permission: number | null;
   club_id?: number | null;
 }
@@ -16,6 +17,15 @@ export interface User {
 export interface Club {
   id: number;
   name: string;
+}
+
+export interface Address {
+  id: number;
+  number: number;
+  description: string;
+  in_use: boolean;
+  user_id: number;
+  club_id?: number;
 }
 
 interface ApiResponse<T> {
@@ -55,8 +65,21 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'API request failed');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: response.statusText };
+        }
+        const errorMessage = errorData.error || errorData.message || `API request failed with status ${response.status}`;
+        console.error('API Error:', {
+          url,
+          status: response.status,
+          error: errorMessage,
+          body: options.body,
+          fullResponse: errorData,
+        });
+        throw new Error(errorMessage);
       }
 
       return await response.json();
@@ -154,6 +177,19 @@ class ApiClient {
     return response.result || [];
   }
 
+  async getClerkUserInfo(clerkUserId: string): Promise<{ name?: string; email?: string }> {
+    try {
+      const response = await fetch(`/api/clerk-user/${encodeURIComponent(clerkUserId)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch Clerk user info');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Clerk user info:', error);
+      return {};
+    }
+  }
+
   async createUser(
     data: Omit<User, 'id'>,
     token: string
@@ -178,10 +214,10 @@ class ApiClient {
     id: number,
     data: Partial<Omit<User, 'id'>>,
     token: string
-  ): Promise<{ updated: boolean }> {
+  ): Promise<{ updated: boolean; clubId?: number | null }> {
     const authPayload = JSON.stringify({ jwt: token });
 
-    const response = await this.fetch<User>(`/users/${id}`, {
+    const response = await this.fetch<User>(`/users/${id}/`, {
       method: 'PUT',
       headers: {
         authorization: `Bearer ${authPayload}`,
@@ -189,8 +225,43 @@ class ApiClient {
       body: JSON.stringify(data),
     });
 
+    // Handle different response formats
+    const updated = response.updated || (response as any).assigned || (response.result && response.result.length > 0) || (response.user && !Array.isArray(response.user) && response.user.id) || (response.user && Array.isArray(response.user) && response.user.length > 0);
+
+    // Extract club_id from the clubs array if present
+    let clubId: number | null | undefined = undefined;
+    if ((response as any).clubs && Array.isArray((response as any).clubs)) {
+      const clubAssignment = (response as any).clubs[0];
+      if (clubAssignment) {
+        clubId = clubAssignment.club_id;
+      }
+    }
+
     return {
-      updated: response.updated || false,
+      updated: !!updated,
+      clubId,
+    };
+  }
+
+  async removeUserFromClub(
+    userId: number,
+    clubId: number,
+    token: string
+  ): Promise<{ removed: boolean }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<any>(`/users/${userId}/clubs/${clubId}`, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+    });
+
+    // Handle different response formats
+    const removed = (response as any).removed || response.deleted || false;
+
+    return {
+      removed: !!removed,
     };
   }
 
@@ -315,6 +386,135 @@ class ApiClient {
     });
 
     return response.result || [];
+  }
+
+  // Addresses API
+  async getAddresses(token?: string): Promise<Address[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      const authPayload = JSON.stringify({ jwt: token });
+      headers['authorization'] = `Bearer ${authPayload}`;
+    }
+
+    const response = await this.fetch<Address>('/addresses/', {
+      method: 'GET',
+      headers,
+    });
+
+    return response.result || [];
+  }
+
+  async createAddress(
+    data: Omit<Address, 'id'>,
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Address>('/addresses/', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    // Handle different response formats
+    let created = false;
+    let id: number | undefined = undefined;
+
+    // Check if response.address.data exists (new format)
+    if ((response as any).address?.data && Array.isArray((response as any).address.data)) {
+      const addressData = (response as any).address.data[0];
+      if (addressData?.id) {
+        created = true;
+        id = addressData.id;
+      }
+    }
+    // Check other formats
+    else if (response.created) {
+      created = true;
+      id = response.id;
+    } else if ((response as any).address && !Array.isArray((response as any).address) && (response as any).address.id) {
+      created = true;
+      id = (response as any).address.id;
+    } else if ((response as any).address && Array.isArray((response as any).address) && (response as any).address.length > 0) {
+      created = true;
+      id = (response as any).address[0]?.id;
+    } else if ((response as any).result && Array.isArray((response as any).result) && (response as any).result.length > 0) {
+      created = true;
+      id = (response as any).result[0]?.id;
+    }
+
+    return {
+      created: !!created,
+      id,
+    };
+  }
+
+  async updateAddress(
+    id: number,
+    data: Partial<Omit<Address, 'id'>>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Address>(`/addresses/${id}`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    // Handle different response formats
+    let updated = false;
+
+    // Check if response.address.data exists
+    if ((response as any).address?.data && Array.isArray((response as any).address.data)) {
+      updated = (response as any).address.data.length > 0;
+    } else if (response.updated) {
+      updated = true;
+    } else if ((response as any).address && !Array.isArray((response as any).address) && (response as any).address.id) {
+      updated = true;
+    } else if ((response as any).address && Array.isArray((response as any).address)) {
+      updated = (response as any).address.length > 0;
+    }
+
+    return {
+      updated: !!updated,
+    };
+  }
+
+  async deleteAddress(
+    id: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    const response = await this.fetch<Address>(`/addresses/${id}`, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${authPayload}`,
+      },
+    });
+
+    // Handle different response formats
+    let deleted = false;
+
+    // Check if response.address.data exists
+    if ((response as any).address?.data && Array.isArray((response as any).address.data)) {
+      deleted = (response as any).address.data.length > 0;
+    } else if (response.deleted) {
+      deleted = true;
+    } else if ((response as any).address && !Array.isArray((response as any).address) && (response as any).address.id) {
+      deleted = true;
+    } else if ((response as any).address && Array.isArray((response as any).address)) {
+      deleted = (response as any).address.length > 0;
+    }
+
+    return {
+      deleted: !!deleted,
+    };
   }
 }
 

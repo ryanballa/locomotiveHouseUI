@@ -53,11 +53,17 @@ export default function Home() {
         const userMap: UserMap = {};
         const clerkUserPromises = usersData.map(async (user) => {
           try {
-            const response = await fetch(`/api/clerk-user/${user.token}`);
+            const response = await fetch(`/api/clerk-user/${encodeURIComponent(user.token)}`);
             const data = await response.json();
-            if (data.name) {
-              userMap[user.id] = data.name;
-            }
+
+            // Extract club_id from clubs array if present
+            const clubId = (user as any).clubs && (user as any).clubs.length > 0
+              ? (user as any).clubs[0].club_id
+              : user.club_id;
+
+            // Use name from Clerk if available, otherwise use database name
+            const displayName = data.name || user.name || `User ${user.id}`;
+            userMap[user.id] = { name: displayName, clubId };
           } catch (err) {
             console.error(`Failed to fetch Clerk user for ${user.token}`, err);
           }

@@ -32,6 +32,12 @@ export function Navbar() {
                 >
                   Admin: Clubs
                 </Link>
+                <Link
+                  href="/addresses"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                >
+                  Addresses
+                </Link>
               </SignedIn>
             </div>
           </div>

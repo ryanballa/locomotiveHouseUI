@@ -47,18 +47,31 @@ export default function ClubDetailPage() {
         return;
       }
 
+      // Find the user to get their permission level
+      const userToAssign = unassignedUsers.find((u) => u.id === userId);
+      const updateData: any = { club_id: clubId };
+
+      // Include permission if the user has it
+      if (userToAssign?.permission !== undefined) {
+        updateData.permission = userToAssign.permission;
+      }
+
       const result = await apiClient.updateUser(
         userId,
-        { club_id: clubId },
+        updateData,
         token
       );
+
       if (result.updated) {
+        // Refetch to ensure data is in sync
         await fetchClubDetails();
       } else {
-        setError("Failed to assign user to club");
+        setError("Failed to assign user to club - API returned false");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to assign user");
+      const errorMsg = err instanceof Error ? err.message : "Failed to assign user";
+      console.error("Error assigning user:", err);
+      setError(errorMsg);
     } finally {
       setAssigningUserId(null);
     }
@@ -74,15 +87,17 @@ export default function ClubDetailPage() {
         return;
       }
 
-      const result = await apiClient.updateUser(
+      // Use the new DELETE endpoint to remove user from club
+      const result = await apiClient.removeUserFromClub(
         userId,
-        { club_id: null },
+        clubId,
         token
       );
-      if (result.updated) {
+      if (result.removed) {
+        // Refetch to ensure data is in sync
         await fetchClubDetails();
       } else {
-        setError("Failed to unassign user from club");
+        setError("Failed to remove user from club");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to unassign user");
@@ -98,7 +113,7 @@ export default function ClubDetailPage() {
       users.map(async (user) => {
         try {
           // Fetch Clerk user data from our API route
-          const response = await fetch(`/api/clerk-user/${user.token}`);
+          const response = await fetch(`/api/clerk-user/${encodeURIComponent(user.token)}`);
 
           if (response.ok) {
             const data = await response.json();
@@ -147,10 +162,28 @@ export default function ClubDetailPage() {
 
       setClub(clubData);
 
-      // Filter users by club_id
-      const clubUsers = allUsers.filter((user) => user.club_id === clubId);
-      const usersWithoutClub = allUsers.filter(
-        (user) => !user.club_id || user.club_id === null
+      // Extract club_id from clubs array for each user
+      const usersWithClubId = allUsers.map((user) => {
+        const clubIds = (user as any).clubs && Array.isArray((user as any).clubs)
+          ? (user as any).clubs.map((c: any) => c.club_id)
+          : [];
+        return {
+          ...user,
+          clubIds,
+          club_id: clubIds.length > 0 ? clubIds[0] : user.club_id, // Use first club for primary display
+        };
+      });
+
+      // Filter users by club_id - check if the club is in their clubs array
+      const clubUsers = usersWithClubId.filter((user) => {
+        const userClubIds = (user as any).clubIds || [];
+        return userClubIds.includes(clubId) || user.club_id === clubId;
+      });
+      const usersWithoutClub = usersWithClubId.filter(
+        (user) => {
+          const userClubIds = (user as any).clubIds || [];
+          return userClubIds.length === 0 || (!userClubIds.includes(clubId) && !user.club_id);
+        }
       );
 
       // Enrich users with Clerk data
