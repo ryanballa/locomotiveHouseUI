@@ -24,8 +24,9 @@ jobs:
 
       - name: Create release branch
         run: |
-          # Get current date in MM-DD-YYYY format
-          RELEASE_DATE=$(date -u +"%m-%d-%Y")
+          # Get current date in MM-DD-YYYY format (Central Time)
+          # GitHub Actions runs in UTC, so we need to convert to CT
+          RELEASE_DATE=$(date -d "now - 5 hours" +"%m-%d-%Y")
           BRANCH_NAME="release-${RELEASE_DATE}"
 
           # Check if branch already exists
@@ -34,7 +35,8 @@ jobs:
             exit 0
           fi
 
-          # Create and push the new branch
+          # Create and push the new branch from main
+          git checkout main
           git checkout -b "${BRANCH_NAME}"
           git push origin "${BRANCH_NAME}"
 
