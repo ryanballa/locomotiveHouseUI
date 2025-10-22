@@ -11,7 +11,7 @@ interface GroupedAppointments {
 }
 
 interface UserMap {
-  [userId: number]: string;
+  [userId: number]: { name: string; clubId?: number | null };
 }
 
 export default function Home() {
@@ -422,7 +422,7 @@ export default function Home() {
                       <div className="border-t pt-4">
                         <p className="text-sm text-gray-500 mb-3">
                           {clerkUsers[appointment.user_id]
-                            ? `Club Member: ${clerkUsers[appointment.user_id]}`
+                            ? `Club Member: ${clerkUsers[appointment.user_id].name}`
                             : `User ID: ${appointment.user_id}`}
                         </p>
                         {currentUserLhId === appointment.user_id && (
