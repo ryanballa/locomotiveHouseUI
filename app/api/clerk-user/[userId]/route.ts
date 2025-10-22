@@ -21,12 +21,14 @@ export async function GET(
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
 
-    // Return user's name
+    // Return user's name and email
     const name = user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`
       : user.firstName || user.lastName || user.emailAddresses[0]?.emailAddress || 'Unknown User';
 
-    return NextResponse.json({ name });
+    const email = user.emailAddresses[0]?.emailAddress || null;
+
+    return NextResponse.json({ name, email });
   } catch (error) {
     console.error('Error fetching Clerk user:', error);
     return NextResponse.json(

@@ -11,7 +11,7 @@ interface GroupedAppointments {
 }
 
 interface UserMap {
-  [userId: number]: string;
+  [userId: number]: { name: string; clubId?: number | null };
 }
 
 export default function Home() {
@@ -53,11 +53,17 @@ export default function Home() {
         const userMap: UserMap = {};
         const clerkUserPromises = usersData.map(async (user) => {
           try {
-            const response = await fetch(`/api/clerk-user/${user.token}`);
+            const response = await fetch(`/api/clerk-user/${encodeURIComponent(user.token)}`);
             const data = await response.json();
-            if (data.name) {
-              userMap[user.id] = data.name;
-            }
+
+            // Extract club_id from clubs array if present
+            const clubId = (user as any).clubs && (user as any).clubs.length > 0
+              ? (user as any).clubs[0].club_id
+              : user.club_id;
+
+            // Use name from Clerk if available, otherwise use database name
+            const displayName = data.name || user.name || `User ${user.id}`;
+            userMap[user.id] = { name: displayName, clubId };
           } catch (err) {
             console.error(`Failed to fetch Clerk user for ${user.token}`, err);
           }
@@ -416,7 +422,7 @@ export default function Home() {
                       <div className="border-t pt-4">
                         <p className="text-sm text-gray-500 mb-3">
                           {clerkUsers[appointment.user_id]
-                            ? `Club Member: ${clerkUsers[appointment.user_id]}`
+                            ? `Club Member: ${clerkUsers[appointment.user_id].name}`
                             : `User ID: ${appointment.user_id}`}
                         </p>
                         {currentUserLhId === appointment.user_id && (

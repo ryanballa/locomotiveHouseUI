@@ -1,0 +1,74 @@
+name: Merge Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_branch:
+        description: 'Release branch to merge (e.g., release-10-22-2025)'
+        required: true
+        type: string
+      target_branch:
+        description: 'Target branch to merge into'
+        required: true
+        type: choice
+        options:
+          - main
+          - master
+        default: main
+
+jobs:
+  validate-and-merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Validate release branch exists
+        run: |
+          if ! git ls-remote --heads origin "${{ inputs.release_branch }}" | grep -q "${{ inputs.release_branch }}"; then
+            echo "Error: Release branch ${{ inputs.release_branch }} does not exist"
+            exit 1
+          fi
+          echo "Release branch ${{ inputs.release_branch }} exists"
+
+      - name: Checkout release branch
+        run: |
+          git fetch origin ${{ inputs.release_branch }}
+          git checkout ${{ inputs.release_branch }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge release branch
+        run: |
+          git fetch origin ${{ inputs.target_branch }}
+          git checkout ${{ inputs.target_branch }}
+          git merge --no-ff origin/${{ inputs.release_branch }} -m "Merge ${{ inputs.release_branch }} into ${{ inputs.target_branch }}"
+          git push origin ${{ inputs.target_branch }}
+
+      - name: Create and push tag
+        run: |
+          git tag ${{ inputs.release_branch }}
+          git push origin ${{ inputs.release_branch }}
+
+      - name: Success notification
+        run: |
+          echo "Successfully merged ${{ inputs.release_branch }} into ${{ inputs.target_branch }}"
+          echo "Created tag ${{ inputs.release_branch }}"
