@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Club, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
-import { permission } from "process";
+import { AdminGuard } from "@/components/AdminGuard";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 interface EnrichedUser extends User {
   clerkName?: string;
   clerkEmail?: string;
 }
 
-export default function ClubDetailPage() {
-  const { getToken, isSignedIn } = useAuth();
-  const { user } = useUser();
+function ClubDetailPageContent() {
+  const { getToken } = useAuth();
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
@@ -22,7 +22,6 @@ export default function ClubDetailPage() {
   const [club, setClub] = useState<Club | null>(null);
   const [users, setUsers] = useState<EnrichedUser[]>([]);
   const [unassignedUsers, setUnassignedUsers] = useState<EnrichedUser[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
@@ -30,8 +29,7 @@ export default function ClubDetailPage() {
     null
   );
 
-  // Check if current user is admin (permission level 1 or 3)
-  const isAdmin = currentUser && (currentUser.permission === 1 || currentUser.permission === 3);
+  const { isAdmin } = useAdminCheck();
 
   useEffect(() => {
     if (isNaN(clubId)) {
@@ -165,20 +163,6 @@ export default function ClubDetailPage() {
         apiClient.getUsers(token),
       ]);
 
-      // Check if current user is admin
-      const clerkUserId = user?.id;
-      const matchedUser = allUsers.find((u) => u.token === clerkUserId);
-      setCurrentUser(matchedUser || null);
-
-      if (!matchedUser || (matchedUser.permission !== 1 && matchedUser.permission !== 3)) {
-        setError("You do not have permission to access this page.");
-        setClub(null);
-        setUsers([]);
-        setUnassignedUsers([]);
-        setLoading(false);
-        return;
-      }
-
       setClub(clubData);
 
       // Extract club_id from clubs array for each user
@@ -229,19 +213,6 @@ export default function ClubDetailPage() {
       setLoading(false);
     }
   };
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
-            Please sign in to access the admin panel.
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -435,5 +406,13 @@ export default function ClubDetailPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ClubDetailPage() {
+  return (
+    <AdminGuard>
+      <ClubDetailPageContent />
+    </AdminGuard>
   );
 }

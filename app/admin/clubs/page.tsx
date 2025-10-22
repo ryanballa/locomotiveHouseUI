@@ -1,36 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { apiClient, type Club, type User } from "@/lib/api";
+import { apiClient, type Club } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
+import { AdminGuard } from "@/components/AdminGuard";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
-export default function AdminClubsPage() {
-  const { getToken, isSignedIn } = useAuth();
-  const { user } = useUser();
+function AdminClubsPageContent() {
+  const { getToken } = useAuth();
   const router = useRouter();
   const [clubs, setClubs] = useState<Club[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: "" });
 
-  // Check if current user is admin (permission level 1 or 3)
-  const isAdmin = currentUser && (currentUser.permission === 1 || currentUser.permission === 3);
+  const { isAdmin } = useAdminCheck();
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetchData();
+    if (isAdmin) {
+      fetchClubs();
     }
-  }, [isSignedIn]);
+  }, [isAdmin]);
 
-  const fetchData = async () => {
+  const fetchClubs = async () => {
     try {
-      setLoading(true);
+      setPageLoading(true);
       setError(null);
       const token = await getToken();
       if (!token) {
@@ -38,24 +37,7 @@ export default function AdminClubsPage() {
         return;
       }
 
-      // Fetch current user and clubs in parallel
-      const [usersData, clubsData] = await Promise.all([
-        apiClient.getUsers(token),
-        apiClient.getClubs(token),
-      ]);
-
-      // Find current user by matching Clerk ID
-      const clerkUserId = user?.id;
-      const matchedUser = usersData.find((u) => u.token === clerkUserId);
-      setCurrentUser(matchedUser || null);
-
-      // Check if user is admin
-      if (!matchedUser || (matchedUser.permission !== 1 && matchedUser.permission !== 3)) {
-        setError("You do not have permission to access the admin panel.");
-        setClubs([]);
-        return;
-      }
-
+      const clubsData = await apiClient.getClubs(token);
       setClubs(clubsData);
     } catch (err) {
       const errorMessage =
@@ -69,7 +51,7 @@ export default function AdminClubsPage() {
         setError(errorMessage);
       }
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -91,7 +73,7 @@ export default function AdminClubsPage() {
       const result = await apiClient.createClub({ name: formData.name }, token);
       if (result.created) {
         setFormData({ name: "" });
-        await fetchData();
+        await fetchClubs();
       } else {
         setError("Failed to create club");
       }
@@ -124,7 +106,7 @@ export default function AdminClubsPage() {
       if (result.updated) {
         setEditingId(null);
         setFormData({ name: "" });
-        await fetchData();
+        await fetchClubs();
       } else {
         setError("Failed to update club");
       }
@@ -149,7 +131,7 @@ export default function AdminClubsPage() {
 
       const result = await apiClient.deleteClub(id, token);
       if (result.deleted) {
-        await fetchData();
+        await fetchClubs();
       } else {
         setError("Failed to delete club");
       }
@@ -171,19 +153,6 @@ export default function AdminClubsPage() {
     setFormData({ name: "" });
     setError(null);
   };
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
-            Please sign in to access the admin panel.
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -228,7 +197,7 @@ export default function AdminClubsPage() {
         </div>
 
         {/* Clubs List */}
-        {loading ? (
+        {pageLoading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -328,5 +297,13 @@ export default function AdminClubsPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AdminClubsPage() {
+  return (
+    <AdminGuard>
+      <AdminClubsPageContent />
+    </AdminGuard>
   );
 }
