@@ -41,11 +41,11 @@ export default function AddressesPage() {
 
   // Fetch data when signed in, metadata can load in the background
   useEffect(() => {
-    if (getToken && isSignedIn) {
+    if (isSignedIn) {
       console.log("Fetching data. currentUserLhId:", currentUserLhId);
       fetchData();
     }
-  }, [getToken, isSignedIn]);
+  }, [isSignedIn]);
 
   // Update available clubs for the selected user
   useEffect(() => {
@@ -290,6 +290,7 @@ export default function AddressesPage() {
       description: address.description,
       in_use: address.in_use,
       user_id: address.user_id,
+      club_id: address.club_id || 0,
     });
     setError(null);
   };

@@ -226,7 +226,7 @@ class ApiClient {
     });
 
     // Handle different response formats
-    const updated = response.updated || (response as any).assigned || (response.result && response.result.length > 0) || (response.user && !Array.isArray(response.user) && response.user.id) || (response.user && Array.isArray(response.user) && response.user.length > 0);
+    const updated = response.updated || (response as any).assigned || (response.result && response.result.length > 0) || ((response as any).user && !Array.isArray((response as any).user) && (response as any).user.id) || ((response as any).user && Array.isArray((response as any).user) && (response as any).user.length > 0);
 
     // Extract club_id from the clubs array if present
     let clubId: number | null | undefined = undefined;
@@ -294,8 +294,8 @@ class ApiClient {
     });
 
     // The API returns { club: { data: [...] } } format
-    const created = !!(response.club?.data && response.club.data.length > 0);
-    const id = created ? response.club?.data?.[0]?.id : undefined;
+    const created = !!((response as any).club?.data && (response as any).club.data.length > 0);
+    const id = created ? (response as any).club?.data?.[0]?.id : undefined;
 
     return {
       created,
@@ -355,18 +355,18 @@ class ApiClient {
     });
 
     // Handle different response formats
-    if (response.club) {
+    if ((response as any).club) {
       // If club is a single object (not an array)
-      if (!Array.isArray(response.club) && typeof response.club === 'object') {
-        return response.club as Club;
+      if (!Array.isArray((response as any).club) && typeof (response as any).club === 'object') {
+        return (response as any).club as Club;
       }
       // If club is an array
-      if (Array.isArray(response.club)) {
-        return response.club[0] || null;
+      if (Array.isArray((response as any).club)) {
+        return ((response as any).club[0] || null) as Club | null;
       }
       // If club has a nested data array
-      if (response.club.data && response.club.data.length > 0) {
-        return response.club.data[0];
+      if ((response as any).club.data && (response as any).club.data.length > 0) {
+        return (response as any).club.data[0];
       }
     }
     if (response.result && response.result.length > 0) {
