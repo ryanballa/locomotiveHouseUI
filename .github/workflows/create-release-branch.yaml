@@ -24,10 +24,19 @@ jobs:
 
       - name: Create release branch
         run: |
-          # Get current date in MM-DD-YYYY format (Central Time)
+          # Get next Wednesday's date in MM-DD-YYYY format (Central Time)
           # GitHub Actions runs in UTC, so we need to convert to CT
-          RELEASE_DATE=$(date -d "now - 5 hours" +"%m-%d-%Y")
-          BRANCH_NAME="release-${RELEASE_DATE}"
+          CURRENT_DATE=$(date -d "now - 5 hours" +"%Y-%m-%d")
+          CURRENT_DAY=$(date -d "${CURRENT_DATE}" +"%u")  # 1=Monday, 3=Wednesday, 7=Sunday
+
+          # Calculate days until next Wednesday (3)
+          DAYS_UNTIL_WEDNESDAY=$(( (3 - CURRENT_DAY + 7) % 7 ))
+          if [ ${DAYS_UNTIL_WEDNESDAY} -eq 0 ]; then
+            DAYS_UNTIL_WEDNESDAY=7  # If today is Wednesday, get next week's Wednesday
+          fi
+
+          NEXT_WEDNESDAY=$(date -d "${CURRENT_DATE} + ${DAYS_UNTIL_WEDNESDAY} days" +"%m-%d-%Y")
+          BRANCH_NAME="release-${NEXT_WEDNESDAY}"
 
           # Check if branch already exists
           if git ls-remote --heads origin "${BRANCH_NAME}" | grep -q "${BRANCH_NAME}"; then
