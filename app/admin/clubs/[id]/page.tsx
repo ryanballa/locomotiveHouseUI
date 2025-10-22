@@ -14,6 +14,7 @@ interface EnrichedUser extends User {
 
 export default function ClubDetailPage() {
   const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
@@ -21,12 +22,16 @@ export default function ClubDetailPage() {
   const [club, setClub] = useState<Club | null>(null);
   const [users, setUsers] = useState<EnrichedUser[]>([]);
   const [unassignedUsers, setUnassignedUsers] = useState<EnrichedUser[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
   const [unassigningUserId, setUnassigningUserId] = useState<number | null>(
     null
   );
+
+  // Check if current user is admin (permission level 1 or 3)
+  const isAdmin = currentUser && (currentUser.permission === 1 || currentUser.permission === 3);
 
   useEffect(() => {
     if (isNaN(clubId)) {
@@ -159,6 +164,20 @@ export default function ClubDetailPage() {
         apiClient.getClubById(clubId, token),
         apiClient.getUsers(token),
       ]);
+
+      // Check if current user is admin
+      const clerkUserId = user?.id;
+      const matchedUser = allUsers.find((u) => u.token === clerkUserId);
+      setCurrentUser(matchedUser || null);
+
+      if (!matchedUser || (matchedUser.permission !== 1 && matchedUser.permission !== 3)) {
+        setError("You do not have permission to access this page.");
+        setClub(null);
+        setUsers([]);
+        setUnassignedUsers([]);
+        setLoading(false);
+        return;
+      }
 
       setClub(clubData);
 

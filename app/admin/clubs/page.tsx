@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { apiClient, type Club } from "@/lib/api";
+import { apiClient, type Club, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 
 export default function AdminClubsPage() {
   const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
   const [clubs, setClubs] = useState<Club[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -17,11 +19,16 @@ export default function AdminClubsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: "" });
 
-  useEffect(() => {
-    fetchClubs();
-  }, [getToken]);
+  // Check if current user is admin (permission level 1 or 3)
+  const isAdmin = currentUser && (currentUser.permission === 1 || currentUser.permission === 3);
 
-  const fetchClubs = async () => {
+  useEffect(() => {
+    if (isSignedIn) {
+      fetchData();
+    }
+  }, [isSignedIn]);
+
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -31,7 +38,24 @@ export default function AdminClubsPage() {
         return;
       }
 
-      const clubsData = await apiClient.getClubs(token);
+      // Fetch current user and clubs in parallel
+      const [usersData, clubsData] = await Promise.all([
+        apiClient.getUsers(token),
+        apiClient.getClubs(token),
+      ]);
+
+      // Find current user by matching Clerk ID
+      const clerkUserId = user?.id;
+      const matchedUser = usersData.find((u) => u.token === clerkUserId);
+      setCurrentUser(matchedUser || null);
+
+      // Check if user is admin
+      if (!matchedUser || (matchedUser.permission !== 1 && matchedUser.permission !== 3)) {
+        setError("You do not have permission to access the admin panel.");
+        setClubs([]);
+        return;
+      }
+
       setClubs(clubsData);
     } catch (err) {
       const errorMessage =
@@ -67,7 +91,7 @@ export default function AdminClubsPage() {
       const result = await apiClient.createClub({ name: formData.name }, token);
       if (result.created) {
         setFormData({ name: "" });
-        await fetchClubs();
+        await fetchData();
       } else {
         setError("Failed to create club");
       }
@@ -100,7 +124,7 @@ export default function AdminClubsPage() {
       if (result.updated) {
         setEditingId(null);
         setFormData({ name: "" });
-        await fetchClubs();
+        await fetchData();
       } else {
         setError("Failed to update club");
       }
@@ -125,7 +149,7 @@ export default function AdminClubsPage() {
 
       const result = await apiClient.deleteClub(id, token);
       if (result.deleted) {
-        await fetchClubs();
+        await fetchData();
       } else {
         setError("Failed to delete club");
       }
