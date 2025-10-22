@@ -4,8 +4,11 @@ on:
   schedule:
     # Runs every Wednesday at 5:00 AM CT (10:00 AM UTC in standard time, 11:00 AM UTC in daylight time)
     # Using 10:00 UTC as baseline (adjust if needed for DST)
-    - cron: '0 10 * * 3'
+    - cron: "0 10 * * 3"
   workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: write
 
 jobs:
   create-release-branch:
