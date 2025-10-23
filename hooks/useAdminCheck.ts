@@ -3,11 +3,24 @@ import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
 import type { User } from "@/lib/api";
 
+type AdminCheckError =
+  | {
+      code:
+        | "UNAUTHENTICATED"
+        | "FORBIDDEN"
+        | "USER_NOT_FOUND"
+        | "NETWORK"
+        | "UNKNOWN";
+      message: string;
+      cause?: unknown;
+    }
+  | null;
+
 interface UseAdminCheckReturn {
   isAdmin: boolean;
   currentUser: User | null;
   loading: boolean;
-  error: string | null;
+  error: AdminCheckError;
 }
 
 /**
@@ -19,7 +32,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
   const { getToken, isSignedIn } = useAuth();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AdminCheckError>(null);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -35,7 +48,10 @@ export function useAdminCheck(): UseAdminCheckReturn {
 
         const token = await getToken();
         if (!token) {
-          setError("Authentication required");
+          setError({
+            code: "UNAUTHENTICATED",
+            message: "Authentication token is required. Please sign in.",
+          });
           setLoading(false);
           return;
         }
@@ -47,23 +63,44 @@ export function useAdminCheck(): UseAdminCheckReturn {
 
         // Validate admin permission
         if (!currentUserData) {
-          setError("User not found in database");
+          setError({
+            code: "USER_NOT_FOUND",
+            message: "User not found in database.",
+          });
         } else if (
           currentUserData.permission !== 1 &&
           currentUserData.permission !== 3
         ) {
-          setError("You do not have permission to access this resource.");
+          setError({
+            code: "FORBIDDEN",
+            message: "You do not have permission to access this resource.",
+          });
         }
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to check admin status";
+        const cause = err instanceof Error ? err : new Error(String(err));
+        const errorMessage = cause.message || "Failed to check admin status";
+
         if (
           errorMessage.includes("Unauthenticated") ||
           errorMessage.includes("401")
         ) {
-          setError("Please sign in to access this resource.");
+          setError({
+            code: "UNAUTHENTICATED",
+            message: "Your session has expired. Please sign in again.",
+            cause,
+          });
+        } else if (errorMessage.includes("Network") || errorMessage.includes("ECONNREFUSED")) {
+          setError({
+            code: "NETWORK",
+            message: "Network error while checking admin status.",
+            cause,
+          });
         } else {
-          setError(errorMessage);
+          setError({
+            code: "UNKNOWN",
+            message: errorMessage,
+            cause,
+          });
         }
       } finally {
         setLoading(false);
