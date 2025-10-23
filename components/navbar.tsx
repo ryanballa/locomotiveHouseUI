@@ -10,7 +10,7 @@ export function Navbar() {
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [isAppointmentsDropdownOpen, setIsAppointmentsDropdownOpen] = useState(false);
   const { isAdmin, loading } = useAdminCheck();
-  const { clubId } = useClubCheck();
+  const { clubId, loading: clubLoading } = useClubCheck();
 
   return (
     <nav className="bg-gray-800 text-white shadow-lg">
@@ -49,7 +49,9 @@ export function Navbar() {
                   {/* Appointments Dropdown Menu */}
                   {isAppointmentsDropdownOpen && (
                     <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
-                      {clubId && (
+                      {clubLoading ? (
+                        <div className="px-4 py-2 text-sm text-gray-400">Loading...</div>
+                      ) : clubId ? (
                         <>
                           <Link
                             href={`/club/${clubId}/appointments`}
@@ -66,6 +68,8 @@ export function Navbar() {
                             Create Appointment
                           </Link>
                         </>
+                      ) : (
+                        <div className="px-4 py-2 text-sm text-gray-400">No club assigned</div>
                       )}
                     </div>
                   )}
