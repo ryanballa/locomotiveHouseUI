@@ -74,12 +74,14 @@ export function Navbar() {
                     </div>
                   )}
                 </div>
-                <Link
-                  href="/addresses"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
-                >
-                  Addresses
-                </Link>
+                {clubId ? (
+                  <Link
+                    href={`/club/${clubId}/addresses`}
+                    className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                  >
+                    Addresses
+                  </Link>
+                ) : null}
 
                 {/* Admin Dropdown - Only visible to admin users */}
                 {!loading && isAdmin && (
