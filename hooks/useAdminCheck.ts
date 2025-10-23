@@ -52,6 +52,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
         if (!isSignedIn) {
           if (!isActive) return;
           setCurrentUser(null);
+          setLoading(false);
           return;
         }
 
@@ -63,6 +64,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
             code: "UNAUTHENTICATED",
             message: "Authentication token is required. Please sign in.",
           });
+          setLoading(false);
           return;
         }
 
