@@ -6,6 +6,12 @@ on:
     # Using 10:00 UTC as baseline (adjust if needed for DST)
     - cron: "0 10 * * 3"
   workflow_dispatch: # Allows manual triggering
+    inputs:
+      use_today:
+        description: 'Use today\'s date instead of next Wednesday'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,19 +33,28 @@ jobs:
 
       - name: Create release branch
         run: |
-          # Get next Wednesday's date in MM-DD-YYYY format (Central Time)
+          # Get current date in CT (Central Time)
           # GitHub Actions runs in UTC, so we need to convert to CT
           CURRENT_DATE=$(date -d "now - 5 hours" +"%Y-%m-%d")
-          CURRENT_DAY=$(date -d "${CURRENT_DATE}" +"%u")  # 1=Monday, 3=Wednesday, 7=Sunday
 
-          # Calculate days until next Wednesday (3)
-          DAYS_UNTIL_WEDNESDAY=$(( (3 - CURRENT_DAY + 7) % 7 ))
-          if [ ${DAYS_UNTIL_WEDNESDAY} -eq 0 ]; then
-            DAYS_UNTIL_WEDNESDAY=7  # If today is Wednesday, get next week's Wednesday
+          # Check if we should use today's date or next Wednesday
+          if [ "${{ github.event.inputs.use_today }}" == "true" ]; then
+            # Use today's date
+            RELEASE_DATE=$(date -d "${CURRENT_DATE}" +"%m-%d-%Y")
+          else
+            # Get next Wednesday's date in MM-DD-YYYY format
+            CURRENT_DAY=$(date -d "${CURRENT_DATE}" +"%u")  # 1=Monday, 3=Wednesday, 7=Sunday
+
+            # Calculate days until next Wednesday (3)
+            DAYS_UNTIL_WEDNESDAY=$(( (3 - CURRENT_DAY + 7) % 7 ))
+            if [ ${DAYS_UNTIL_WEDNESDAY} -eq 0 ]; then
+              DAYS_UNTIL_WEDNESDAY=7  # If today is Wednesday, get next week's Wednesday
+            fi
+
+            RELEASE_DATE=$(date -d "${CURRENT_DATE} + ${DAYS_UNTIL_WEDNESDAY} days" +"%m-%d-%Y")
           fi
 
-          NEXT_WEDNESDAY=$(date -d "${CURRENT_DATE} + ${DAYS_UNTIL_WEDNESDAY} days" +"%m-%d-%Y")
-          BRANCH_NAME="release-${NEXT_WEDNESDAY}"
+          BRANCH_NAME="release-${RELEASE_DATE}"
 
           # Check if branch already exists
           if git ls-remote --heads origin "${BRANCH_NAME}" | grep -q "${BRANCH_NAME}"; then
