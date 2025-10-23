@@ -4,10 +4,13 @@ import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useClubCheck } from '@/hooks/useClubCheck';
 
 export function Navbar() {
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
+  const [isAppointmentsDropdownOpen, setIsAppointmentsDropdownOpen] = useState(false);
   const { isAdmin, loading } = useAdminCheck();
+  const { clubId } = useClubCheck();
 
   return (
     <nav className="bg-gray-800 text-white shadow-lg">
@@ -18,19 +21,55 @@ export function Navbar() {
               Locomotive House
             </Link>
             <div className="hidden md:flex space-x-4">
-              <Link
-                href="/"
-                className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
-              >
-                Appointments
-              </Link>
               <SignedIn>
-                <Link
-                  href="/appointments/create"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
-                >
-                  Create Appointment
-                </Link>
+                {/* Appointments Dropdown */}
+                <div className="relative group">
+                  <button
+                    onClick={() => setIsAppointmentsDropdownOpen(!isAppointmentsDropdownOpen)}
+                    className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
+                  >
+                    Appointments
+                    <svg
+                      className={`w-4 h-4 transition-transform ${
+                        isAppointmentsDropdownOpen ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Appointments Dropdown Menu */}
+                  {isAppointmentsDropdownOpen && (
+                    <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
+                      {clubId && (
+                        <>
+                          <Link
+                            href={`/club/${clubId}/appointments`}
+                            className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
+                            onClick={() => setIsAppointmentsDropdownOpen(false)}
+                          >
+                            View Appointments
+                          </Link>
+                          <Link
+                            href={`/club/${clubId}/appointments/create`}
+                            className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
+                            onClick={() => setIsAppointmentsDropdownOpen(false)}
+                          >
+                            Create Appointment
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Link
                   href="/addresses"
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
