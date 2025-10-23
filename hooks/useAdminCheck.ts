@@ -49,7 +49,6 @@ export function useAdminCheck(): UseAdminCheckReturn {
 
         if (!isSignedIn) {
           setCurrentUser(null);
-          setLoading(false);
           return;
         }
 
@@ -59,7 +58,6 @@ export function useAdminCheck(): UseAdminCheckReturn {
             code: "UNAUTHENTICATED",
             message: "Authentication token is required. Please sign in.",
           });
-          setLoading(false);
           return;
         }
 
@@ -119,6 +117,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
           });
         }
       } finally {
+        // Centralized loading state management - runs regardless of early returns
         setLoading(false);
       }
     };
