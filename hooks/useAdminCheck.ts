@@ -16,9 +16,16 @@ type AdminCheckError =
     }
   | null;
 
+/**
+ * Minimal user shape exposed by the admin check hook
+ * Contains only the essential data needed to verify admin status
+ * Prevents accidental mutations and reduces coupling
+ */
+type MinimalUser = Readonly<Pick<User, "id" | "permission">>;
+
 interface UseAdminCheckReturn {
   isAdmin: boolean;
-  currentUser: User | null;
+  currentUser: MinimalUser | null;
   loading: boolean;
   error: AdminCheckError;
 }
@@ -30,7 +37,7 @@ interface UseAdminCheckReturn {
  */
 export function useAdminCheck(): UseAdminCheckReturn {
   const { getToken, isSignedIn } = useAuth();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<MinimalUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AdminCheckError>(null);
 
@@ -59,7 +66,16 @@ export function useAdminCheck(): UseAdminCheckReturn {
         // Fetch current user from the API
         const currentUserData = await apiClient.getCurrentUser(token);
 
-        setCurrentUser(currentUserData);
+        // Extract only the minimal user data needed for admin check
+        if (currentUserData) {
+          const minimalUser: MinimalUser = {
+            id: currentUserData.id,
+            permission: currentUserData.permission,
+          };
+          setCurrentUser(minimalUser);
+        } else {
+          setCurrentUser(null);
+        }
 
         // Validate admin permission
         if (!currentUserData) {
