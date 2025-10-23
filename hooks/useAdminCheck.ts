@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
 import type { User } from "@/lib/api";
 
@@ -12,11 +12,11 @@ interface UseAdminCheckReturn {
 
 /**
  * Custom hook to check if the current user has admin permissions
- * Matches Clerk user ID against database users and validates permission level (1 or 3)
+ * Fetches current user data from API and validates permission level (1 or 3)
+ * More efficient than fetching all users - uses /users/me endpoint
  */
 export function useAdminCheck(): UseAdminCheckReturn {
   const { getToken, isSignedIn } = useAuth();
-  const { user } = useUser();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,19 +40,18 @@ export function useAdminCheck(): UseAdminCheckReturn {
           return;
         }
 
-        // Fetch all users from the API
-        const usersData = await apiClient.getUsers(token);
+        // Fetch current user from the API
+        const currentUserData = await apiClient.getCurrentUser(token);
 
-        // Find current user by matching Clerk ID
-        const clerkUserId = user?.id;
-        const matchedUser = usersData.find((u) => u.token === clerkUserId);
-
-        setCurrentUser(matchedUser || null);
+        setCurrentUser(currentUserData);
 
         // Validate admin permission
-        if (!matchedUser) {
+        if (!currentUserData) {
           setError("User not found in database");
-        } else if (matchedUser.permission !== 1 && matchedUser.permission !== 3) {
+        } else if (
+          currentUserData.permission !== 1 &&
+          currentUserData.permission !== 3
+        ) {
           setError("You do not have permission to access this resource.");
         }
       } catch (err) {
@@ -72,7 +71,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
     };
 
     checkAdmin();
-  }, [isSignedIn, getToken, user?.id]);
+  }, [isSignedIn, getToken]);
 
   const isAdmin =
     currentUser &&
