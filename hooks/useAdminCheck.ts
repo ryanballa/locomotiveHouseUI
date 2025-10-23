@@ -42,17 +42,22 @@ export function useAdminCheck(): UseAdminCheckReturn {
   const [error, setError] = useState<AdminCheckError>(null);
 
   useEffect(() => {
+    let isActive = true;
+
     const checkAdmin = async () => {
       try {
         setLoading(true);
         setError(null);
 
         if (!isSignedIn) {
+          if (!isActive) return;
           setCurrentUser(null);
           return;
         }
 
         const token = await getToken();
+        if (!isActive) return;
+
         if (!token) {
           setError({
             code: "UNAUTHENTICATED",
@@ -63,6 +68,9 @@ export function useAdminCheck(): UseAdminCheckReturn {
 
         // Fetch current user from the API
         const currentUserData = await apiClient.getCurrentUser(token);
+
+        // Guard against state updates if component unmounted during async operation
+        if (!isActive) return;
 
         // Extract only the minimal user data needed for admin check
         if (currentUserData) {
@@ -91,6 +99,8 @@ export function useAdminCheck(): UseAdminCheckReturn {
           });
         }
       } catch (err) {
+        if (!isActive) return;
+
         const cause = err instanceof Error ? err : new Error(String(err));
         const errorMessage = cause.message || "Failed to check admin status";
 
@@ -117,12 +127,17 @@ export function useAdminCheck(): UseAdminCheckReturn {
           });
         }
       } finally {
-        // Centralized loading state management - runs regardless of early returns
-        setLoading(false);
+        // Guard loading state update to prevent state update on unmounted component
+        if (isActive) setLoading(false);
       }
     };
 
     checkAdmin();
+
+    // Cleanup function: prevent state updates if component unmounts or dependencies change
+    return () => {
+      isActive = false;
+    };
   }, [isSignedIn, getToken]);
 
   const isAdmin =
