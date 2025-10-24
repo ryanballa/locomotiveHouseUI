@@ -20,20 +20,51 @@ type AdminCheckError =
  * Minimal user shape exposed by the admin check hook
  * Contains only the essential data needed to verify admin status
  * Prevents accidental mutations and reduces coupling
+ *
+ * Permission levels:
+ * - 1: Admin (can manage clubs and users)
+ * - 2: Regular user (limited to assigned club)
+ * - 3: Super Admin (can see everything, bypasses club restrictions)
  */
 type MinimalUser = Readonly<Pick<User, "id" | "permission">>;
 
 interface UseAdminCheckReturn {
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   currentUser: MinimalUser | null;
   loading: boolean;
   error: AdminCheckError;
 }
 
 /**
- * Custom hook to check if the current user has admin permissions
- * Fetches current user data from API and validates permission level (1 or 3)
- * More efficient than fetching all users - uses /users/me endpoint
+ * Custom hook to check if the current user has admin or super admin permissions.
+ *
+ * Fetches current user data from API and validates permission level:
+ * - Permission 1: Regular Admin (can manage clubs and users within their scope)
+ * - Permission 3: Super Admin (can access everything, bypasses all restrictions)
+ *
+ * More efficient than fetching all users - uses /users/me endpoint.
+ *
+ * @returns {UseAdminCheckReturn} Object containing:
+ *   - isAdmin: true if user has permission 1 or 3
+ *   - isSuperAdmin: true if user has permission 3 (bypasses club restrictions)
+ *   - currentUser: Minimal user data with id and permission
+ *   - loading: true while checking admin status
+ *   - error: Error details if check fails
+ *
+ * @example
+ * ```typescript
+ * const { isAdmin, isSuperAdmin, loading } = useAdminCheck();
+ *
+ * if (loading) return <LoadingSpinner />;
+ * if (!isAdmin) return <AccessDenied />;
+ *
+ * if (isSuperAdmin) {
+ *   // Show full admin panel with all features
+ * } else {
+ *   // Show limited admin panel
+ * }
+ * ```
  */
 export function useAdminCheck(): UseAdminCheckReturn {
   const { getToken, isSignedIn } = useAuth();
@@ -146,8 +177,11 @@ export function useAdminCheck(): UseAdminCheckReturn {
     currentUser &&
     (currentUser.permission === 1 || currentUser.permission === 3);
 
+  const isSuperAdmin = currentUser && currentUser.permission === 3;
+
   return {
     isAdmin: !!isAdmin,
+    isSuperAdmin: !!isSuperAdmin,
     currentUser,
     loading,
     error,

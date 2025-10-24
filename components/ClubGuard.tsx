@@ -6,10 +6,35 @@ interface ClubGuardProps {
 }
 
 /**
- * Component that wraps club-dependent pages and ensures user has a club assignment
- * Shows loading state while checking club assignment
- * Shows message if user is not assigned to a club
- * Only renders children if user has a club
+ * Guard component that protects club-scoped pages.
+ *
+ * Ensures user has a club assignment OR is a super admin before rendering content.
+ * Super admins (permission level 3) bypass club restrictions and can access all features.
+ *
+ * @param props - Component props
+ * @param props.children - Content to render if user has club access
+ *
+ * @returns Rendered children if user has access, otherwise shows loading/error state
+ *
+ * Behavior:
+ * - **Loading**: Shows loading spinner while checking club assignment
+ * - **No club & not super admin**: Shows message requesting club assignment
+ * - **Has club OR super admin**: Renders children normally
+ *
+ * @example
+ * ```typescript
+ * export default function ClubAppointmentsPage() {
+ *   return (
+ *     <ClubGuard>
+ *       <AppointmentsList />
+ *     </ClubGuard>
+ *   );
+ * }
+ *
+ * // Users with assigned club can access
+ * // Super admins can access all club features
+ * // Other users see "Club Assignment Required" message
+ * ```
  */
 export function ClubGuard({ children }: ClubGuardProps) {
   const { hasClub, loading } = useClubCheck();
