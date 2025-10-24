@@ -4,8 +4,7 @@ A Next.js application for managing appointments with Clerk authentication.
 
 ## Features
 
-- **Public Appointments View**: Anyone can view scheduled appointments without signing in
-- **Authenticated Appointment Creation**: Signed-in users can create appointments in 30-minute intervals
+- **Appointments**: Signed-in users can view scheduled appointments and create their own
 - **Clerk Authentication**: Secure user authentication and management
 - **Responsive Design**: Built with Tailwind CSS for a modern, mobile-friendly interface
 
@@ -71,42 +70,6 @@ npm run dev
 
 The application will be available at `http://localhost:3000`.
 
-## Project Structure
-
-```
-client/
-├── app/
-│   ├── appointments/
-│   │   └── create/
-│   │       └── page.tsx          # Create appointment page (protected)
-│   ├── globals.css               # Global styles
-│   ├── layout.tsx                # Root layout with Clerk provider
-│   └── page.tsx                  # Home page (appointments list)
-├── components/
-│   └── navbar.tsx                # Navigation bar with auth buttons
-├── lib/
-│   └── api.ts                    # API client for backend communication
-├── middleware.ts                 # Clerk middleware for route protection
-├── next.config.ts                # Next.js configuration
-├── tailwind.config.ts            # Tailwind CSS configuration
-└── tsconfig.json                 # TypeScript configuration
-```
-
-## Usage
-
-### Viewing Appointments
-
-1. Navigate to the home page (`/`)
-2. All appointments are visible to everyone, even without signing in
-
-### Creating Appointments
-
-1. Click "Sign In" in the navbar
-2. Sign in or create an account through Clerk
-3. Click "Create Appointment" in the navbar
-4. Select a date and time (30-minute intervals from 8:00 AM to 5:30 PM)
-5. Submit the form
-
 ## API Integration
 
 The client communicates with the backend API using the `apiClient` utility in `lib/api.ts`.
@@ -120,12 +83,6 @@ Authorization: Bearer {"jwt": "clerk-jwt-token"}
 ```
 
 This matches the format expected by your Cloudflare Workers API.
-
-### Endpoints Used
-
-- `GET /api/appointments/` - Fetch all appointments
-- `POST /api/appointments/` - Create a new appointment (authenticated)
-- `GET /api/users/` - Fetch users (authenticated)
 
 ## Important Notes
 
