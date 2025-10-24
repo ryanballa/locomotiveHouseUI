@@ -8,7 +8,7 @@ on:
   workflow_dispatch: # Allows manual triggering
     inputs:
       use_today:
-        description: 'Use today\'s date instead of next Wednesday'
+        description: "Use the current day"
         required: false
         type: boolean
         default: false
