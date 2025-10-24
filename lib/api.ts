@@ -453,9 +453,29 @@ class ApiClient {
         };
       }
 
-      // Assuming backend returns club info on successful validation
-      const clubId = (response as any).club_id || (response as any).clubId;
-      const clubName = (response as any).club_name || (response as any).clubName || (response as any).name;
+      // Check if response indicates valid token
+      const isValid = (response as any).valid || (response as any).created || (response as any).result;
+
+      if (!isValid) {
+        return {
+          valid: false,
+          error: 'Invalid token response from server',
+        };
+      }
+
+      // Extract club info from nested club object
+      const club = (response as any).club;
+      let clubId: number | undefined;
+      let clubName: string | undefined;
+
+      if (club && typeof club === 'object') {
+        clubId = club.id;
+        clubName = club.name;
+      } else {
+        // Fallback to top-level fields
+        clubId = (response as any).club_id || (response as any).clubId;
+        clubName = (response as any).club_name || (response as any).clubName || (response as any).name;
+      }
 
       if (clubId && clubName) {
         return {
@@ -467,7 +487,7 @@ class ApiClient {
 
       return {
         valid: false,
-        error: 'Invalid token response from server',
+        error: 'Missing club information in response',
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to validate invite token';
