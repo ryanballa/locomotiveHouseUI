@@ -130,6 +130,9 @@ export function useAdminCheck(): UseAdminCheckReturn {
             code: "FORBIDDEN",
             message: "You do not have permission to access this resource.",
           });
+        } else {
+          // Clear any previous errors if user has valid admin permission
+          setError(null);
         }
       } catch (err) {
         if (!isActive) return;
