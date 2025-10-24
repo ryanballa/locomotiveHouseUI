@@ -62,8 +62,15 @@ export default function ClubInvitePage() {
           return;
         }
 
+        const userToken = await getToken();
+        if (!userToken) {
+          setError('Failed to get authentication token. Please sign in again.');
+          setLoading(false);
+          return;
+        }
+
         // Validate token and get club info (requires auth)
-        const validation = await apiClient.validateInviteToken(token);
+        const validation = await apiClient.validateInviteToken(token, userToken);
 
         if (validation.valid && validation.clubId && validation.clubName) {
           setClubInfo({
@@ -83,10 +90,10 @@ export default function ClubInvitePage() {
       }
     };
 
-    if (token && isLoaded) {
+    if (token && isLoaded && isSignedIn) {
       validateToken();
     }
-  }, [token, isLoaded, isSignedIn]);
+  }, [token, isLoaded, isSignedIn, getToken]);
 
   /**
    * Handle joining the club with the invite token

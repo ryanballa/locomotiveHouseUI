@@ -417,13 +417,14 @@ class ApiClient {
    * Validate an invite token and get club information
    *
    * @param inviteToken - The invite token to validate
+   * @param token - The user's authentication token
    * @returns Object with club info and validation status
    *
    * @throws Error if the API request fails
    *
    * @example
    * ```typescript
-   * const result = await apiClient.validateInviteToken('abc123def456');
+   * const result = await apiClient.validateInviteToken('abc123def456', userToken);
    * if (result.valid) {
    *   console.log('Club:', result.clubId, result.clubName);
    * } else {
@@ -432,11 +433,17 @@ class ApiClient {
    * ```
    */
   async validateInviteToken(
-    inviteToken: string
+    inviteToken: string,
+    token: string
   ): Promise<{ valid: boolean; clubId?: number; clubName?: string; error?: string }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
     try {
       const response = await this.fetch<any>(`/clubs/invite/validate?token=${encodeURIComponent(inviteToken)}`, {
         method: 'GET',
+        headers: {
+          authorization: `Bearer ${authPayload}`,
+        },
       });
 
       if (response.error) {
