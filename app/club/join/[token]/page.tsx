@@ -43,7 +43,7 @@ export default function ClubInvitePage() {
   /**
    * Validate invite token and fetch club information
    * Calls GET /api/clubs/invite/validate?token=TOKEN to get club details
-   * Does NOT require authentication - token validation is public
+   * Requires authentication since we'll be assigning the user to a club
    */
   useEffect(() => {
     const validateToken = async () => {
@@ -51,7 +51,18 @@ export default function ClubInvitePage() {
         setLoading(true);
         setError(null);
 
-        // Validate token and get club info (does not require auth)
+        if (!isLoaded) {
+          // Still loading auth state
+          return;
+        }
+
+        if (!isSignedIn) {
+          // User not authenticated - will show sign-in prompt
+          setLoading(false);
+          return;
+        }
+
+        // Validate token and get club info (requires auth)
         const validation = await apiClient.validateInviteToken(token);
 
         if (validation.valid && validation.clubId && validation.clubName) {
@@ -72,10 +83,10 @@ export default function ClubInvitePage() {
       }
     };
 
-    if (token) {
+    if (token && isLoaded) {
       validateToken();
     }
-  }, [token]);
+  }, [token, isLoaded, isSignedIn]);
 
   /**
    * Handle joining the club with the invite token
@@ -118,54 +129,38 @@ export default function ClubInvitePage() {
     }
   };
 
-  // Not signed in state - show club info but require sign-in to join
-  if (!isLoaded || (!isSignedIn && !loading)) {
-    if (!isSignedIn && clubInfo && !loading) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">Join Club</h1>
-            <p className="text-gray-600 text-center mb-8">You're invited to join</p>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">{clubInfo.name}</h2>
-            </div>
-
-            <p className="text-gray-600 text-center mb-6">
-              Please sign in to accept this invitation and join the club.
-            </p>
-
-            <button
-              onClick={() => router.push('/')}
-              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition mb-3"
-            >
-              Sign In
-            </button>
-
-            <button
-              onClick={() => router.push('/')}
-              className="w-full px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition"
-            >
-              Cancel
-            </button>
+  // Loading auth state
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+          <div className="flex justify-center mb-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
+          <p className="text-gray-600">Loading...</p>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    // Still loading auth state
-    if (!isLoaded) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-            <div className="flex justify-center mb-6">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-            <p className="text-gray-600">Loading...</p>
-          </div>
+  // Not signed in state - require sign-in to join
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Join Club</h1>
+          <p className="text-gray-600 mb-6">
+            You need to be signed in to join a club. Please sign in to continue.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition"
+          >
+            Go Home & Sign In
+          </button>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   // Loading state
