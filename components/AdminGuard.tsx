@@ -6,13 +6,42 @@ interface AdminGuardProps {
 }
 
 /**
- * Component that wraps admin-only pages and enforces permission checks
- * Shows loading state while checking permissions
- * Shows error message if user is not an admin
- * Only renders children if user has admin permissions
+ * Guard component that protects admin-only pages.
+ *
+ * Ensures user has admin permissions (permission 1 or 3) before rendering content.
+ * Super admins (permission 3) have full access. Regular admins (permission 1) have access.
+ *
+ * @param props - Component props
+ * @param props.children - Content to render if user is admin
+ *
+ * @returns Rendered children if user is admin, otherwise shows error state
+ *
+ * Behavior:
+ * - **Loading**: Shows loading spinner while checking admin permissions
+ * - **Not Admin**: Shows error message with appropriate context
+ * - **Is Admin**: Renders children normally
+ *
+ * Error messages are context-aware:
+ * - Unauthenticated: User needs to sign in
+ * - User not found: Account issues detected
+ * - Forbidden: User lacks admin permissions
+ * - Network error: Connection issues
+ *
+ * @example
+ * ```typescript
+ * export default function AdminPage() {
+ *   return (
+ *     <AdminGuard>
+ *       <AdminContent />
+ *     </AdminGuard>
+ *   );
+ * }
+ *
+ * // Only admins (permission 1) and super admins (permission 3) can access
+ * ```
  */
 export function AdminGuard({ children }: AdminGuardProps) {
-  const { isAdmin, loading, error } = useAdminCheck();
+  const { isAdmin, isSuperAdmin, loading, error } = useAdminCheck();
 
   const getErrorMessage = (): string => {
     if (!error) {

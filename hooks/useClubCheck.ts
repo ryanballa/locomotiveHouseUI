@@ -6,16 +6,42 @@ interface UseClubCheckReturn {
   clubId: number | null;
   loading: boolean;
   hasClub: boolean;
+  isSuperAdmin: boolean;
 }
 
 /**
- * Custom hook to check if the current user has a club assignment
- * Fetches current user data from API and extracts club ID
- * Returns clubId, loading state, and boolean indicating if user has a club
+ * Custom hook to check if the current user has a club assignment or is a super admin.
+ *
+ * Fetches current user data from API and extracts club ID. Super admins (permission 3)
+ * bypass club restrictions and can access all club-scoped features without explicit assignment.
+ *
+ * @returns {UseClubCheckReturn} Object containing:
+ *   - clubId: User's assigned club ID, or null if not assigned (super admins can still access features)
+ *   - loading: true while checking club assignment
+ *   - hasClub: true if user has a club assignment OR is a super admin
+ *   - isSuperAdmin: true if user has permission level 3 (can access everything)
+ *
+ * @example
+ * ```typescript
+ * const { clubId, hasClub, isSuperAdmin, loading } = useClubCheck();
+ *
+ * if (loading) return <LoadingSpinner />;
+ * if (!hasClub) return <ClubRequired />;
+ *
+ * // Both regular users with assigned club and super admins get here
+ * if (isSuperAdmin) {
+ *   // Super admin can access all clubs
+ *   return <SuperAdminView />;
+ * } else {
+ *   // Regular user accesses their assigned club
+ *   return <ClubView clubId={clubId} />;
+ * }
+ * ```
  */
 export function useClubCheck(): UseClubCheckReturn {
   const { getToken, isSignedIn } = useAuth();
   const [clubId, setClubId] = useState<number | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,8 +72,12 @@ export function useClubCheck(): UseClubCheckReturn {
 
         // Extract club_id from user data
         let userClubId: number | null = null;
+        let userIsSuperAdmin = false;
 
         if (currentUserData) {
+          // Check if user is a super admin (permission level 3)
+          userIsSuperAdmin = currentUserData.permission === 3;
+
           // Check if user has clubs array (new format)
           if ((currentUserData as any).clubs && Array.isArray((currentUserData as any).clubs)) {
             const firstClub = (currentUserData as any).clubs[0];
@@ -61,10 +91,12 @@ export function useClubCheck(): UseClubCheckReturn {
         }
 
         setClubId(userClubId);
+        setIsSuperAdmin(userIsSuperAdmin);
       } catch (err) {
         if (!isActive) return;
         console.error("Error checking club assignment:", err);
         setClubId(null);
+        setIsSuperAdmin(false);
       } finally {
         if (isActive) setLoading(false);
       }
@@ -81,6 +113,7 @@ export function useClubCheck(): UseClubCheckReturn {
   return {
     clubId,
     loading,
-    hasClub: clubId !== null,
+    hasClub: clubId !== null || isSuperAdmin,
+    isSuperAdmin,
   };
 }

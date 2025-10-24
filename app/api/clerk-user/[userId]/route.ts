@@ -34,11 +34,7 @@ export async function GET(
     const { userId } = await params;
 
     if (!userId) {
-      const error = new UserIDMissingError();
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
+      throw new UserIDMissingError();
     }
 
     // Fetch user from Clerk
