@@ -413,6 +413,115 @@ class ApiClient {
     return response.result || [];
   }
 
+  /**
+   * Validate an invite token and get club information
+   *
+   * @param inviteToken - The invite token to validate
+   * @returns Object with club info and validation status
+   *
+   * @throws Error if the API request fails
+   *
+   * @example
+   * ```typescript
+   * const result = await apiClient.validateInviteToken('abc123def456');
+   * if (result.valid) {
+   *   console.log('Club:', result.clubId, result.clubName);
+   * } else {
+   *   console.error('Invalid token:', result.error);
+   * }
+   * ```
+   */
+  async validateInviteToken(
+    inviteToken: string
+  ): Promise<{ valid: boolean; clubId?: number; clubName?: string; error?: string }> {
+    try {
+      const response = await this.fetch<any>(`/clubs/invite/validate?token=${encodeURIComponent(inviteToken)}`, {
+        method: 'GET',
+      });
+
+      if (response.error) {
+        return {
+          valid: false,
+          error: response.error,
+        };
+      }
+
+      // Assuming backend returns club info on successful validation
+      const clubId = (response as any).club_id || (response as any).clubId;
+      const clubName = (response as any).club_name || (response as any).clubName || (response as any).name;
+
+      if (clubId && clubName) {
+        return {
+          valid: true,
+          clubId,
+          clubName,
+        };
+      }
+
+      return {
+        valid: false,
+        error: 'Invalid token response from server',
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to validate invite token';
+      return {
+        valid: false,
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * Join a club using an invite token
+   *
+   * @param clubId - The ID of the club to join
+   * @param inviteToken - The invite token from the query parameter
+   * @param token - The user's authentication token
+   * @returns Object with joined status and error message if applicable
+   *
+   * @throws Error if the API request fails
+   *
+   * @example
+   * ```typescript
+   * const result = await apiClient.joinClubWithToken(5, 'abc123def456', userToken);
+   * if (result.joined) {
+   *   // User successfully joined the club
+   * } else {
+   *   console.error(result.error);
+   * }
+   * ```
+   */
+  async joinClubWithToken(
+    clubId: number,
+    inviteToken: string,
+    token: string
+  ): Promise<{ joined: boolean; error?: string }> {
+    const authPayload = JSON.stringify({ jwt: token });
+
+    try {
+      const response = await this.fetch<any>(`/clubs/${clubId}/join?invite=${encodeURIComponent(inviteToken)}`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${authPayload}`,
+        },
+      });
+
+      // Check if join was successful
+      const joined = !response.error && (response.created || response.updated || response.result);
+
+      return {
+        joined,
+        error: response.error,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to join club';
+      return {
+        joined: false,
+        error: message,
+      };
+    }
+  }
+
   // Addresses API
   async getAddresses(token?: string): Promise<Address[]> {
     const headers: HeadersInit = {};
