@@ -533,8 +533,8 @@ class ApiClient {
         },
       });
 
-      // Check if join was successful
-      const joined = !response.error && (response.created || response.updated || response.result);
+      // Check if join was successful - backend returns { joined: true, club_id, user_id, club_name }
+      const joined = !response.error && (response.joined || response.created || response.updated || response.result);
 
       return {
         joined,
