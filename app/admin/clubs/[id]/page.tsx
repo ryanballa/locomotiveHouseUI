@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Club, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
-import { permission } from "process";
+import { AdminGuard } from "@/components/AdminGuard";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 interface EnrichedUser extends User {
   clerkName?: string;
   clerkEmail?: string;
 }
 
-export default function ClubDetailPage() {
-  const { getToken, isSignedIn } = useAuth();
+function ClubDetailPageContent() {
+  const { getToken } = useAuth();
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
@@ -27,6 +28,8 @@ export default function ClubDetailPage() {
   const [unassigningUserId, setUnassigningUserId] = useState<number | null>(
     null
   );
+
+  const { isAdmin } = useAdminCheck();
 
   useEffect(() => {
     if (isNaN(clubId)) {
@@ -210,19 +213,6 @@ export default function ClubDetailPage() {
       setLoading(false);
     }
   };
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
-            Please sign in to access the admin panel.
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -416,5 +406,13 @@ export default function ClubDetailPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ClubDetailPage() {
+  return (
+    <AdminGuard>
+      <ClubDetailPageContent />
+    </AdminGuard>
   );
 }

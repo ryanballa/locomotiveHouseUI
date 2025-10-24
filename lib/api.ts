@@ -177,6 +177,31 @@ class ApiClient {
     return response.result || [];
   }
 
+  async getCurrentUser(token: string): Promise<User | null> {
+    try {
+      const authPayload = JSON.stringify({ jwt: token });
+
+      const response = await this.fetch<User>('/users/me', {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${authPayload}`,
+        },
+      });
+
+      // Handle different response formats
+      if ((response as any).user) {
+        return (response as any).user as User;
+      }
+      if (response.result && response.result.length > 0) {
+        return response.result[0];
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      return null;
+    }
+  }
+
   async getClerkUserInfo(clerkUserId: string): Promise<{ name?: string; email?: string }> {
     try {
       const response = await fetch(`/api/clerk-user/${encodeURIComponent(clerkUserId)}`);
