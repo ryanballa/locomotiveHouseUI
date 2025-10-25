@@ -34,6 +34,7 @@ interface ApiResponse<T> {
   created?: boolean;
   updated?: boolean;
   deleted?: boolean;
+  joined?: boolean;
   id?: number;
   club?: {
     data?: T[];
@@ -534,7 +535,7 @@ class ApiClient {
       });
 
       // Check if join was successful - backend returns { joined: true, club_id, user_id, club_name }
-      const joined = !response.error && (response.joined || response.created || response.updated || response.result);
+      const joined = !response.error && (response.joined || response.created || response.updated || !!(response.result && response.result.length > 0));
 
       return {
         joined,
