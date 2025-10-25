@@ -105,7 +105,11 @@ export function Navbar() {
               </div>
 
               {/* Addresses Link */}
-              {clubId ? (
+              {clubLoading ? (
+                <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Addresses
+                </div>
+              ) : clubId ? (
                 <Link
                   href={`/club/${clubId}/addresses`}
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
@@ -115,7 +119,11 @@ export function Navbar() {
               ) : null}
 
               {/* Admin Dropdown */}
-              {!loading && isAdmin && (
+              {loading ? (
+                <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Admin
+                </div>
+              ) : isAdmin ? (
                 <div className="relative">
                   <button
                     onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
@@ -152,7 +160,7 @@ export function Navbar() {
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
             </SignedIn>
           </div>
 
@@ -272,7 +280,11 @@ export function Navbar() {
               </div>
 
               {/* Mobile Addresses Link */}
-              {clubId ? (
+              {clubLoading ? (
+                <div className="block px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Addresses
+                </div>
+              ) : clubId ? (
                 <Link
                   href={`/club/${clubId}/addresses`}
                   className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
@@ -283,7 +295,13 @@ export function Navbar() {
               ) : null}
 
               {/* Mobile Admin Section */}
-              {!loading && isAdmin && (
+              {loading ? (
+                <div className="pt-2">
+                  <div className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait flex items-center gap-1">
+                    Admin
+                  </div>
+                </div>
+              ) : isAdmin ? (
                 <div className="pt-2">
                   <button
                     onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
@@ -323,7 +341,7 @@ export function Navbar() {
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
             </SignedIn>
           </div>
         )}
