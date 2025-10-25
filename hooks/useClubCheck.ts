@@ -41,27 +41,35 @@ interface UseClubCheckReturn {
  */
 export function useClubCheck(): UseClubCheckReturn {
   const { getToken, isSignedIn } = useAuth();
+  const [clubId, setClubId] = useState<number | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Initialize state from cache to prevent loading flicker
-  const cachedUserData = getCachedUser();
-  let initialClubId: number | null = null;
-  let initialIsSuperAdmin = false;
+  // First useEffect: Initialize from cache after hydration
+  useEffect(() => {
+    setIsHydrated(true);
 
-  if (cachedUserData) {
-    initialIsSuperAdmin = cachedUserData.permission === 3;
-    if ((cachedUserData as any).clubs && Array.isArray((cachedUserData as any).clubs)) {
-      const firstClub = (cachedUserData as any).clubs[0];
-      if (firstClub) {
-        initialClubId = firstClub.club_id;
+    // Try to load from cache immediately to prevent flicker
+    const cachedUser = getCachedUser();
+    if (cachedUser) {
+      let userClubId: number | null = null;
+      const userIsSuperAdmin = cachedUser.permission === 3;
+
+      if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
+        const firstClub = (cachedUser as any).clubs[0];
+        if (firstClub) {
+          userClubId = firstClub.club_id;
+        }
+      } else if (cachedUser.club_id) {
+        userClubId = cachedUser.club_id;
       }
-    } else if (cachedUserData.club_id) {
-      initialClubId = cachedUserData.club_id;
-    }
-  }
 
-  const [clubId, setClubId] = useState<number | null>(initialClubId);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(initialIsSuperAdmin);
-  const [loading, setLoading] = useState(!isSignedIn ? false : !cachedUserData);
+      setClubId(userClubId);
+      setIsSuperAdmin(userIsSuperAdmin);
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let isActive = true;

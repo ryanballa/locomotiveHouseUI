@@ -69,20 +69,28 @@ interface UseAdminCheckReturn {
  */
 export function useAdminCheck(): UseAdminCheckReturn {
   const { getToken, isSignedIn } = useAuth();
-
-  // Initialize state from cache to prevent loading flicker
-  const cachedUserData = getCachedUser();
-  const initialUser: MinimalUser | null = cachedUserData
-    ? {
-        id: cachedUserData.id,
-        permission: cachedUserData.permission,
-      }
-    : null;
-
-  const [currentUser, setCurrentUser] = useState<MinimalUser | null>(initialUser);
-  const [loading, setLoading] = useState(!isSignedIn ? false : !cachedUserData);
+  const [currentUser, setCurrentUser] = useState<MinimalUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AdminCheckError>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
+  // First useEffect: Initialize from cache after hydration
+  useEffect(() => {
+    setIsHydrated(true);
+
+    // Try to load from cache immediately to prevent flicker
+    const cachedUser = getCachedUser();
+    if (cachedUser) {
+      const minimalUser: MinimalUser = {
+        id: cachedUser.id,
+        permission: cachedUser.permission,
+      };
+      setCurrentUser(minimalUser);
+      setLoading(false);
+    }
+  }, []);
+
+  // Second useEffect: Check admin status
   useEffect(() => {
     let isActive = true;
 
