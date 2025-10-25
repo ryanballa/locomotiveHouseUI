@@ -96,6 +96,21 @@ export default function ClubInvitePage() {
   }, [token, isLoaded, isSignedIn, getToken]);
 
   /**
+   * Handle redirect after successful club join
+   * Watches for success state and redirects after 2 seconds
+   */
+  useEffect(() => {
+    if (success && clubInfo?.id) {
+      const timer = setTimeout(() => {
+        router.push(`/club/${clubInfo.id}/appointments`);
+      }, 2000);
+
+      // Cleanup function to clear timeout if component unmounts
+      return () => clearTimeout(timer);
+    }
+  }, [success, clubInfo?.id, router]);
+
+  /**
    * Handle joining the club with the invite token
    * Requires: clubId (from token validation) and userToken (from auth)
    */
@@ -120,10 +135,6 @@ export default function ClubInvitePage() {
 
       if (result.joined) {
         setSuccess(true);
-        // Redirect to club appointments page after short delay
-        setTimeout(() => {
-          router.push(`/club/${clubInfo.id}/appointments`);
-        }, 2000);
       } else {
         const errorMessage = result.error || 'Failed to join club. Please try again.';
         setError(errorMessage);

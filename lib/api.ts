@@ -94,8 +94,7 @@ class ApiClient {
   async getAppointments(token?: string): Promise<Appointment[]> {
     const headers: HeadersInit = {};
     if (token) {
-      const authPayload = JSON.stringify({ jwt: token });
-      headers['authorization'] = `Bearer ${authPayload}`;
+      headers['authorization'] = `Bearer ${token}`;
     }
 
     const response = await this.fetch<Appointment>('/appointments/', {
@@ -110,12 +109,10 @@ class ApiClient {
     data: Omit<Appointment, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Appointment>('/appointments/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -131,12 +128,10 @@ class ApiClient {
     data: Partial<Omit<Appointment, 'id'>>,
     token: string
   ): Promise<{ updated: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Appointment>(`/appointments/${id}`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -150,12 +145,10 @@ class ApiClient {
     id: number,
     token: string
   ): Promise<{ deleted: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Appointment>(`/appointments/${id}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -166,12 +159,10 @@ class ApiClient {
 
   // Users API
   async getUsers(token: string): Promise<User[]> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>('/users/', {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -180,12 +171,10 @@ class ApiClient {
 
   async getCurrentUser(token: string): Promise<User | null> {
     try {
-      const authPayload = JSON.stringify({ jwt: token });
-
       const response = await this.fetch<User>('/users/me', {
         method: 'GET',
         headers: {
-          authorization: `Bearer ${authPayload}`,
+          authorization: `Bearer ${token}`,
         },
       });
 
@@ -220,12 +209,10 @@ class ApiClient {
     data: Omit<User, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>('/users/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -241,12 +228,10 @@ class ApiClient {
     data: Partial<Omit<User, 'id'>>,
     token: string
   ): Promise<{ updated: boolean; clubId?: number | null }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>(`/users/${id}/`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -274,12 +259,10 @@ class ApiClient {
     clubId: number,
     token: string
   ): Promise<{ removed: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<any>(`/users/${userId}/clubs/${clubId}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -293,12 +276,10 @@ class ApiClient {
 
   // Clubs API
   async getClubs(token: string): Promise<Club[]> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>('/clubs/', {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -309,12 +290,10 @@ class ApiClient {
     data: Omit<Club, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>('/clubs/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -334,12 +313,10 @@ class ApiClient {
     data: Partial<Omit<Club, 'id'>>,
     token: string
   ): Promise<{ updated: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -356,12 +333,10 @@ class ApiClient {
     id: number,
     token: string
   ): Promise<{ deleted: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -371,12 +346,10 @@ class ApiClient {
   }
 
   async getClubById(id: number, token: string): Promise<Club | null> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -402,12 +375,10 @@ class ApiClient {
   }
 
   async getClubUsers(clubId: number, token: string): Promise<User[]> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>(`/clubs/${clubId}/users`, {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -437,13 +408,11 @@ class ApiClient {
     inviteToken: string,
     token: string
   ): Promise<{ valid: boolean; clubId?: number; clubName?: string; error?: string }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     try {
       const response = await this.fetch<any>(`/clubs/invite/validate?token=${encodeURIComponent(inviteToken)}`, {
         method: 'GET',
         headers: {
-          authorization: `Bearer ${authPayload}`,
+          authorization: `Bearer ${token}`,
         },
       });
 
@@ -455,7 +424,7 @@ class ApiClient {
       }
 
       // Check if response indicates valid token
-      const isValid = (response as any).valid || (response as any).created || (response as any).result;
+      const isValid = (response as any).success;
 
       if (!isValid) {
         return {
@@ -524,13 +493,11 @@ class ApiClient {
     inviteToken: string,
     token: string
   ): Promise<{ joined: boolean; error?: string }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     try {
       const response = await this.fetch<any>(`/clubs/${clubId}/join?invite=${encodeURIComponent(inviteToken)}`, {
         method: 'POST',
         headers: {
-          authorization: `Bearer ${authPayload}`,
+          authorization: `Bearer ${token}`,
         },
       });
 
@@ -554,8 +521,7 @@ class ApiClient {
   async getAddresses(token?: string): Promise<Address[]> {
     const headers: HeadersInit = {};
     if (token) {
-      const authPayload = JSON.stringify({ jwt: token });
-      headers['authorization'] = `Bearer ${authPayload}`;
+      headers['authorization'] = `Bearer ${token}`;
     }
 
     const response = await this.fetch<Address>('/addresses/', {
@@ -570,12 +536,10 @@ class ApiClient {
     data: Omit<Address, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Address>('/addresses/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -618,12 +582,10 @@ class ApiClient {
     data: Partial<Omit<Address, 'id'>>,
     token: string
   ): Promise<{ updated: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Address>(`/addresses/${id}`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -651,12 +613,10 @@ class ApiClient {
     id: number,
     token: string
   ): Promise<{ deleted: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Address>(`/addresses/${id}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
