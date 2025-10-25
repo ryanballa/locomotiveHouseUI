@@ -6,7 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Appointment, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
+import { FridayEveningCard } from "@/components/FridayEveningCard";
 import { useClubCheck } from "@/hooks/useClubCheck";
+import { shouldShowFridayEvening } from "@/lib/fridayEveningConfig";
 
 interface GroupedAppointments {
   [date: string]: Appointment[];
@@ -258,6 +260,8 @@ function ClubAppointmentsContent() {
             {error}
           </div>
         )}
+
+        {shouldShowFridayEvening(clubId) && <FridayEveningCard clubId={clubId} />}
 
         {appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
