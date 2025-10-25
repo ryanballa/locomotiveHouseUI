@@ -424,7 +424,7 @@ class ApiClient {
       }
 
       // Check if response indicates valid token
-      const isValid = (response as any).success;
+      const isValid = (response as any).valid;
 
       if (!isValid) {
         return {
