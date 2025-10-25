@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
+import { getCachedUser, setCachedUser, clearUserCache } from "@/lib/sessionCache";
 import type { User } from "@/lib/api";
 
 type AdminCheckError =
@@ -83,6 +84,33 @@ export function useAdminCheck(): UseAdminCheckReturn {
         if (!isSignedIn) {
           if (!isActive) return;
           setCurrentUser(null);
+          clearUserCache();
+          setLoading(false);
+          return;
+        }
+
+        // Check if we have cached user data
+        const cachedUser = getCachedUser();
+        if (cachedUser && isActive) {
+          const minimalUser: MinimalUser = {
+            id: cachedUser.id,
+            permission: cachedUser.permission,
+          };
+          setCurrentUser(minimalUser);
+
+          // Validate admin permission from cache
+          if (
+            cachedUser.permission !== 1 &&
+            cachedUser.permission !== 3
+          ) {
+            setError({
+              code: "FORBIDDEN",
+              message: "You do not have permission to access this resource.",
+            });
+          } else {
+            setError(null);
+          }
+
           setLoading(false);
           return;
         }
@@ -112,6 +140,9 @@ export function useAdminCheck(): UseAdminCheckReturn {
             permission: currentUserData.permission,
           };
           setCurrentUser(minimalUser);
+
+          // Cache the user data for future use
+          setCachedUser(currentUserData);
         } else {
           setCurrentUser(null);
         }
@@ -149,6 +180,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
             message: "Your session has expired. Please sign in again.",
             cause,
           });
+          clearUserCache();
         } else if (errorMessage.includes("Network") || errorMessage.includes("ECONNREFUSED")) {
           setError({
             code: "NETWORK",
