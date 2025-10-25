@@ -69,8 +69,18 @@ interface UseAdminCheckReturn {
  */
 export function useAdminCheck(): UseAdminCheckReturn {
   const { getToken, isSignedIn } = useAuth();
-  const [currentUser, setCurrentUser] = useState<MinimalUser | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // Initialize state from cache to prevent loading flicker
+  const cachedUserData = getCachedUser();
+  const initialUser: MinimalUser | null = cachedUserData
+    ? {
+        id: cachedUserData.id,
+        permission: cachedUserData.permission,
+      }
+    : null;
+
+  const [currentUser, setCurrentUser] = useState<MinimalUser | null>(initialUser);
+  const [loading, setLoading] = useState(!isSignedIn ? false : !cachedUserData);
   const [error, setError] = useState<AdminCheckError>(null);
 
   useEffect(() => {

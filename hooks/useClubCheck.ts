@@ -41,9 +41,27 @@ interface UseClubCheckReturn {
  */
 export function useClubCheck(): UseClubCheckReturn {
   const { getToken, isSignedIn } = useAuth();
-  const [clubId, setClubId] = useState<number | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  // Initialize state from cache to prevent loading flicker
+  const cachedUserData = getCachedUser();
+  let initialClubId: number | null = null;
+  let initialIsSuperAdmin = false;
+
+  if (cachedUserData) {
+    initialIsSuperAdmin = cachedUserData.permission === 3;
+    if ((cachedUserData as any).clubs && Array.isArray((cachedUserData as any).clubs)) {
+      const firstClub = (cachedUserData as any).clubs[0];
+      if (firstClub) {
+        initialClubId = firstClub.club_id;
+      }
+    } else if (cachedUserData.club_id) {
+      initialClubId = cachedUserData.club_id;
+    }
+  }
+
+  const [clubId, setClubId] = useState<number | null>(initialClubId);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(initialIsSuperAdmin);
+  const [loading, setLoading] = useState(!isSignedIn ? false : !cachedUserData);
 
   useEffect(() => {
     let isActive = true;
