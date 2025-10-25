@@ -193,6 +193,11 @@ describe('Invites Management Page', () => {
           expiresAt: 'Thu Dec 25 2025 09:00:00 GMT+0000', // Date.toString() format
           createdAt: 'Fri Oct 25 2025 11:00:00 GMT+0000',
         },
+        {
+          token: 'token-mysql-datetime',
+          expiresAt: '2025-10-31 00:00:00', // MySQL DATETIME format (from database)
+          createdAt: '2025-10-25 11:00:00',
+        },
       ];
 
       (apiClient.getClubInviteTokens as any).mockResolvedValueOnce(
@@ -206,10 +211,15 @@ describe('Invites Management Page', () => {
         expect(screen.getByText(/token-iso/)).toBeInTheDocument();
         expect(screen.getByText(/token-timestamp/)).toBeInTheDocument();
         expect(screen.getByText(/token-date-string/)).toBeInTheDocument();
+        expect(screen.getByText(/token-mysql-datetime/)).toBeInTheDocument();
       });
 
       // Check that no "Invalid Date" appears anywhere in the table
       expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+
+      // Check that no "N/A" appears for dates (all should be formatted)
+      const naCells = screen.queryAllByText('N/A');
+      expect(naCells.length).toBe(0); // No N/A for date columns
     });
 
     it('should display error if there is an error and no club', async () => {

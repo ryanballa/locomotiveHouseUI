@@ -160,12 +160,7 @@ function InvitesPageContent() {
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const formatDate = (dateString: string | undefined | null) => {
-    // Handle empty/null/undefined values
-    if (!dateString) {
-      return 'N/A';
-    }
-
+  const formatDate = (dateString: string) => {
     try {
       let date: Date;
 
@@ -176,21 +171,19 @@ function InvitesPageContent() {
         // If it looks like seconds (10 digits), multiply by 1000
         date = new Date(timestamp > 9999999999 ? timestamp : timestamp * 1000);
       } else {
-        // Try to parse as ISO string or other standard format
+        // Parse as ISO, MySQL datetime, or other standard format
+        // JavaScript's Date constructor handles: ISO 8601, MySQL DATETIME (YYYY-MM-DD HH:mm:ss), etc.
         date = new Date(dateString);
       }
 
       // Check if the date is valid
       if (isNaN(date.getTime())) {
-        // Return the original string if we can't parse it
         return dateString;
       }
 
-      const formatted = date.toLocaleString();
-      // Make sure toLocaleString returned something
-      return formatted || dateString;
+      return date.toLocaleString();
     } catch {
-      return dateString || 'N/A';
+      return dateString;
     }
   };
 
