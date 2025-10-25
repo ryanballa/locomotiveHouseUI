@@ -262,7 +262,13 @@ function ClubDetailPageContent() {
         {/* Club Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{club.name}</h1>
-          <p className="text-gray-600">Club ID: {club.id}</p>
+          <p className="text-gray-600 mb-4">Club ID: {club.id}</p>
+          <button
+            onClick={() => router.push(`/admin/clubs/${club.id}/invites`)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition focus:outline-none focus:ring-2 focus:ring-purple-500 inline-flex items-center gap-2"
+          >
+            <span>🔗</span> Manage Invites
+          </button>
         </div>
 
         {/* Assigned Users Section */}

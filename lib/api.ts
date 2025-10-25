@@ -638,6 +638,101 @@ class ApiClient {
       deleted: !!deleted,
     };
   }
+
+  // Invite Tokens API
+  async createInviteToken(
+    clubId: number,
+    expiresAt: string | Date,
+    token: string
+  ): Promise<{ created: boolean; token?: string; error?: string }> {
+    try {
+      const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          expiresAt: typeof expiresAt === 'string' ? expiresAt : expiresAt.toISOString(),
+        }),
+      });
+
+      if (response.error) {
+        return {
+          created: false,
+          error: response.error,
+        };
+      }
+
+      return {
+        created: !!(response as any).token,
+        token: (response as any).token,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create invite token';
+      return {
+        created: false,
+        error: message,
+      };
+    }
+  }
+
+  async getClubInviteTokens(
+    clubId: number,
+    token: string
+  ): Promise<Array<{ token: string; expiresAt: string; createdAt?: string }>> {
+    try {
+      const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.error || !Array.isArray((response as any).tokens)) {
+        return [];
+      }
+
+      return (response as any).tokens || [];
+    } catch (err) {
+      console.error('Error fetching invite tokens:', err);
+      return [];
+    }
+  }
+
+  async deleteInviteToken(
+    clubId: number,
+    inviteToken: string,
+    token: string
+  ): Promise<{ deleted: boolean; error?: string }> {
+    try {
+      const response = await this.fetch<any>(
+        `/clubs/${clubId}/invite-tokens/${encodeURIComponent(inviteToken)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.error) {
+        return {
+          deleted: false,
+          error: response.error,
+        };
+      }
+
+      return {
+        deleted: !!(response as any).deleted,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete invite token';
+      return {
+        deleted: false,
+        error: message,
+      };
+    }
+  }
 }
 
 export const apiClient = new ApiClient();
