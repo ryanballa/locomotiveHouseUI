@@ -132,6 +132,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
   const handleSignup = async (fridayIndex: number) => {
     if (signingUp !== null) return; // Already signing up
     if (!isSignedIn) return;
+    if (!currentUserId) return; // User ID not yet loaded
 
     try {
       setSigningUp(fridayIndex);
