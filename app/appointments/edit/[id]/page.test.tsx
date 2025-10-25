@@ -28,6 +28,12 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
+vi.mock('@/lib/sessionCache', () => ({
+  getCachedUser: vi.fn(() => null),
+  setCachedUser: vi.fn(),
+  clearUserCache: vi.fn(),
+}));
+
 describe('EditAppointment Page', () => {
   const mockGetToken = vi.fn();
   const mockPush = vi.fn();
@@ -40,7 +46,7 @@ describe('EditAppointment Page', () => {
 
   const mockAppointment = {
     id: 1,
-    schedule: '2025-10-24T18:00:00.000Z', // 6:00 PM UTC
+    schedule: '2025-10-27T14:00:00.000Z', // 2:00 PM (14:00) on a Monday, which has opening hours 9:00 AM - 9:30 PM
     duration: 60,
     user_id: 1,
   };
