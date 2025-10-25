@@ -28,6 +28,12 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
+vi.mock('@/lib/sessionCache', () => ({
+  getCachedUser: vi.fn(() => null),
+  setCachedUser: vi.fn(),
+  clearUserCache: vi.fn(),
+}));
+
 describe('EditAppointment Page', () => {
   const mockGetToken = vi.fn();
   const mockPush = vi.fn();

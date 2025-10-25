@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { useRouter } from "next/navigation";
 import Home from "./page";
 import { useClubCheck } from "@/hooks/useClubCheck";
+import { useAuth } from "@clerk/nextjs";
 
 // Mock the modules
 vi.mock("@clerk/nextjs", () => ({
@@ -31,11 +32,22 @@ vi.mock("@/components/navbar", () => ({
   Navbar: () => <div>Navbar</div>,
 }));
 
+vi.mock("@/lib/sessionCache", () => ({
+  getCachedUser: vi.fn(() => null),
+  setCachedUser: vi.fn(),
+  clearUserCache: vi.fn(),
+}));
+
 describe("Home Page", () => {
   const mockPush = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    (useAuth as any).mockReturnValue({
+      isSignedIn: true,
+      isLoaded: true,
+    });
 
     (useRouter as any).mockReturnValue({
       push: mockPush,
