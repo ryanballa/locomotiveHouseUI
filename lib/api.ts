@@ -692,7 +692,13 @@ class ApiClient {
         return [];
       }
 
-      return (response as any).tokens || [];
+      // Transform snake_case API response to camelCase
+      const tokens = (response as any).tokens || [];
+      return tokens.map((token: any) => ({
+        token: token.token,
+        expiresAt: token.expires_at,
+        createdAt: token.created_at,
+      }));
     } catch (err) {
       console.error('Error fetching invite tokens:', err);
       return [];
