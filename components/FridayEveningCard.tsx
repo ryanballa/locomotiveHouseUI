@@ -9,7 +9,7 @@ import type { Appointment, User } from '@/lib/api';
 interface FridayEveningData {
   date: string; // YYYY-MM-DD format
   fridayDate: Date;
-  attendees: User[];
+  attendees: number[]; // Array of user IDs attending
   isUserAttending: boolean;
   userAppointmentId?: number;
 }
