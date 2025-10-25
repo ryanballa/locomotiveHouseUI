@@ -160,7 +160,12 @@ function InvitesPageContent() {
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined | null) => {
+    // Handle empty/null/undefined values
+    if (!dateString) {
+      return 'N/A';
+    }
+
     try {
       let date: Date;
 
@@ -177,12 +182,15 @@ function InvitesPageContent() {
 
       // Check if the date is valid
       if (isNaN(date.getTime())) {
+        // Return the original string if we can't parse it
         return dateString;
       }
 
-      return date.toLocaleString();
+      const formatted = date.toLocaleString();
+      // Make sure toLocaleString returned something
+      return formatted || dateString;
     } catch {
-      return dateString;
+      return dateString || 'N/A';
     }
   };
 

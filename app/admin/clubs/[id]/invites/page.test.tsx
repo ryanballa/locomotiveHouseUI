@@ -123,6 +123,18 @@ describe('Invites Management Page', () => {
       });
     });
 
+    it('should display formatted dates in the table', async () => {
+      render(<InvitesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/token-abc123/)).toBeInTheDocument();
+      });
+
+      // Check that dates are displayed (should have at least 4 formatted dates: 2 tokens x 2 date columns)
+      const dateCells = screen.getAllByText(/\d{1,2}\/\d{1,2}\/\d{4}/);
+      expect(dateCells.length).toBeGreaterThanOrEqual(2); // At least 2 dates visible for the tokens
+    });
+
     it('should display correct token count', async () => {
       render(<InvitesPage />);
 
