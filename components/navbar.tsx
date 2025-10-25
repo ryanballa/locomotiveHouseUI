@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
-import Link from 'next/link';
-import { useState } from 'react';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
-import { useClubCheck } from '@/hooks/useClubCheck';
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import Link from "next/link";
+import { useState } from "react";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { useClubCheck } from "@/hooks/useClubCheck";
 
 /**
  * Main navigation bar component for the application.
@@ -34,7 +34,8 @@ import { useClubCheck } from '@/hooks/useClubCheck';
  */
 export function Navbar() {
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
-  const [isAppointmentsDropdownOpen, setIsAppointmentsDropdownOpen] = useState(false);
+  const [isAppointmentsDropdownOpen, setIsAppointmentsDropdownOpen] =
+    useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAdmin, loading } = useAdminCheck();
   const { clubId, loading: clubLoading } = useClubCheck();
@@ -54,13 +55,15 @@ export function Navbar() {
               {/* Appointments Dropdown */}
               <div className="relative">
                 <button
-                  onClick={() => setIsAppointmentsDropdownOpen(!isAppointmentsDropdownOpen)}
+                  onClick={() =>
+                    setIsAppointmentsDropdownOpen(!isAppointmentsDropdownOpen)
+                  }
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
                 >
                   Appointments
                   <svg
                     className={`w-4 h-4 transition-transform ${
-                      isAppointmentsDropdownOpen ? 'rotate-180' : ''
+                      isAppointmentsDropdownOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
                     stroke="currentColor"
@@ -79,7 +82,9 @@ export function Navbar() {
                 {isAppointmentsDropdownOpen && (
                   <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
                     {clubLoading ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">Loading...</div>
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        Loading...
+                      </div>
                     ) : clubId ? (
                       <>
                         <Link
@@ -98,7 +103,9 @@ export function Navbar() {
                         </Link>
                       </>
                     ) : (
-                      <div className="px-4 py-2 text-sm text-gray-400">No club assigned</div>
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        No club assigned
+                      </div>
                     )}
                   </div>
                 )}
@@ -132,7 +139,7 @@ export function Navbar() {
                     Admin
                     <svg
                       className={`w-4 h-4 transition-transform ${
-                        isAdminDropdownOpen ? 'rotate-180' : ''
+                        isAdminDropdownOpen ? "rotate-180" : ""
                       }`}
                       fill="none"
                       stroke="currentColor"
@@ -182,7 +189,11 @@ export function Navbar() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d={isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+                    d={
+                      isMobileMenuOpen
+                        ? "M6 18L18 6M6 6l12 12"
+                        : "M4 6h16M4 12h16M4 18h16"
+                    }
                   />
                 </svg>
               </button>
@@ -223,13 +234,15 @@ export function Navbar() {
               {/* Mobile Appointments Section */}
               <div className="pt-2">
                 <button
-                  onClick={() => setIsAppointmentsDropdownOpen(!isAppointmentsDropdownOpen)}
+                  onClick={() =>
+                    setIsAppointmentsDropdownOpen(!isAppointmentsDropdownOpen)
+                  }
                   className="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
                 >
                   Appointments
                   <svg
                     className={`w-4 h-4 transition-transform ml-auto ${
-                      isAppointmentsDropdownOpen ? 'rotate-180' : ''
+                      isAppointmentsDropdownOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
                     stroke="currentColor"
@@ -248,7 +261,9 @@ export function Navbar() {
                 {isAppointmentsDropdownOpen && (
                   <div className="bg-gray-700 rounded-md py-1">
                     {clubLoading ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">Loading...</div>
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        Loading...
+                      </div>
                     ) : clubId ? (
                       <>
                         <Link
@@ -273,7 +288,9 @@ export function Navbar() {
                         </Link>
                       </>
                     ) : (
-                      <div className="px-4 py-2 text-sm text-gray-400">No club assigned</div>
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        No club assigned
+                      </div>
                     )}
                   </div>
                 )}
@@ -310,7 +327,7 @@ export function Navbar() {
                     Admin
                     <svg
                       className={`w-4 h-4 transition-transform ml-auto ${
-                        isAdminDropdownOpen ? 'rotate-180' : ''
+                        isAdminDropdownOpen ? "rotate-180" : ""
                       }`}
                       fill="none"
                       stroke="currentColor"
