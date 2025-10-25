@@ -148,6 +148,58 @@ describe('Invites Management Page', () => {
       });
     });
 
+    it('should format expiration dates correctly without showing Invalid Date', async () => {
+      render(<InvitesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/token-abc123/)).toBeInTheDocument();
+      });
+
+      // Check that no "Invalid Date" appears in the table
+      expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+
+      // Verify that dates are properly formatted (should contain month, day, year, time)
+      const dateTexts = screen.getAllByText(/\d{1,2}\/\d{1,2}\/\d{4}/);
+      expect(dateTexts.length).toBeGreaterThan(0);
+    });
+
+    it('should handle different date formats from API without showing Invalid Date', async () => {
+      // Mock with date formats that might come from different backend implementations
+      const problematicInvites = [
+        {
+          token: 'token-iso',
+          expiresAt: '2025-12-25T09:00:00Z', // ISO format
+          createdAt: '2025-10-25T11:00:00Z',
+        },
+        {
+          token: 'token-timestamp',
+          expiresAt: '1735118400000', // Unix timestamp (milliseconds)
+          createdAt: '1729856400000',
+        },
+        {
+          token: 'token-date-string',
+          expiresAt: 'Thu Dec 25 2025 09:00:00 GMT+0000', // Date.toString() format
+          createdAt: 'Fri Oct 25 2025 11:00:00 GMT+0000',
+        },
+      ];
+
+      (apiClient.getClubInviteTokens as any).mockResolvedValueOnce(
+        problematicInvites
+      );
+
+      render(<InvitesPage />);
+
+      await waitFor(() => {
+        // All tokens should be present
+        expect(screen.getByText(/token-iso/)).toBeInTheDocument();
+        expect(screen.getByText(/token-timestamp/)).toBeInTheDocument();
+        expect(screen.getByText(/token-date-string/)).toBeInTheDocument();
+      });
+
+      // Check that no "Invalid Date" appears anywhere in the table
+      expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    });
+
     it('should display error if there is an error and no club', async () => {
       (apiClient.getClubById as any).mockRejectedValueOnce(
         new Error('Club not found')

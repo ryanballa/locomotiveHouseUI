@@ -162,7 +162,25 @@ function InvitesPageContent() {
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleString();
+      let date: Date;
+
+      // Try to parse as numeric (Unix timestamp in milliseconds or seconds)
+      if (/^\d+$/.test(dateString)) {
+        const timestamp = parseInt(dateString, 10);
+        // If it looks like milliseconds (13 digits), use it directly
+        // If it looks like seconds (10 digits), multiply by 1000
+        date = new Date(timestamp > 9999999999 ? timestamp : timestamp * 1000);
+      } else {
+        // Try to parse as ISO string or other standard format
+        date = new Date(dateString);
+      }
+
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+
+      return date.toLocaleString();
     } catch {
       return dateString;
     }
@@ -170,7 +188,25 @@ function InvitesPageContent() {
 
   const isTokenExpired = (expiresAt: string): boolean => {
     try {
-      return new Date(expiresAt) < new Date();
+      let date: Date;
+
+      // Try to parse as numeric (Unix timestamp in milliseconds or seconds)
+      if (/^\d+$/.test(expiresAt)) {
+        const timestamp = parseInt(expiresAt, 10);
+        // If it looks like milliseconds (13 digits), use it directly
+        // If it looks like seconds (10 digits), multiply by 1000
+        date = new Date(timestamp > 9999999999 ? timestamp : timestamp * 1000);
+      } else {
+        // Try to parse as ISO string or other standard format
+        date = new Date(expiresAt);
+      }
+
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return false;
+      }
+
+      return date < new Date();
     } catch {
       return false;
     }
