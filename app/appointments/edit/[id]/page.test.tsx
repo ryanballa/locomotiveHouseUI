@@ -40,7 +40,7 @@ describe('EditAppointment Page', () => {
 
   const mockAppointment = {
     id: 1,
-    schedule: '2025-10-24T18:00:00.000Z', // 6:00 PM UTC
+    schedule: '2025-10-27T14:00:00.000Z', // 2:00 PM (14:00) on a Monday, which has opening hours 9:00 AM - 9:30 PM
     duration: 60,
     user_id: 1,
   };
@@ -64,6 +64,8 @@ describe('EditAppointment Page', () => {
       id: '1',
     });
 
+    // Reset mockGetToken to always return mock-token by default
+    mockGetToken.mockReset();
     mockGetToken.mockResolvedValue('mock-token');
     (apiClient.getAppointments as any).mockResolvedValue([mockAppointment]);
   });
@@ -232,16 +234,18 @@ describe('EditAppointment Page', () => {
 
       render(<EditAppointment />);
 
+      // Wait for form to be populated with appointment data and time to have a value
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /update appointment/i })).toBeEnabled();
-      });
+        const timeSelect = screen.getByLabelText(/select time/i) as HTMLSelectElement;
+        expect(timeSelect.value).toBeTruthy();
+      }, { timeout: 3000 });
 
       const submitButton = screen.getByRole('button', { name: /update appointment/i });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(apiClient.updateAppointment).toHaveBeenCalled();
-      });
+      }, { timeout: 3000 });
 
       expect(mockPush).toHaveBeenCalledWith('/');
     });
@@ -252,16 +256,18 @@ describe('EditAppointment Page', () => {
 
       render(<EditAppointment />);
 
+      // Wait for form to be populated with appointment data and time to have a value
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /update appointment/i })).toBeEnabled();
-      });
+        const timeSelect = screen.getByLabelText(/select time/i) as HTMLSelectElement;
+        expect(timeSelect.value).toBeTruthy();
+      }, { timeout: 3000 });
 
       const submitButton = screen.getByRole('button', { name: /update appointment/i });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/failed to update appointment/i)).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     it('should handle API errors gracefully', async () => {
@@ -270,34 +276,40 @@ describe('EditAppointment Page', () => {
 
       render(<EditAppointment />);
 
+      // Wait for form to be populated with appointment data and time to have a value
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /update appointment/i })).toBeEnabled();
-      });
+        const timeSelect = screen.getByLabelText(/select time/i) as HTMLSelectElement;
+        expect(timeSelect.value).toBeTruthy();
+      }, { timeout: 3000 });
 
       const submitButton = screen.getByRole('button', { name: /update appointment/i });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/network error/i)).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     it('should require authentication token', async () => {
       const user = userEvent.setup();
-      mockGetToken.mockResolvedValue(null);
+      // First call (during load) returns token, second call (during submit) returns null
+      mockGetToken.mockResolvedValueOnce('mock-token');
+      mockGetToken.mockResolvedValueOnce(null);
 
       render(<EditAppointment />);
 
+      // Wait for form to be populated with appointment data and time to have a value
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /update appointment/i })).toBeEnabled();
-      });
+        const timeSelect = screen.getByLabelText(/select time/i) as HTMLSelectElement;
+        expect(timeSelect.value).toBeTruthy();
+      }, { timeout: 3000 });
 
       const submitButton = screen.getByRole('button', { name: /update appointment/i });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/authentication required/i)).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     it('should disable submit button while saving', async () => {
@@ -311,24 +323,26 @@ describe('EditAppointment Page', () => {
 
       render(<EditAppointment />);
 
+      // Wait for form to be populated with appointment data and time to have a value
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /update appointment/i })).toBeEnabled();
-      });
+        const timeSelect = screen.getByLabelText(/select time/i) as HTMLSelectElement;
+        expect(timeSelect.value).toBeTruthy();
+      }, { timeout: 3000 });
 
       const submitButton = screen.getByRole('button', { name: /update appointment/i });
       await user.click(submitButton);
 
-      // Button should be disabled while saving
+      // Button should be disabled while saving and show "Updating..." text
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /updating/i })).toBeDisabled();
-      });
+      }, { timeout: 3000 });
 
       // Resolve the update
       resolveUpdate!({ updated: true });
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/');
-      });
+      }, { timeout: 3000 });
     });
   });
 
