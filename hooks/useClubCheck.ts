@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
+import { getCachedUser, setCachedUser, clearUserCache } from "@/lib/sessionCache";
 
 interface UseClubCheckReturn {
   clubId: number | null;
@@ -43,6 +44,32 @@ export function useClubCheck(): UseClubCheckReturn {
   const [clubId, setClubId] = useState<number | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // First useEffect: Initialize from cache after hydration
+  useEffect(() => {
+    setIsHydrated(true);
+
+    // Try to load from cache immediately to prevent flicker
+    const cachedUser = getCachedUser();
+    if (cachedUser) {
+      let userClubId: number | null = null;
+      const userIsSuperAdmin = cachedUser.permission === 3;
+
+      if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
+        const firstClub = (cachedUser as any).clubs[0];
+        if (firstClub) {
+          userClubId = firstClub.club_id;
+        }
+      } else if (cachedUser.club_id) {
+        userClubId = cachedUser.club_id;
+      }
+
+      setClubId(userClubId);
+      setIsSuperAdmin(userIsSuperAdmin);
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -52,7 +79,34 @@ export function useClubCheck(): UseClubCheckReturn {
         setLoading(true);
 
         if (!isSignedIn) {
+          if (!isActive) return;
           setClubId(null);
+          setIsSuperAdmin(false);
+          clearUserCache();
+          setLoading(false);
+          return;
+        }
+
+        // Check if we have cached user data
+        const cachedUser = getCachedUser();
+        if (cachedUser && isActive) {
+          let userClubId: number | null = null;
+          const userIsSuperAdmin = cachedUser.permission === 3;
+
+          // Check if user has clubs array (new format)
+          if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
+            const firstClub = (cachedUser as any).clubs[0];
+            if (firstClub) {
+              userClubId = firstClub.club_id;
+            }
+          } else if (cachedUser.club_id) {
+            // Fall back to direct club_id field
+            userClubId = cachedUser.club_id;
+          }
+
+          setClubId(userClubId);
+          setIsSuperAdmin(userIsSuperAdmin);
+          setLoading(false);
           return;
         }
 
@@ -60,7 +114,10 @@ export function useClubCheck(): UseClubCheckReturn {
         if (!isActive) return;
 
         if (!token) {
+          if (!isActive) return;
           setClubId(null);
+          setIsSuperAdmin(false);
+          setLoading(false);
           return;
         }
 
@@ -77,6 +134,9 @@ export function useClubCheck(): UseClubCheckReturn {
         if (currentUserData) {
           // Check if user is a super admin (permission level 3)
           userIsSuperAdmin = currentUserData.permission === 3;
+
+          // Cache the user data for future use
+          setCachedUser(currentUserData);
 
           // Check if user has clubs array (new format)
           if ((currentUserData as any).clubs && Array.isArray((currentUserData as any).clubs)) {
