@@ -34,6 +34,7 @@ interface ApiResponse<T> {
   created?: boolean;
   updated?: boolean;
   deleted?: boolean;
+  joined?: boolean;
   id?: number;
   club?: {
     data?: T[];
@@ -93,8 +94,7 @@ class ApiClient {
   async getAppointments(token?: string): Promise<Appointment[]> {
     const headers: HeadersInit = {};
     if (token) {
-      const authPayload = JSON.stringify({ jwt: token });
-      headers['authorization'] = `Bearer ${authPayload}`;
+      headers['authorization'] = `Bearer ${token}`;
     }
 
     const response = await this.fetch<Appointment>('/appointments/', {
@@ -109,12 +109,10 @@ class ApiClient {
     data: Omit<Appointment, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Appointment>('/appointments/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -130,12 +128,10 @@ class ApiClient {
     data: Partial<Omit<Appointment, 'id'>>,
     token: string
   ): Promise<{ updated: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Appointment>(`/appointments/${id}`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -149,12 +145,10 @@ class ApiClient {
     id: number,
     token: string
   ): Promise<{ deleted: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Appointment>(`/appointments/${id}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -165,12 +159,10 @@ class ApiClient {
 
   // Users API
   async getUsers(token: string): Promise<User[]> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>('/users/', {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -179,12 +171,10 @@ class ApiClient {
 
   async getCurrentUser(token: string): Promise<User | null> {
     try {
-      const authPayload = JSON.stringify({ jwt: token });
-
       const response = await this.fetch<User>('/users/me', {
         method: 'GET',
         headers: {
-          authorization: `Bearer ${authPayload}`,
+          authorization: `Bearer ${token}`,
         },
       });
 
@@ -219,12 +209,10 @@ class ApiClient {
     data: Omit<User, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>('/users/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -240,12 +228,10 @@ class ApiClient {
     data: Partial<Omit<User, 'id'>>,
     token: string
   ): Promise<{ updated: boolean; clubId?: number | null }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>(`/users/${id}/`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -273,12 +259,10 @@ class ApiClient {
     clubId: number,
     token: string
   ): Promise<{ removed: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<any>(`/users/${userId}/clubs/${clubId}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -292,12 +276,10 @@ class ApiClient {
 
   // Clubs API
   async getClubs(token: string): Promise<Club[]> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>('/clubs/', {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -308,12 +290,10 @@ class ApiClient {
     data: Omit<Club, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>('/clubs/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -333,12 +313,10 @@ class ApiClient {
     data: Partial<Omit<Club, 'id'>>,
     token: string
   ): Promise<{ updated: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -355,12 +333,10 @@ class ApiClient {
     id: number,
     token: string
   ): Promise<{ deleted: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -370,12 +346,10 @@ class ApiClient {
   }
 
   async getClubById(id: number, token: string): Promise<Club | null> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -401,24 +375,153 @@ class ApiClient {
   }
 
   async getClubUsers(clubId: number, token: string): Promise<User[]> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<User>(`/clubs/${clubId}/users`, {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
     return response.result || [];
   }
 
+  /**
+   * Validate an invite token and get club information
+   *
+   * @param inviteToken - The invite token to validate
+   * @param token - The user's authentication token
+   * @returns Object with club info and validation status
+   *
+   * @throws Error if the API request fails
+   *
+   * @example
+   * ```typescript
+   * const result = await apiClient.validateInviteToken('abc123def456', userToken);
+   * if (result.valid) {
+   *   console.log('Club:', result.clubId, result.clubName);
+   * } else {
+   *   console.error('Invalid token:', result.error);
+   * }
+   * ```
+   */
+  async validateInviteToken(
+    inviteToken: string,
+    token: string
+  ): Promise<{ valid: boolean; clubId?: number; clubName?: string; error?: string }> {
+    try {
+      const response = await this.fetch<any>(`/clubs/invite/validate?token=${encodeURIComponent(inviteToken)}`, {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.error) {
+        return {
+          valid: false,
+          error: response.error,
+        };
+      }
+
+      // Check if response indicates valid token
+      const isValid = (response as any).valid;
+
+      if (!isValid) {
+        return {
+          valid: false,
+          error: 'Invalid token response from server',
+        };
+      }
+
+      // Extract club info from nested club object
+      const club = (response as any).club;
+      let clubId: number | undefined;
+      let clubName: string | undefined;
+
+      if (club && typeof club === 'object') {
+        clubId = club.id;
+        clubName = club.name;
+      } else {
+        // Fallback to top-level fields
+        clubId = (response as any).club_id || (response as any).clubId;
+        clubName = (response as any).club_name || (response as any).clubName || (response as any).name;
+      }
+
+      if (clubId && clubName) {
+        return {
+          valid: true,
+          clubId,
+          clubName,
+        };
+      }
+
+      return {
+        valid: false,
+        error: 'Missing club information in response',
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to validate invite token';
+      return {
+        valid: false,
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * Join a club using an invite token
+   *
+   * @param clubId - The ID of the club to join
+   * @param inviteToken - The invite token from the query parameter
+   * @param token - The user's authentication token
+   * @returns Object with joined status and error message if applicable
+   *
+   * @throws Error if the API request fails
+   *
+   * @example
+   * ```typescript
+   * const result = await apiClient.joinClubWithToken(5, 'abc123def456', userToken);
+   * if (result.joined) {
+   *   // User successfully joined the club
+   * } else {
+   *   console.error(result.error);
+   * }
+   * ```
+   */
+  async joinClubWithToken(
+    clubId: number,
+    inviteToken: string,
+    token: string
+  ): Promise<{ joined: boolean; error?: string }> {
+    try {
+      const response = await this.fetch<any>(`/clubs/${clubId}/join?invite=${encodeURIComponent(inviteToken)}`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Check if join was successful - backend returns { joined: true, club_id, user_id, club_name }
+      const joined = !response.error && (response.joined || response.created || response.updated || !!(response.result && response.result.length > 0));
+
+      return {
+        joined,
+        error: response.error,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to join club';
+      return {
+        joined: false,
+        error: message,
+      };
+    }
+  }
+
   // Addresses API
   async getAddresses(token?: string): Promise<Address[]> {
     const headers: HeadersInit = {};
     if (token) {
-      const authPayload = JSON.stringify({ jwt: token });
-      headers['authorization'] = `Bearer ${authPayload}`;
+      headers['authorization'] = `Bearer ${token}`;
     }
 
     const response = await this.fetch<Address>('/addresses/', {
@@ -433,12 +536,10 @@ class ApiClient {
     data: Omit<Address, 'id'>,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Address>('/addresses/', {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -481,12 +582,10 @@ class ApiClient {
     data: Partial<Omit<Address, 'id'>>,
     token: string
   ): Promise<{ updated: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Address>(`/addresses/${id}`, {
       method: 'PUT',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -514,12 +613,10 @@ class ApiClient {
     id: number,
     token: string
   ): Promise<{ deleted: boolean }> {
-    const authPayload = JSON.stringify({ jwt: token });
-
     const response = await this.fetch<Address>(`/addresses/${id}`, {
       method: 'DELETE',
       headers: {
-        authorization: `Bearer ${authPayload}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
@@ -540,6 +637,107 @@ class ApiClient {
     return {
       deleted: !!deleted,
     };
+  }
+
+  // Invite Tokens API
+  async createInviteToken(
+    clubId: number,
+    expiresAt: string | Date,
+    token: string
+  ): Promise<{ created: boolean; token?: string; error?: string }> {
+    try {
+      const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          expiresAt: typeof expiresAt === 'string' ? expiresAt : expiresAt.toISOString(),
+        }),
+      });
+
+      if (response.error) {
+        return {
+          created: false,
+          error: response.error,
+        };
+      }
+
+      return {
+        created: !!(response as any).token,
+        token: (response as any).token,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create invite token';
+      return {
+        created: false,
+        error: message,
+      };
+    }
+  }
+
+  async getClubInviteTokens(
+    clubId: number,
+    token: string
+  ): Promise<Array<{ token: string; expiresAt: string; createdAt?: string }>> {
+    try {
+      const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.error || !Array.isArray((response as any).tokens)) {
+        return [];
+      }
+
+      // Transform snake_case API response to camelCase
+      const tokens = (response as any).tokens || [];
+      return tokens.map((token: any) => ({
+        token: token.token,
+        expiresAt: token.expires_at,
+        createdAt: token.created_at,
+      }));
+    } catch (err) {
+      console.error('Error fetching invite tokens:', err);
+      return [];
+    }
+  }
+
+  async deleteInviteToken(
+    clubId: number,
+    inviteToken: string,
+    token: string
+  ): Promise<{ deleted: boolean; error?: string }> {
+    try {
+      const response = await this.fetch<any>(
+        `/clubs/${clubId}/invite-tokens/${encodeURIComponent(inviteToken)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.error) {
+        return {
+          deleted: false,
+          error: response.error,
+        };
+      }
+
+      return {
+        deleted: !!(response as any).deleted,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete invite token';
+      return {
+        deleted: false,
+        error: message,
+      };
+    }
   }
 }
 
