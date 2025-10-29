@@ -182,12 +182,11 @@ function ClubDetailPageContent() {
         const userClubIds = (user as any).clubIds || [];
         return userClubIds.includes(clubId) || user.club_id === clubId;
       });
-      const usersWithoutClub = usersWithClubId.filter(
-        (user) => {
-          const userClubIds = (user as any).clubIds || [];
-          return userClubIds.length === 0 || (!userClubIds.includes(clubId) && !user.club_id);
-        }
-      );
+      const usersWithoutClub = usersWithClubId.filter((user) => {
+        const userClubIds = (user as any).clubIds || [];
+        // Show users NOT assigned to this specific club (they may be in other clubs)
+        return !userClubIds.includes(clubId);
+      });
 
       // Enrich users with Clerk data
       const [enrichedClubUsers, enrichedUnassignedUsers] = await Promise.all([
