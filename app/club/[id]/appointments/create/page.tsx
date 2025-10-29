@@ -23,7 +23,7 @@ function CreateClubAppointmentContent() {
 	const router = useRouter();
 	const params = useParams();
 	const clubId = Number(params.id);
-	const { clubId: userClubId } = useClubCheck();
+	const { hasAccessToClub, isSuperAdmin } = useClubCheck();
 
 	const [formData, setFormData] = useState({
 		date: '',
@@ -37,10 +37,10 @@ function CreateClubAppointmentContent() {
 
 	// Verify user has access to this club
 	useEffect(() => {
-		if (userClubId && userClubId !== clubId) {
+		if (!isSuperAdmin && !hasAccessToClub(clubId)) {
 			setError("You do not have access to this club");
 		}
-	}, [clubId, userClubId]);
+	}, [clubId, hasAccessToClub, isSuperAdmin]);
 
 	useEffect(() => {
 		// Fetch or auto-create the user's locomotive house user ID

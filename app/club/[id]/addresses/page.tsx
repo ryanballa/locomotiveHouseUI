@@ -14,7 +14,7 @@ function ClubAddressesContent() {
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
-  const { clubId: userClubId } = useClubCheck();
+  const { hasAccessToClub, isSuperAdmin } = useClubCheck();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -48,11 +48,11 @@ function ClubAddressesContent() {
 
   // Verify user has access to this club
   useEffect(() => {
-    if (userClubId && userClubId !== clubId) {
+    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
     }
-  }, [clubId, userClubId]);
+  }, [clubId, hasAccessToClub, isSuperAdmin]);
 
   // Fetch data when signed in
   useEffect(() => {

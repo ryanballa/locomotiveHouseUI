@@ -8,6 +8,8 @@ interface UseClubCheckReturn {
   loading: boolean;
   hasClub: boolean;
   isSuperAdmin: boolean;
+  clubIds: number[]; // All accessible club IDs
+  hasAccessToClub: (clubId: number) => boolean; // Check if user can access a specific club
 }
 
 /**
@@ -42,6 +44,7 @@ interface UseClubCheckReturn {
 export function useClubCheck(): UseClubCheckReturn {
   const { getToken, isSignedIn } = useAuth();
   const [clubId, setClubId] = useState<number | null>(null);
+  const [clubIds, setClubIds] = useState<number[]>([]);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -54,18 +57,21 @@ export function useClubCheck(): UseClubCheckReturn {
     const cachedUser = getCachedUser();
     if (cachedUser) {
       let userClubId: number | null = null;
+      let userClubIds: number[] = [];
       const userIsSuperAdmin = cachedUser.permission === 3;
 
       if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
-        const firstClub = (cachedUser as any).clubs[0];
-        if (firstClub) {
-          userClubId = firstClub.club_id;
+        userClubIds = (cachedUser as any).clubs.map((c: any) => c.club_id);
+        if (userClubIds.length > 0) {
+          userClubId = userClubIds[0];
         }
       } else if (cachedUser.club_id) {
         userClubId = cachedUser.club_id;
+        userClubIds = [cachedUser.club_id];
       }
 
       setClubId(userClubId);
+      setClubIds(userClubIds);
       setIsSuperAdmin(userIsSuperAdmin);
       setLoading(false);
     }
@@ -91,20 +97,23 @@ export function useClubCheck(): UseClubCheckReturn {
         const cachedUser = getCachedUser();
         if (cachedUser && isActive) {
           let userClubId: number | null = null;
+          let userClubIds: number[] = [];
           const userIsSuperAdmin = cachedUser.permission === 3;
 
           // Check if user has clubs array (new format)
           if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
-            const firstClub = (cachedUser as any).clubs[0];
-            if (firstClub) {
-              userClubId = firstClub.club_id;
+            userClubIds = (cachedUser as any).clubs.map((c: any) => c.club_id);
+            if (userClubIds.length > 0) {
+              userClubId = userClubIds[0];
             }
           } else if (cachedUser.club_id) {
             // Fall back to direct club_id field
             userClubId = cachedUser.club_id;
+            userClubIds = [cachedUser.club_id];
           }
 
           setClubId(userClubId);
+          setClubIds(userClubIds);
           setIsSuperAdmin(userIsSuperAdmin);
           setLoading(false);
           return;
@@ -129,6 +138,7 @@ export function useClubCheck(): UseClubCheckReturn {
 
         // Extract club_id from user data
         let userClubId: number | null = null;
+        let userClubIds: number[] = [];
         let userIsSuperAdmin = false;
 
         if (currentUserData) {
@@ -140,17 +150,19 @@ export function useClubCheck(): UseClubCheckReturn {
 
           // Check if user has clubs array (new format)
           if ((currentUserData as any).clubs && Array.isArray((currentUserData as any).clubs)) {
-            const firstClub = (currentUserData as any).clubs[0];
-            if (firstClub) {
-              userClubId = firstClub.club_id;
+            userClubIds = (currentUserData as any).clubs.map((c: any) => c.club_id);
+            if (userClubIds.length > 0) {
+              userClubId = userClubIds[0];
             }
           } else if (currentUserData.club_id) {
             // Fall back to direct club_id field
             userClubId = currentUserData.club_id;
+            userClubIds = [currentUserData.club_id];
           }
         }
 
         setClubId(userClubId);
+        setClubIds(userClubIds);
         setIsSuperAdmin(userIsSuperAdmin);
       } catch (err) {
         if (!isActive) return;
@@ -170,10 +182,19 @@ export function useClubCheck(): UseClubCheckReturn {
     };
   }, [isSignedIn, getToken]);
 
+  const hasAccessToClub = (requestedClubId: number): boolean => {
+    // Super admins can access any club
+    if (isSuperAdmin) return true;
+    // Regular users can access clubs they're assigned to
+    return clubIds.includes(requestedClubId);
+  };
+
   return {
     clubId,
     loading,
     hasClub: clubId !== null || isSuperAdmin,
     isSuperAdmin,
+    clubIds,
+    hasAccessToClub,
   };
 }

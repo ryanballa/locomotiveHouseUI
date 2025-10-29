@@ -33,15 +33,15 @@ function ClubAppointmentsContent() {
   const [currentUserLhId, setCurrentUserLhId] = useState<number | null>(null);
   const [creatingFriday, setCreatingFriday] = useState<string | null>(null);
 
-  const { clubId: userClubId } = useClubCheck();
+  const { hasAccessToClub, isSuperAdmin } = useClubCheck();
 
   // Verify user has access to this club
   useEffect(() => {
-    if (userClubId && userClubId !== clubId) {
+    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
     }
-  }, [clubId, userClubId]);
+  }, [clubId, hasAccessToClub, isSuperAdmin]);
 
   useEffect(() => {
     if (isSignedIn) {
