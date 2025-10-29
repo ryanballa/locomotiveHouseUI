@@ -96,21 +96,21 @@ export function Navbar() {
                 {/* Appointments Dropdown Menu */}
                 {isAppointmentsDropdownOpen && (
                   <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
-                    {clubLoading ? (
+                    {clubsLoading ? (
                       <div className="px-4 py-2 text-sm text-gray-400">
                         Loading...
                       </div>
-                    ) : clubId ? (
+                    ) : currentClubId ? (
                       <>
                         <Link
-                          href={`/club/${clubId}/appointments`}
+                          href={`/club/${currentClubId}/appointments`}
                           className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => setIsAppointmentsDropdownOpen(false)}
                         >
                           View Appointments
                         </Link>
                         <Link
-                          href={`/club/${clubId}/appointments/create`}
+                          href={`/club/${currentClubId}/appointments/create`}
                           className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => setIsAppointmentsDropdownOpen(false)}
                         >
@@ -182,13 +182,13 @@ export function Navbar() {
               </div>
 
               {/* Addresses Link */}
-              {clubLoading ? (
+              {clubsLoading ? (
                 <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
                   Addresses
                 </div>
-              ) : clubId ? (
+              ) : currentClubId ? (
                 <Link
-                  href={`/club/${clubId}/addresses`}
+                  href={`/club/${currentClubId}/addresses`}
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
                 >
                   Addresses
@@ -330,14 +330,14 @@ export function Navbar() {
                 {/* Mobile Appointments Dropdown */}
                 {isAppointmentsDropdownOpen && (
                   <div className="bg-gray-700 rounded-md py-1">
-                    {clubLoading ? (
+                    {clubsLoading ? (
                       <div className="px-4 py-2 text-sm text-gray-400">
                         Loading...
                       </div>
-                    ) : clubId ? (
+                    ) : currentClubId ? (
                       <>
                         <Link
-                          href={`/club/${clubId}/appointments`}
+                          href={`/club/${currentClubId}/appointments`}
                           className="block px-6 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => {
                             setIsAppointmentsDropdownOpen(false);
@@ -347,7 +347,7 @@ export function Navbar() {
                           View Appointments
                         </Link>
                         <Link
-                          href={`/club/${clubId}/appointments/create`}
+                          href={`/club/${currentClubId}/appointments/create`}
                           className="block px-6 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => {
                             setIsAppointmentsDropdownOpen(false);
@@ -421,13 +421,13 @@ export function Navbar() {
               </div>
 
               {/* Mobile Addresses Link */}
-              {clubLoading ? (
+              {clubsLoading ? (
                 <div className="block px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
                   Addresses
                 </div>
-              ) : clubId ? (
+              ) : currentClubId ? (
                 <Link
-                  href={`/club/${clubId}/addresses`}
+                  href={`/club/${currentClubId}/addresses`}
                   className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
