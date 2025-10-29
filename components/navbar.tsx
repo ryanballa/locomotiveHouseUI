@@ -42,7 +42,12 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAdmin, loading } = useAdminCheck();
   const { clubId, loading: clubLoading } = useClubCheck();
-  const { clubs, currentClubId, loading: clubsLoading, selectClub } = useUserClubs();
+  const {
+    clubs,
+    currentClubId,
+    loading: clubsLoading,
+    selectClub,
+  } = useUserClubs();
   const router = useRouter();
 
   const handleClubSelect = (selectedClubId: number) => {
@@ -53,10 +58,15 @@ export function Navbar() {
     router.push(`/club/${selectedClubId}/appointments`);
   };
 
-  const currentClubName = clubs.find((c) => c.id === currentClubId)?.name || "Select Club";
+  const currentClubName =
+    clubs.find((c) => c.id === currentClubId)?.name || "Select Club";
+
+  // Determine if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const navbarBgColor = isDevelopment ? "bg-amber-900" : "bg-gray-800";
 
   return (
-    <nav className="bg-gray-800 text-white shadow-lg">
+    <nav className={`${navbarBgColor} text-white shadow-lg`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
