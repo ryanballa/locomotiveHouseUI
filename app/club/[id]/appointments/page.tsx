@@ -35,19 +35,18 @@ function ClubAppointmentsContent() {
 
   const { hasAccessToClub, isSuperAdmin } = useClubCheck();
 
-  // Verify user has access to this club
+  // Verify user has access to this club and fetch data
   useEffect(() => {
     if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
+      return;
     }
-  }, [clubId, hasAccessToClub, isSuperAdmin]);
 
-  useEffect(() => {
     if (isSignedIn) {
       fetchData();
     }
-  }, [isSignedIn]);
+  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn]);
 
   const fetchData = async () => {
     try {

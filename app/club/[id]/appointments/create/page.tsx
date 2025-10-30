@@ -35,14 +35,13 @@ function CreateClubAppointmentContent() {
 	const [lhUserId, setLhUserId] = useState<number | null>(null);
 	const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
 
-	// Verify user has access to this club
+	// Verify user has access to this club and fetch user ID
 	useEffect(() => {
 		if (!isSuperAdmin && !hasAccessToClub(clubId)) {
 			setError("You do not have access to this club");
+			return;
 		}
-	}, [clubId, hasAccessToClub, isSuperAdmin]);
 
-	useEffect(() => {
 		// Fetch or auto-create the user's locomotive house user ID
 		const fetchUserId = async () => {
 			try {
@@ -65,7 +64,7 @@ function CreateClubAppointmentContent() {
 		if (user) {
 			fetchUserId();
 		}
-	}, [user]);
+	}, [user, clubId, hasAccessToClub, isSuperAdmin]);
 
 	// Update available time slots when date changes
 	useEffect(() => {
