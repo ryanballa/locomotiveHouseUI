@@ -105,6 +105,20 @@ class ApiClient {
     return response.result || [];
   }
 
+  async getClubAppointments(clubId: number, token?: string): Promise<Appointment[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Appointment>(`/clubs/${clubId}/appointments`, {
+      method: 'GET',
+      headers,
+    });
+
+    return response.result || [];
+  }
+
   async createAppointment(
     data: Omit<Appointment, 'id'>,
     token: string
@@ -525,6 +539,20 @@ class ApiClient {
     }
 
     const response = await this.fetch<Address>('/addresses/', {
+      method: 'GET',
+      headers,
+    });
+
+    return response.result || [];
+  }
+
+  async getClubAddresses(clubId: number, token?: string): Promise<Address[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Address>(`/clubs/${clubId}/addresses`, {
       method: 'GET',
       headers,
     });

@@ -14,7 +14,7 @@ function ClubAddressesContent() {
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
-  const { hasAccessToClub, isSuperAdmin } = useClubCheck();
+  const { hasAccessToClub, isSuperAdmin, loading: clubCheckLoading } = useClubCheck();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -48,6 +48,11 @@ function ClubAddressesContent() {
 
   // Verify user has access to this club and fetch data
   useEffect(() => {
+    // Wait for club check to complete before verifying access
+    if (clubCheckLoading) {
+      return;
+    }
+
     if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
@@ -57,7 +62,7 @@ function ClubAddressesContent() {
     if (isSignedIn) {
       fetchData();
     }
-  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn]);
+  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
 
   // Update available clubs for the selected user
   useEffect(() => {
@@ -93,7 +98,7 @@ function ClubAddressesContent() {
       }
 
       const [addressesData, usersData, clubsData] = await Promise.all([
-        apiClient.getAddresses(token),
+        apiClient.getClubAddresses(clubId, token),
         apiClient.getUsers(token),
         apiClient.getClubs(token),
       ]);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient, type Club } from "@/lib/api";
+import { getCookie, setCookie } from "@/lib/cookieUtils";
 
 interface UseUserClubsReturn {
   clubs: Club[];
@@ -21,8 +22,23 @@ export function useUserClubs(): UseUserClubsReturn {
   const [currentClubId, setCurrentClubId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // First useEffect: Initialize from cookie after hydration
+  useEffect(() => {
+    setIsHydrated(true);
+    const savedClubId = getCookie("selectedClubId");
+    if (savedClubId) {
+      setCurrentClubId(parseInt(savedClubId, 10));
+    }
+  }, []);
 
   useEffect(() => {
+    // Don't fetch until we've checked the cookie
+    if (!isHydrated) {
+      return;
+    }
+
     let isActive = true;
 
     const fetchUserClubs = async () => {
@@ -70,7 +86,21 @@ export function useUserClubs(): UseUserClubsReturn {
           }
         }
 
-        setCurrentClubId(userClubId);
+        // Use saved club ID from cookie if available and valid, otherwise use user's default club
+        const savedClubId = getCookie("selectedClubId");
+        if (savedClubId) {
+          const parsedSavedId = parseInt(savedClubId, 10);
+          // Only use saved ID if it's in the list of accessible clubs
+          if (allClubs.some((club) => club.id === parsedSavedId)) {
+            setCurrentClubId(parsedSavedId);
+          } else {
+            // Saved club is not accessible, use user's primary club
+            setCurrentClubId(userClubId);
+          }
+        } else {
+          // No saved club, use user's primary club
+          setCurrentClubId(userClubId);
+        }
       } catch (err) {
         if (!isActive) return;
         const errorMessage = err instanceof Error ? err.message : "Failed to load clubs";
@@ -89,15 +119,15 @@ export function useUserClubs(): UseUserClubsReturn {
     return () => {
       isActive = false;
     };
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, isHydrated]);
 
   /**
-   * Select a club and store in localStorage for persistence
-   * TODO: Consider storing the primary club on the backend
+   * Select a club and store in cookie for persistence
+   * Cookie persists across pages and browser sessions
    */
   const selectClub = (clubId: number) => {
     setCurrentClubId(clubId);
-    localStorage.setItem("selectedClubId", clubId.toString());
+    setCookie("selectedClubId", clubId.toString(), 365);
   };
 
   return {

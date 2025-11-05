@@ -9,6 +9,7 @@ import { ClubGuard } from "@/components/ClubGuard";
 import { FridayEveningCard } from "@/components/FridayEveningCard";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { shouldShowFridayEvening } from "@/lib/fridayEveningConfig";
+import Link from "next/link";
 
 interface GroupedAppointments {
   [date: string]: Appointment[];
@@ -33,10 +34,19 @@ function ClubAppointmentsContent() {
   const [currentUserLhId, setCurrentUserLhId] = useState<number | null>(null);
   const [creatingFriday, setCreatingFriday] = useState<string | null>(null);
 
-  const { hasAccessToClub, isSuperAdmin } = useClubCheck();
+  const {
+    hasAccessToClub,
+    isSuperAdmin,
+    loading: clubCheckLoading,
+  } = useClubCheck();
 
   // Verify user has access to this club and fetch data
   useEffect(() => {
+    // Wait for club check to complete before verifying access
+    if (clubCheckLoading) {
+      return;
+    }
+
     if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
@@ -46,7 +56,7 @@ function ClubAppointmentsContent() {
     if (isSignedIn) {
       fetchData();
     }
-  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn]);
+  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
 
   const fetchData = async () => {
     try {
@@ -55,7 +65,7 @@ function ClubAppointmentsContent() {
 
       // Fetch current user's lhUserId and other data in parallel
       const [appointmentsData, usersData, userIdResponse] = await Promise.all([
-        apiClient.getAppointments(token || undefined),
+        apiClient.getClubAppointments(clubId, token || undefined),
         apiClient.getUsers(token || ""),
         fetch("/api/user-id"),
       ]);
@@ -72,7 +82,9 @@ function ClubAppointmentsContent() {
       const userMapData: UserMap = {};
       const clerkUserPromises = usersData.map(async (user) => {
         try {
-          const response = await fetch(`/api/clerk-user/${encodeURIComponent(user.token)}`);
+          const response = await fetch(
+            `/api/clerk-user/${encodeURIComponent(user.token)}`
+          );
           const data = await response.json();
 
           // Use name from Clerk if available, otherwise use database name
@@ -152,6 +164,8 @@ function ClubAppointmentsContent() {
     }).format(date);
   };
 
+  const handleAddSchedule = () => {};
+
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this appointment?")) {
       return;
@@ -177,47 +191,6 @@ function ClubAppointmentsContent() {
       );
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const handleCreateAppointment = async () => {
-    if (!currentUserLhId) {
-      setError("You must be logged in to create an appointment");
-      return;
-    }
-
-    try {
-      setCreatingFriday("");
-      const token = await getToken();
-      if (!token) {
-        setError("Authentication required");
-        return;
-      }
-
-      // Create appointment at 7 PM
-      const today = new Date();
-      const appointmentDate = new Date(today);
-      appointmentDate.setHours(19, 0, 0, 0);
-
-      const appointmentData = {
-        schedule: appointmentDate.toISOString(),
-        duration: 60,
-        user_id: currentUserLhId,
-      };
-
-      const result = await apiClient.createAppointment(appointmentData, token);
-      if (result.created) {
-        const appointmentsData = await apiClient.getAppointments(token);
-        setAppointments(appointmentsData);
-      } else {
-        setError("Failed to create appointment");
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create appointment"
-      );
-    } finally {
-      setCreatingFriday(null);
     }
   };
 
@@ -260,7 +233,23 @@ function ClubAppointmentsContent() {
           </div>
         )}
 
-        {shouldShowFridayEvening(clubId) && <FridayEveningCard clubId={clubId} />}
+        {shouldShowFridayEvening(clubId) && (
+          <FridayEveningCard clubId={clubId} />
+        )}
+
+        <header className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Appointments
+          </h2>
+          <Link href={`/club/${clubId}/appointments/create`}>
+            <button
+              onClick={handleAddSchedule}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition flex items-center justify-center gap-2"
+            >
+              Add Appointment
+            </button>
+          </Link>
+        </header>
 
         {appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">

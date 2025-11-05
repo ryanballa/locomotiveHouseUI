@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
 import { getCachedUser, setCachedUser, clearUserCache } from "@/lib/sessionCache";
@@ -182,12 +182,12 @@ export function useClubCheck(): UseClubCheckReturn {
     };
   }, [isSignedIn, getToken]);
 
-  const hasAccessToClub = (requestedClubId: number): boolean => {
+  const hasAccessToClub = useCallback((requestedClubId: number): boolean => {
     // Super admins can access any club
     if (isSuperAdmin) return true;
     // Regular users can access clubs they're assigned to
     return clubIds.includes(requestedClubId);
-  };
+  }, [isSuperAdmin, clubIds]);
 
   return {
     clubId,
