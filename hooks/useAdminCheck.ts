@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
-import { getCachedUser, setCachedUser, clearUserCache } from "@/lib/sessionCache";
+import {
+  getCachedUser,
+  setCachedUser,
+  clearUserCache,
+} from "@/lib/sessionCache";
 import type { User } from "@/lib/api";
 
-type AdminCheckError =
-  | {
-      code:
-        | "UNAUTHENTICATED"
-        | "FORBIDDEN"
-        | "USER_NOT_FOUND"
-        | "NETWORK"
-        | "UNKNOWN";
-      message: string;
-      cause?: unknown;
-    }
-  | null;
+type AdminCheckError = {
+  code:
+    | "UNAUTHENTICATED"
+    | "FORBIDDEN"
+    | "USER_NOT_FOUND"
+    | "NETWORK"
+    | "UNKNOWN";
+  message: string;
+  cause?: unknown;
+} | null;
 
 /**
  * Minimal user shape exposed by the admin check hook
@@ -26,6 +28,7 @@ type AdminCheckError =
  * - 1: Admin (can manage clubs and users)
  * - 2: Regular user (limited to assigned club)
  * - 3: Super Admin (can see everything, bypasses club restrictions)
+ * - 4: Limited (can only perform tasks within their scope)
  */
 type MinimalUser = Readonly<Pick<User, "id" | "permission">>;
 
@@ -117,10 +120,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
           setCurrentUser(minimalUser);
 
           // Validate admin permission from cache
-          if (
-            cachedUser.permission !== 1 &&
-            cachedUser.permission !== 3
-          ) {
+          if (cachedUser.permission !== 1 && cachedUser.permission !== 3) {
             setError({
               code: "FORBIDDEN",
               message: "You do not have permission to access this resource.",
@@ -199,7 +199,10 @@ export function useAdminCheck(): UseAdminCheckReturn {
             cause,
           });
           clearUserCache();
-        } else if (errorMessage.includes("Network") || errorMessage.includes("ECONNREFUSED")) {
+        } else if (
+          errorMessage.includes("Network") ||
+          errorMessage.includes("ECONNREFUSED")
+        ) {
           setError({
             code: "NETWORK",
             message: "Network error while checking admin status.",

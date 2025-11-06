@@ -1,12 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { useParams, useRouter } from 'next/navigation';
-import { apiClient, type Club } from '@/lib/api';
-import { Navbar } from '@/components/navbar';
-import { AdminGuard } from '@/components/AdminGuard';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useParams, useRouter } from "next/navigation";
+import { apiClient, type Club } from "@/lib/api";
+import { Navbar } from "@/components/navbar";
+import { AdminGuard } from "@/components/AdminGuard";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { PermissionLevel, PERMISSION_LABELS } from "@/lib/roleConstants";
 
 interface InviteToken {
   token: string;
@@ -24,8 +25,11 @@ function InvitesPageContent() {
   const [invites, setInvites] = useState<InviteToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expirationDate, setExpirationDate] = useState('');
-  const [expirationTime, setExpirationTime] = useState('09:00');
+  const [expirationDate, setExpirationDate] = useState("");
+  const [expirationTime, setExpirationTime] = useState("09:00");
+  const [selectedRole, setSelectedRole] = useState<number>(
+    PermissionLevel.LIMITED
+  );
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [deletingToken, setDeletingToken] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -34,7 +38,7 @@ function InvitesPageContent() {
 
   useEffect(() => {
     if (isNaN(clubId)) {
-      setError('Invalid club ID');
+      setError("Invalid club ID");
       setLoading(false);
       return;
     }
@@ -47,7 +51,7 @@ function InvitesPageContent() {
       setError(null);
       const token = await getToken();
       if (!token) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
@@ -61,8 +65,8 @@ function InvitesPageContent() {
       setInvites(inviteTokens);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load invites';
-      console.error('Error fetching invites:', err);
+        err instanceof Error ? err.message : "Failed to load invites";
+      console.error("Error fetching invites:", err);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -73,7 +77,7 @@ function InvitesPageContent() {
     e.preventDefault();
 
     if (!expirationDate) {
-      setError('Please select an expiration date');
+      setError("Please select an expiration date");
       return;
     }
 
@@ -82,13 +86,13 @@ function InvitesPageContent() {
       setError(null);
       const token = await getToken();
       if (!token) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
       // Combine date and time into ISO string
-      const [year, month, day] = expirationDate.split('-');
-      const [hours, minutes] = expirationTime.split(':');
+      const [year, month, day] = expirationDate.split("-");
+      const [hours, minutes] = expirationTime.split(":");
       const expiresAt = new Date(
         parseInt(year),
         parseInt(month) - 1,
@@ -97,20 +101,26 @@ function InvitesPageContent() {
         parseInt(minutes)
       );
 
-      const result = await apiClient.createInviteToken(clubId, expiresAt, token);
+      const result = await apiClient.createInviteToken(
+        clubId,
+        expiresAt,
+        token,
+        selectedRole
+      );
 
       if (result.created && result.token) {
         // Clear form and refresh invites
-        setExpirationDate('');
-        setExpirationTime('09:00');
+        setExpirationDate("");
+        setExpirationTime("09:00");
+        setSelectedRole(PermissionLevel.LIMITED);
         await fetchData();
       } else {
-        setError(result.error || 'Failed to create invite token');
+        setError(result.error || "Failed to create invite token");
       }
     } catch (err) {
       const errorMsg =
-        err instanceof Error ? err.message : 'Failed to create invite token';
-      console.error('Error creating invite:', err);
+        err instanceof Error ? err.message : "Failed to create invite token";
+      console.error("Error creating invite:", err);
       setError(errorMsg);
     } finally {
       setCreatingInvite(false);
@@ -120,7 +130,7 @@ function InvitesPageContent() {
   const handleDeleteInvite = async (token: string) => {
     if (
       !window.confirm(
-        'Are you sure you want to delete this invite token? Users will no longer be able to join using this token.'
+        "Are you sure you want to delete this invite token? Users will no longer be able to join using this token."
       )
     ) {
       return;
@@ -131,21 +141,25 @@ function InvitesPageContent() {
       setError(null);
       const userToken = await getToken();
       if (!userToken) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
-      const result = await apiClient.deleteInviteToken(clubId, token, userToken);
+      const result = await apiClient.deleteInviteToken(
+        clubId,
+        token,
+        userToken
+      );
 
       if (result.deleted) {
         await fetchData();
       } else {
-        setError(result.error || 'Failed to delete invite token');
+        setError(result.error || "Failed to delete invite token");
       }
     } catch (err) {
       const errorMsg =
-        err instanceof Error ? err.message : 'Failed to delete invite token';
-      console.error('Error deleting invite:', err);
+        err instanceof Error ? err.message : "Failed to delete invite token";
+      console.error("Error deleting invite:", err);
       setError(errorMsg);
     } finally {
       setDeletingToken(null);
@@ -216,7 +230,7 @@ function InvitesPageContent() {
   const getMinDate = (): string => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    return tomorrow.toISOString().split("T")[0];
   };
 
   if (loading) {
@@ -238,13 +252,13 @@ function InvitesPageContent() {
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <button
-            onClick={() => router.push('/admin/clubs')}
+            onClick={() => router.push("/admin/clubs")}
             className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
           >
             <span>&larr;</span> Back to Clubs
           </button>
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error || 'Club not found'}
+            {error || "Club not found"}
           </div>
         </main>
       </div>
@@ -288,7 +302,7 @@ function InvitesPageContent() {
           </div>
 
           <form onSubmit={handleCreateInvite} className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div>
                 <label
                   htmlFor="expiration-date"
@@ -324,13 +338,38 @@ function InvitesPageContent() {
                 />
               </div>
 
+              <div>
+                <label
+                  htmlFor="role"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  User Role
+                </label>
+                <select
+                  id="role"
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={PermissionLevel.LIMITED}>
+                    {PERMISSION_LABELS[PermissionLevel.LIMITED]}
+                  </option>
+                  <option value={PermissionLevel.REGULAR}>
+                    {PERMISSION_LABELS[PermissionLevel.REGULAR]}
+                  </option>
+                  <option value={PermissionLevel.ADMIN}>
+                    {PERMISSION_LABELS[PermissionLevel.ADMIN]}
+                  </option>
+                </select>
+              </div>
+
               <div className="flex items-end">
                 <button
                   type="submit"
                   disabled={creatingInvite || !expirationDate}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
-                  {creatingInvite ? 'Creating...' : 'Create Invite'}
+                  {creatingInvite ? "Creating..." : "Create Invite"}
                 </button>
               </div>
             </div>
@@ -379,7 +418,7 @@ function InvitesPageContent() {
                     return (
                       <tr
                         key={invite.token}
-                        className={expired ? 'bg-gray-50' : 'hover:bg-gray-50'}
+                        className={expired ? "bg-gray-50" : "hover:bg-gray-50"}
                       >
                         <td className="px-6 py-4 text-sm font-mono text-gray-900 max-w-xs truncate">
                           {invite.token}
@@ -401,14 +440,16 @@ function InvitesPageContent() {
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {invite.createdAt
                             ? formatDate(invite.createdAt)
-                            : 'N/A'}
+                            : "N/A"}
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
                           <button
                             onClick={() => handleCopyToken(invite.token)}
                             className="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-gray-500 inline-block"
                           >
-                            {copiedToken === invite.token ? 'Copied!' : 'Copy Link'}
+                            {copiedToken === invite.token
+                              ? "Copied!"
+                              : "Copy Link"}
                           </button>
                           <button
                             onClick={() => handleDeleteInvite(invite.token)}
@@ -416,8 +457,8 @@ function InvitesPageContent() {
                             className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed inline-block"
                           >
                             {deletingToken === invite.token
-                              ? 'Deleting...'
-                              : 'Delete'}
+                              ? "Deleting..."
+                              : "Delete"}
                           </button>
                         </td>
                       </tr>

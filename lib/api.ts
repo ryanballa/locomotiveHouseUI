@@ -116,7 +116,8 @@ class ApiClient {
       headers,
     });
 
-    return response.result || [];
+    // Backend returns { appointments: [...] } for club-scoped appointments
+    return (response as any).appointments || response.result || [];
   }
 
   async createAppointment(
@@ -505,14 +506,23 @@ class ApiClient {
   async joinClubWithToken(
     clubId: number,
     inviteToken: string,
-    token: string
+    token: string,
+    rolePermission?: number
   ): Promise<{ joined: boolean; error?: string }> {
     try {
+      const body: any = {};
+
+      // Include role permission if specified
+      if (rolePermission !== undefined) {
+        body.rolePermission = rolePermission;
+      }
+
       const response = await this.fetch<any>(`/clubs/${clubId}/join?invite=${encodeURIComponent(inviteToken)}`, {
         method: 'POST',
         headers: {
           authorization: `Bearer ${token}`,
         },
+        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
       });
 
       // Check if join was successful - backend returns { joined: true, club_id, user_id, club_name }
@@ -557,7 +567,8 @@ class ApiClient {
       headers,
     });
 
-    return response.result || [];
+    // Backend returns { addresses: [...] } for club-scoped addresses
+    return (response as any).addresses || response.result || [];
   }
 
   async createAddress(
@@ -671,17 +682,25 @@ class ApiClient {
   async createInviteToken(
     clubId: number,
     expiresAt: string | Date,
-    token: string
+    token: string,
+    rolePermission?: number
   ): Promise<{ created: boolean; token?: string; error?: string }> {
     try {
+      const body: any = {
+        expiresAt: typeof expiresAt === 'string' ? expiresAt : expiresAt.toISOString(),
+      };
+
+      // Include role permission if specified
+      if (rolePermission !== undefined) {
+        body.rolePermission = rolePermission;
+      }
+
       const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
         method: 'POST',
         headers: {
           authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          expiresAt: typeof expiresAt === 'string' ? expiresAt : expiresAt.toISOString(),
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.error) {

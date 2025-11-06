@@ -9,6 +9,8 @@ import { ClubGuard } from "@/components/ClubGuard";
 import { FridayEveningCard } from "@/components/FridayEveningCard";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { shouldShowFridayEvening } from "@/lib/fridayEveningConfig";
+import { filterFutureAppointments } from "@/lib/appointmentUtils";
+import { PermissionLevel } from "@/lib/roleConstants";
 import Link from "next/link";
 
 interface GroupedAppointments {
@@ -16,7 +18,7 @@ interface GroupedAppointments {
 }
 
 interface UserMap {
-  [userId: number]: string;
+  [userId: number]: { name: string; permission: number | null };
 }
 
 function ClubAppointmentsContent() {
@@ -89,10 +91,10 @@ function ClubAppointmentsContent() {
 
           // Use name from Clerk if available, otherwise use database name
           const displayName = data.name || user.name || `User ${user.id}`;
-          userMapData[user.id] = displayName;
+          userMapData[user.id] = { name: displayName, permission: user.permission };
         } catch (err) {
           console.error(`Failed to fetch Clerk user for ${user.token}`, err);
-          userMapData[user.id] = `User ${user.id}`;
+          userMapData[user.id] = { name: `User ${user.id}`, permission: user.permission };
         }
       });
 
@@ -117,7 +119,10 @@ function ClubAppointmentsContent() {
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
 
-    appointments.forEach((appointment) => {
+    // Filter out old appointments (before today)
+    const futureAppointments = filterFutureAppointments(appointments);
+
+    futureAppointments.forEach((appointment) => {
       const date = new Date(appointment.schedule);
       const year = date.getFullYear();
       const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -294,7 +299,11 @@ function ClubAppointmentsContent() {
                       <div className="border-t pt-4">
                         <p className="text-sm text-gray-500 mb-3">
                           {userMap[appointment.user_id]
-                            ? `Club Member: ${userMap[appointment.user_id]}`
+                            ? `${
+                                userMap[appointment.user_id].permission === PermissionLevel.LIMITED
+                                  ? "Probationary"
+                                  : "Club Member"
+                              }: ${userMap[appointment.user_id].name}`
                             : `User ID: ${appointment.user_id}`}
                         </p>
                         {currentUserLhId === appointment.user_id && (
