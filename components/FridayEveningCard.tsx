@@ -9,6 +9,7 @@ import type { Appointment, User } from '@/lib/api';
 interface Attendee {
   id: number;
   name?: string;
+  email?: string;
 }
 
 interface FridayEveningData {
@@ -51,6 +52,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
   const [unassigning, setUnassigning] = useState<number | null>(null); // Friday index being unassigned
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserName, setCurrentUserName] = useState<string | undefined>(undefined);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
 
   /**
    * Fetch appointments and get current user ID
@@ -77,6 +79,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
         if (currentUser) {
           setCurrentUserId(currentUser.id);
           setCurrentUserName(currentUser.name);
+          setCurrentUserEmail(currentUser.email);
         }
 
         // Get all appointments for the club
@@ -113,9 +116,14 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
               return {
                 id: userId,
                 name: user?.name,
+                email: user?.email,
               };
             })
-            .sort((a, b) => (a.name || '').localeCompare(b.name || '')); // Sort by name
+            .sort((a, b) => {
+              const aDisplay = a.name || a.email || `User ${a.id}`;
+              const bDisplay = b.name || b.email || `User ${b.id}`;
+              return aDisplay.localeCompare(bDisplay);
+            }); // Sort by name
 
           // Check if current user is attending
           const isUserAttending = currentUser ? attendeeIds.has(currentUser.id) : false;
@@ -188,9 +196,14 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
           currentData.attendeeDetails.push({
             id: currentUserId,
             name: currentUserName,
+            email: currentUserEmail,
           });
-          // Re-sort by name
-          currentData.attendeeDetails.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          // Re-sort by name/email/id
+          currentData.attendeeDetails.sort((a, b) => {
+            const aDisplay = a.name || a.email || `User ${a.id}`;
+            const bDisplay = b.name || b.email || `User ${b.id}`;
+            return aDisplay.localeCompare(bDisplay);
+          });
           currentData.isUserAttending = true;
           currentData.userAppointmentId = result.id;
         }
@@ -314,7 +327,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                         {friday.attendeeDetails.map((attendee) => (
                           <li key={attendee.id} className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
-                            {attendee.name || `User ${attendee.id}`}
+                            <span>{attendee.name || attendee.email || `User ${attendee.id}`}</span>
                           </li>
                         ))}
                       </ul>
