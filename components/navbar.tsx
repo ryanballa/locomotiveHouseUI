@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useClubCheck } from "@/hooks/useClubCheck";
+import { useUserClubs } from "@/hooks/useUserClubs";
+import { useRouter } from "next/navigation";
 
 /**
  * Main navigation bar component for the application.
@@ -36,13 +38,32 @@ export function Navbar() {
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [isAppointmentsDropdownOpen, setIsAppointmentsDropdownOpen] =
     useState(false);
+  const [isClubSelectorOpen, setIsClubSelectorOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isAdmin, loading } = useAdminCheck();
   const { clubId, loading: clubLoading } = useClubCheck();
+  const {
+    clubs,
+    currentClubId,
+    loading: clubsLoading,
+    selectClub,
+  } = useUserClubs();
+  const router = useRouter();
+
+  const handleClubSelect = (selectedClubId: number) => {
+    selectClub(selectedClubId);
+    setIsClubSelectorOpen(false);
+    setIsMobileMenuOpen(false);
+    // Navigate to appointments for the selected club
+    router.push(`/club/${selectedClubId}/appointments`);
+  };
+
+  const currentClubName =
+    clubs.find((c) => c.id === currentClubId)?.name || "Select Club";
 
   // Determine if we're in development mode
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const navbarBgColor = isDevelopment ? 'bg-amber-900' : 'bg-gray-800';
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const navbarBgColor = isDevelopment ? "bg-amber-900" : "bg-gray-800";
 
   return (
     <nav className={`${navbarBgColor} text-white shadow-lg`}>
@@ -85,21 +106,21 @@ export function Navbar() {
                 {/* Appointments Dropdown Menu */}
                 {isAppointmentsDropdownOpen && (
                   <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
-                    {clubLoading ? (
+                    {clubsLoading ? (
                       <div className="px-4 py-2 text-sm text-gray-400">
                         Loading...
                       </div>
-                    ) : clubId ? (
+                    ) : currentClubId ? (
                       <>
                         <Link
-                          href={`/club/${clubId}/appointments`}
+                          href={`/club/${currentClubId}/appointments`}
                           className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => setIsAppointmentsDropdownOpen(false)}
                         >
                           View Appointments
                         </Link>
                         <Link
-                          href={`/club/${clubId}/appointments/create`}
+                          href={`/club/${currentClubId}/appointments/create`}
                           className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => setIsAppointmentsDropdownOpen(false)}
                         >
@@ -115,14 +136,69 @@ export function Navbar() {
                 )}
               </div>
 
+              {/* Club Selector Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
+                  title="Select a club"
+                >
+                  {clubsLoading ? "Loading..." : currentClubName}
+                  <svg
+                    className={`w-4 h-4 transition-transform ${
+                      isClubSelectorOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
+                  </svg>
+                </button>
+
+                {/* Club Selector Dropdown Menu */}
+                {isClubSelectorOpen && (
+                  <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
+                    {clubsLoading ? (
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        Loading clubs...
+                      </div>
+                    ) : clubs.length === 0 ? (
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        No clubs available
+                      </div>
+                    ) : (
+                      clubs.map((club) => (
+                        <button
+                          key={club.id}
+                          onClick={() => handleClubSelect(club.id)}
+                          className={`block w-full text-left px-4 py-2 text-sm transition ${
+                            club.id === currentClubId
+                              ? "bg-blue-600 hover:bg-blue-700"
+                              : "hover:bg-gray-600"
+                          }`}
+                        >
+                          {club.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Addresses Link */}
-              {clubLoading ? (
+              {clubsLoading ? (
                 <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
                   Addresses
                 </div>
-              ) : clubId ? (
+              ) : currentClubId ? (
                 <Link
-                  href={`/club/${clubId}/addresses`}
+                  href={`/club/${currentClubId}/addresses`}
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
                 >
                   Addresses
@@ -264,14 +340,14 @@ export function Navbar() {
                 {/* Mobile Appointments Dropdown */}
                 {isAppointmentsDropdownOpen && (
                   <div className="bg-gray-700 rounded-md py-1">
-                    {clubLoading ? (
+                    {clubsLoading ? (
                       <div className="px-4 py-2 text-sm text-gray-400">
                         Loading...
                       </div>
-                    ) : clubId ? (
+                    ) : currentClubId ? (
                       <>
                         <Link
-                          href={`/club/${clubId}/appointments`}
+                          href={`/club/${currentClubId}/appointments`}
                           className="block px-6 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => {
                             setIsAppointmentsDropdownOpen(false);
@@ -281,7 +357,7 @@ export function Navbar() {
                           View Appointments
                         </Link>
                         <Link
-                          href={`/club/${clubId}/appointments/create`}
+                          href={`/club/${currentClubId}/appointments/create`}
                           className="block px-6 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => {
                             setIsAppointmentsDropdownOpen(false);
@@ -300,14 +376,68 @@ export function Navbar() {
                 )}
               </div>
 
+              {/* Mobile Club Selector */}
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
+                  className="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
+                >
+                  {clubsLoading ? "Loading..." : currentClubName}
+                  <svg
+                    className={`w-4 h-4 transition-transform ml-auto ${
+                      isClubSelectorOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
+                  </svg>
+                </button>
+
+                {/* Mobile Club Selector Dropdown */}
+                {isClubSelectorOpen && (
+                  <div className="bg-gray-700 rounded-md py-1">
+                    {clubsLoading ? (
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        Loading clubs...
+                      </div>
+                    ) : clubs.length === 0 ? (
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        No clubs available
+                      </div>
+                    ) : (
+                      clubs.map((club) => (
+                        <button
+                          key={club.id}
+                          onClick={() => handleClubSelect(club.id)}
+                          className={`block w-full text-left px-6 py-2 text-sm transition ${
+                            club.id === currentClubId
+                              ? "bg-blue-600 hover:bg-blue-700"
+                              : "hover:bg-gray-600"
+                          }`}
+                        >
+                          {club.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Mobile Addresses Link */}
-              {clubLoading ? (
+              {clubsLoading ? (
                 <div className="block px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
                   Addresses
                 </div>
-              ) : clubId ? (
+              ) : currentClubId ? (
                 <Link
-                  href={`/club/${clubId}/addresses`}
+                  href={`/club/${currentClubId}/addresses`}
                   className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

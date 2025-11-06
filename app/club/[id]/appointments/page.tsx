@@ -9,13 +9,16 @@ import { ClubGuard } from "@/components/ClubGuard";
 import { FridayEveningCard } from "@/components/FridayEveningCard";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { shouldShowFridayEvening } from "@/lib/fridayEveningConfig";
+import { filterFutureAppointments } from "@/lib/appointmentUtils";
+import { PermissionLevel } from "@/lib/roleConstants";
+import Link from "next/link";
 
 interface GroupedAppointments {
   [date: string]: Appointment[];
 }
 
 interface UserMap {
-  [userId: number]: string;
+  [userId: number]: { name: string; permission: number | null };
 }
 
 function ClubAppointmentsContent() {
@@ -33,21 +36,29 @@ function ClubAppointmentsContent() {
   const [currentUserLhId, setCurrentUserLhId] = useState<number | null>(null);
   const [creatingFriday, setCreatingFriday] = useState<string | null>(null);
 
-  const { clubId: userClubId } = useClubCheck();
+  const {
+    hasAccessToClub,
+    isSuperAdmin,
+    loading: clubCheckLoading,
+  } = useClubCheck();
 
-  // Verify user has access to this club
+  // Verify user has access to this club and fetch data
   useEffect(() => {
-    if (userClubId && userClubId !== clubId) {
+    // Wait for club check to complete before verifying access
+    if (clubCheckLoading) {
+      return;
+    }
+
+    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
+      return;
     }
-  }, [clubId, userClubId]);
 
-  useEffect(() => {
     if (isSignedIn) {
       fetchData();
     }
-  }, [isSignedIn]);
+  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
 
   const fetchData = async () => {
     try {
@@ -56,7 +67,7 @@ function ClubAppointmentsContent() {
 
       // Fetch current user's lhUserId and other data in parallel
       const [appointmentsData, usersData, userIdResponse] = await Promise.all([
-        apiClient.getAppointments(token || undefined),
+        apiClient.getClubAppointments(clubId, token || undefined),
         apiClient.getUsers(token || ""),
         fetch("/api/user-id"),
       ]);
@@ -73,15 +84,17 @@ function ClubAppointmentsContent() {
       const userMapData: UserMap = {};
       const clerkUserPromises = usersData.map(async (user) => {
         try {
-          const response = await fetch(`/api/clerk-user/${encodeURIComponent(user.token)}`);
+          const response = await fetch(
+            `/api/clerk-user/${encodeURIComponent(user.token)}`
+          );
           const data = await response.json();
 
           // Use name from Clerk if available, otherwise use database name
           const displayName = data.name || user.name || `User ${user.id}`;
-          userMapData[user.id] = displayName;
+          userMapData[user.id] = { name: displayName, permission: user.permission };
         } catch (err) {
           console.error(`Failed to fetch Clerk user for ${user.token}`, err);
-          userMapData[user.id] = `User ${user.id}`;
+          userMapData[user.id] = { name: `User ${user.id}`, permission: user.permission };
         }
       });
 
@@ -106,7 +119,10 @@ function ClubAppointmentsContent() {
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
 
-    appointments.forEach((appointment) => {
+    // Filter out old appointments (before today)
+    const futureAppointments = filterFutureAppointments(appointments);
+
+    futureAppointments.forEach((appointment) => {
       const date = new Date(appointment.schedule);
       const year = date.getFullYear();
       const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -153,6 +169,8 @@ function ClubAppointmentsContent() {
     }).format(date);
   };
 
+  const handleAddSchedule = () => {};
+
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this appointment?")) {
       return;
@@ -178,47 +196,6 @@ function ClubAppointmentsContent() {
       );
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const handleCreateAppointment = async () => {
-    if (!currentUserLhId) {
-      setError("You must be logged in to create an appointment");
-      return;
-    }
-
-    try {
-      setCreatingFriday("");
-      const token = await getToken();
-      if (!token) {
-        setError("Authentication required");
-        return;
-      }
-
-      // Create appointment at 7 PM
-      const today = new Date();
-      const appointmentDate = new Date(today);
-      appointmentDate.setHours(19, 0, 0, 0);
-
-      const appointmentData = {
-        schedule: appointmentDate.toISOString(),
-        duration: 60,
-        user_id: currentUserLhId,
-      };
-
-      const result = await apiClient.createAppointment(appointmentData, token);
-      if (result.created) {
-        const appointmentsData = await apiClient.getAppointments(token);
-        setAppointments(appointmentsData);
-      } else {
-        setError("Failed to create appointment");
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create appointment"
-      );
-    } finally {
-      setCreatingFriday(null);
     }
   };
 
@@ -261,7 +238,23 @@ function ClubAppointmentsContent() {
           </div>
         )}
 
-        {shouldShowFridayEvening(clubId) && <FridayEveningCard clubId={clubId} />}
+        {shouldShowFridayEvening(clubId) && (
+          <FridayEveningCard clubId={clubId} />
+        )}
+
+        <header className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Appointments
+          </h2>
+          <Link href={`/club/${clubId}/appointments/create`}>
+            <button
+              onClick={handleAddSchedule}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition flex items-center justify-center gap-2"
+            >
+              Add Appointment
+            </button>
+          </Link>
+        </header>
 
         {appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -306,7 +299,11 @@ function ClubAppointmentsContent() {
                       <div className="border-t pt-4">
                         <p className="text-sm text-gray-500 mb-3">
                           {userMap[appointment.user_id]
-                            ? `Club Member: ${userMap[appointment.user_id]}`
+                            ? `${
+                                userMap[appointment.user_id].permission === PermissionLevel.LIMITED
+                                  ? "Probationary"
+                                  : "Club Member"
+                              }: ${userMap[appointment.user_id].name}`
                             : `User ID: ${appointment.user_id}`}
                         </p>
                         {currentUserLhId === appointment.user_id && (

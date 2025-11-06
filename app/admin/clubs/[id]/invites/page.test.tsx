@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useRouter, useParams } from 'next/navigation';
 import InvitesPage from './page';
 import { apiClient } from '@/lib/api';
+import { PermissionLevel } from '@/lib/roleConstants';
 
 // Mock the modules
 vi.mock('@clerk/nextjs', () => ({
@@ -100,7 +101,7 @@ describe('Invites Management Page', () => {
   });
 
   describe('Loading and Display', () => {
-    it('should show loading spinner initially', () => {
+    it('should show loading spinner initially', async () => {
       render(<InvitesPage />);
       expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     });
@@ -302,7 +303,8 @@ describe('Invites Management Page', () => {
         expect(apiClient.createInviteToken).toHaveBeenCalledWith(
           1,
           expect.any(Date),
-          'mock-token'
+          'mock-token',
+          PermissionLevel.LIMITED
         );
       });
     });
