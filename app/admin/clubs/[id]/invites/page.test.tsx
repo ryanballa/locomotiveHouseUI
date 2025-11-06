@@ -101,7 +101,7 @@ describe('Invites Management Page', () => {
   });
 
   describe('Loading and Display', () => {
-    it('should show loading spinner initially', () => {
+    it('should show loading spinner initially', async () => {
       render(<InvitesPage />);
       expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     });

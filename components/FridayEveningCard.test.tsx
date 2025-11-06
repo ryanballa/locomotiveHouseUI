@@ -76,7 +76,7 @@ describe('FridayEveningCard Component', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('should show loading state initially', () => {
+  it('should show loading state initially', async () => {
     (apiClient.getAppointments as any).mockImplementation(
       () =>
         new Promise((resolve) => {
