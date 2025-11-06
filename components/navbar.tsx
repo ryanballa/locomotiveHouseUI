@@ -65,10 +65,6 @@ export function Navbar() {
   const isDevelopment = process.env.NODE_ENV === "development";
   const navbarBgColor = isDevelopment ? "bg-amber-900" : "bg-gray-800";
 
-  // Determine if we're in development mode
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const navbarBgColor = isDevelopment ? 'bg-amber-900' : 'bg-gray-800';
-
   return (
     <nav className={`${navbarBgColor} text-white shadow-lg`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

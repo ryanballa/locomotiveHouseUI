@@ -220,7 +220,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                   <p className={`text-sm ${textColor}`}>6 PM - Close</p>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}>
-                  {attendeeCount} {attendeeCount === 1 ? 'person' : 'people'}
+                  {`${attendeeCount} ${attendeeCount === 1 ? 'person' : 'people'}`}
                 </div>
               </div>
 

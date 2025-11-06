@@ -102,10 +102,11 @@ describe('FridayEveningCard Component', () => {
   });
 
   it('should show orange card when attendees < 2', async () => {
+    const nextFriday = getNextFriday();
     const appointments: Appointment[] = [
       {
         id: 1,
-        schedule: '2025-10-31T18:00:00Z', // Friday evening
+        schedule: new Date(nextFriday.setUTCHours(18, 0, 0, 0)).toISOString(), // Friday evening
         duration: 120,
         user_id: 999, // Different user
       },
@@ -123,16 +124,17 @@ describe('FridayEveningCard Component', () => {
   });
 
   it('should show green card when attendees >= 2', async () => {
+    const nextFriday = getNextFriday();
     const appointments: Appointment[] = [
       {
         id: 1,
-        schedule: '2025-10-31T18:00:00Z', // Friday evening
+        schedule: new Date(nextFriday.setUTCHours(18, 0, 0, 0)).toISOString(), // Friday evening
         duration: 120,
         user_id: 999,
       },
       {
         id: 2,
-        schedule: '2025-10-31T20:00:00Z', // Same Friday
+        schedule: new Date(nextFriday.setUTCHours(20, 0, 0, 0)).toISOString(), // Same Friday
         duration: 120,
         user_id: 888,
       },
@@ -150,22 +152,23 @@ describe('FridayEveningCard Component', () => {
   });
 
   it('should display attendance count correctly', async () => {
+    const nextFriday = getNextFriday();
     const appointments: Appointment[] = [
       {
         id: 1,
-        schedule: '2025-10-31T18:00:00Z',
+        schedule: new Date(nextFriday.setUTCHours(18, 0, 0, 0)).toISOString(),
         duration: 120,
         user_id: 999,
       },
       {
         id: 2,
-        schedule: '2025-10-31T19:30:00Z',
+        schedule: new Date(nextFriday.setUTCHours(19, 30, 0, 0)).toISOString(),
         duration: 120,
         user_id: 888,
       },
       {
         id: 3,
-        schedule: '2025-10-31T20:00:00Z',
+        schedule: new Date(nextFriday.setUTCHours(20, 0, 0, 0)).toISOString(),
         duration: 120,
         user_id: 777,
       },
@@ -199,9 +202,10 @@ describe('FridayEveningCard Component', () => {
   });
 
   it('should show "You\'re signed up!" when user is attending', async () => {
+    const nextFriday = getNextFriday();
     const appointment: Appointment = {
       id: 1,
-      schedule: '2025-10-31T19:00:00Z',
+      schedule: new Date(nextFriday.setUTCHours(19, 0, 0, 0)).toISOString(),
       duration: 120,
       user_id: mockCurrentUser.id, // Current user
     };
@@ -298,22 +302,23 @@ describe('FridayEveningCard Component', () => {
   });
 
   it('should only include evening appointments (6 PM+)', async () => {
+    const nextFriday = getNextFriday();
     const appointments: Appointment[] = [
       {
         id: 1,
-        schedule: '2025-10-31T14:00:00Z', // 2 PM - should not count
+        schedule: new Date(nextFriday.setUTCHours(14, 0, 0, 0)).toISOString(), // 2 PM - should not count
         duration: 120,
         user_id: 999,
       },
       {
         id: 2,
-        schedule: '2025-10-31T18:00:00Z', // 6 PM - should count
+        schedule: new Date(nextFriday.setUTCHours(18, 0, 0, 0)).toISOString(), // 6 PM - should count
         duration: 120,
         user_id: 888,
       },
       {
         id: 3,
-        schedule: '2025-10-31T17:59:00Z', // 5:59 PM - should not count
+        schedule: new Date(nextFriday.setUTCHours(17, 59, 0, 0)).toISOString(), // 5:59 PM - should not count
         duration: 120,
         user_id: 777,
       },
