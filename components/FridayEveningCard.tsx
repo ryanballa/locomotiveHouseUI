@@ -42,6 +42,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signingUp, setSigningUp] = useState<number | null>(null); // Friday index being signed up
+  const [unassigning, setUnassigning] = useState<number | null>(null); // Friday index being unassigned
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   /**
@@ -180,6 +181,56 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
     }
   };
 
+  /**
+   * Handle user unassigning from Friday evening
+   */
+  const handleUnassign = async (fridayIndex: number) => {
+    if (unassigning !== null) return; // Already unassigning
+    if (!isSignedIn) return;
+    if (!currentUserId) return; // User ID not yet loaded
+
+    const friday = fridayData[fridayIndex];
+    if (!friday.userAppointmentId) return; // No appointment to unassign
+
+    // Confirm before unassigning
+    if (!confirm('Are you sure you want to unassign yourself from this Friday?')) {
+      return;
+    }
+
+    try {
+      setUnassigning(fridayIndex);
+
+      const userToken = await getToken();
+      if (!userToken) {
+        setError('Authentication required');
+        return;
+      }
+
+      const result = await apiClient.deleteAppointment(friday.userAppointmentId, userToken);
+
+      if (result.deleted) {
+        // Update local state to reflect unassignment
+        const updatedFridayData = [...fridayData];
+        const currentData = updatedFridayData[fridayIndex];
+
+        // Remove user from attendees
+        currentData.attendees = currentData.attendees.filter((id) => id !== currentUserId);
+        currentData.isUserAttending = false;
+        currentData.userAppointmentId = undefined;
+
+        setFridayData(updatedFridayData);
+      } else {
+        setError('Failed to unassign. Please try again.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to unassign';
+      console.error('Unassign error:', message);
+      setError('Failed to unassign from Friday evening');
+    } finally {
+      setUnassigning(null);
+    }
+  };
+
   if (!isSignedIn) {
     return null; // Don't show component if not signed in
   }
@@ -248,9 +299,20 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                   )}
                 </button>
               ) : (
-                <div className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-lg text-center">
-                  ✓ You're signed up!
-                </div>
+                <button
+                  onClick={() => handleUnassign(index)}
+                  disabled={unassigning === index}
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  {unassigning === index ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Unassigning...
+                    </>
+                  ) : (
+                    '✓ You\'re signed up!'
+                  )}
+                </button>
               )}
             </div>
           );
