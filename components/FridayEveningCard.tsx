@@ -211,11 +211,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className={`text-lg font-semibold ${textColor}`}>
-                    {friday.fridayDate.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {formatDateToUTC(friday.fridayDate)}
                   </h3>
                   <p className={`text-sm ${textColor}`}>6 PM - Close</p>
                 </div>
@@ -296,4 +292,15 @@ function formatDateToString(date: Date): string {
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Format date using UTC timezone to avoid DST issues
+ */
+function formatDateToUTC(date: Date): string {
+  const weekday = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }))
+    .toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  const month = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  const day = date.getUTCDate();
+  return `${weekday}, ${month} ${day}`;
 }
