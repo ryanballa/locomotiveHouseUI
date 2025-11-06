@@ -6,10 +6,16 @@ import { apiClient } from '@/lib/api';
 import { FRIDAY_EVENING_CONFIG } from '@/lib/fridayEveningConfig';
 import type { Appointment, User } from '@/lib/api';
 
+interface Attendee {
+  id: number;
+  name?: string;
+}
+
 interface FridayEveningData {
   date: string; // YYYY-MM-DD format
   fridayDate: Date;
   attendees: number[]; // Array of user IDs attending
+  attendeeDetails: Attendee[]; // Array of attendee objects with names
   isUserAttending: boolean;
   userAppointmentId?: number;
 }
@@ -44,6 +50,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
   const [signingUp, setSigningUp] = useState<number | null>(null); // Friday index being signed up
   const [unassigning, setUnassigning] = useState<number | null>(null); // Friday index being unassigned
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string | undefined>(undefined);
 
   /**
    * Fetch appointments and get current user ID
@@ -69,10 +76,15 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
         const currentUser = await apiClient.getCurrentUser(userToken);
         if (currentUser) {
           setCurrentUserId(currentUser.id);
+          setCurrentUserName(currentUser.name);
         }
 
         // Get all appointments for the club
         const appointments = await apiClient.getAppointments(userToken);
+
+        // Get all users to map attendee names
+        const allUsers = await apiClient.getUsers(userToken);
+        const userMap = new Map(allUsers.map((user) => [user.id, user]));
 
         // Calculate next 4 Fridays
         const fridays = getNextFridays(4);
@@ -95,7 +107,15 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
           // Get unique users attending
           const attendeeIds = new Set(eveningAppointments.map((apt) => apt.user_id));
-          const uniqueAttendees = Array.from(attendeeIds).length;
+          const attendeeList = Array.from(attendeeIds)
+            .map((userId) => {
+              const user = userMap.get(userId);
+              return {
+                id: userId,
+                name: user?.name,
+              };
+            })
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '')); // Sort by name
 
           // Check if current user is attending
           const isUserAttending = currentUser ? attendeeIds.has(currentUser.id) : false;
@@ -109,6 +129,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
             date: dateStr,
             fridayDate,
             attendees: Array.from(attendeeIds), // Array of user IDs
+            attendeeDetails: attendeeList, // Array of attendee objects with names
             isUserAttending,
             userAppointmentId,
           };
@@ -164,6 +185,12 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
         if (currentUserId && !currentData.attendees.includes(currentUserId)) {
           currentData.attendees.push(currentUserId);
+          currentData.attendeeDetails.push({
+            id: currentUserId,
+            name: currentUserName,
+          });
+          // Re-sort by name
+          currentData.attendeeDetails.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
           currentData.isUserAttending = true;
           currentData.userAppointmentId = result.id;
         }
@@ -215,17 +242,19 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
         // Remove user from attendees
         currentData.attendees = currentData.attendees.filter((id) => id !== currentUserId);
+        currentData.attendeeDetails = currentData.attendeeDetails.filter((attendee) => attendee.id !== currentUserId);
         currentData.isUserAttending = false;
         currentData.userAppointmentId = undefined;
 
         setFridayData(updatedFridayData);
       } else {
-        setError('Failed to unassign. Please try again.');
+        const errorMsg = (result as any).error || 'Failed to unassign. Please try again.';
+        setError(errorMsg);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to unassign';
       console.error('Unassign error:', message);
-      setError('Failed to unassign from Friday evening');
+      setError(message);
     } finally {
       setUnassigning(null);
     }
@@ -273,11 +302,24 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
               <div className="mb-4">
                 {attendeeCount > 0 ? (
-                  <p className={`text-sm ${textColor}`}>
-                    {attendeeCount >= FRIDAY_EVENING_CONFIG.minAttendanceForGreen
-                      ? '✓ Enough people to visit!'
-                      : `Need ${FRIDAY_EVENING_CONFIG.minAttendanceForGreen - attendeeCount} more`}
-                  </p>
+                  <>
+                    <p className={`text-sm ${textColor} mb-2`}>
+                      {attendeeCount >= FRIDAY_EVENING_CONFIG.minAttendanceForGreen
+                        ? '✓ Enough people to visit!'
+                        : `Need ${FRIDAY_EVENING_CONFIG.minAttendanceForGreen - attendeeCount} more`}
+                    </p>
+                    <div className={`text-sm ${textColor}`}>
+                      <p className="font-medium mb-1">Attending:</p>
+                      <ul className="space-y-1">
+                        {friday.attendeeDetails.map((attendee) => (
+                          <li key={attendee.id} className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+                            {attendee.name || `User ${attendee.id}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
                 ) : (
                   <p className={`text-sm ${textColor}`}>Be the first to sign up!</p>
                 )}
