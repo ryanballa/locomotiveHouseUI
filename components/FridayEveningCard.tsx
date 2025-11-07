@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useAuth } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
-import { apiClient } from '@/lib/api';
-import { FRIDAY_EVENING_CONFIG } from '@/lib/fridayEveningConfig';
-import type { Appointment, User } from '@/lib/api';
+import { useAuth } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api";
+import { FRIDAY_EVENING_CONFIG } from "@/lib/fridayEveningConfig";
+import type { Appointment, User } from "@/lib/api";
 
 interface FridayEveningData {
   date: string; // YYYY-MM-DD format
@@ -93,15 +93,20 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
           });
 
           // Get unique users attending
-          const attendeeIds = new Set(eveningAppointments.map((apt) => apt.user_id));
+          const attendeeIds = new Set(
+            eveningAppointments.map((apt) => apt.user_id)
+          );
           const uniqueAttendees = Array.from(attendeeIds).length;
 
           // Check if current user is attending
-          const isUserAttending = currentUser ? attendeeIds.has(currentUser.id) : false;
+          const isUserAttending = currentUser
+            ? attendeeIds.has(currentUser.id)
+            : false;
 
           // Get user appointment ID if attending
           const userAppointmentId = currentUser
-            ? eveningAppointments.find((apt) => apt.user_id === currentUser.id)?.id
+            ? eveningAppointments.find((apt) => apt.user_id === currentUser.id)
+                ?.id
             : undefined;
 
           return {
@@ -115,8 +120,11 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
         setFridayData(fridayDataList);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load Friday evening data';
-        console.error('Friday evening error:', message);
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to load Friday evening data";
+        console.error("Friday evening error:", message);
         setError(null); // Don't show error to user, just silently fail
       } finally {
         setLoading(false);
@@ -139,7 +147,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
       const userToken = await getToken();
       if (!userToken) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
@@ -154,7 +162,10 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
         user_id: currentUserId,
       };
 
-      const result = await apiClient.createAppointment(appointmentData, userToken);
+      const result = await apiClient.createAppointment(
+        appointmentData,
+        userToken
+      );
 
       if (result.created) {
         // Update local state to reflect signup
@@ -169,12 +180,12 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
         setFridayData(updatedFridayData);
       } else {
-        setError('Failed to sign up. Please try again.');
+        setError("Failed to sign up. Please try again.");
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to sign up';
-      console.error('Signup error:', message);
-      setError('Failed to sign up for Friday evening');
+      const message = err instanceof Error ? err.message : "Failed to sign up";
+      console.error("Signup error:", message);
+      setError("Failed to sign up for Friday evening");
     } finally {
       setSigningUp(null);
     }
@@ -198,10 +209,15 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {fridayData.map((friday, index) => {
           const attendeeCount = friday.attendees.length;
-          const isGreen = attendeeCount >= FRIDAY_EVENING_CONFIG.minAttendanceForGreen;
-          const bgColor = isGreen ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200';
-          const textColor = isGreen ? 'text-green-900' : 'text-orange-900';
-          const badgeColor = isGreen ? 'bg-green-200 text-green-900' : 'bg-orange-200 text-orange-900';
+          const isGreen =
+            attendeeCount >= FRIDAY_EVENING_CONFIG.minAttendanceForGreen;
+          const bgColor = isGreen
+            ? "bg-green-50 border-green-200"
+            : "bg-orange-50 border-orange-200";
+          const textColor = isGreen ? "text-green-900" : "text-orange-900";
+          const badgeColor = isGreen
+            ? "bg-green-200 text-green-900"
+            : "bg-orange-200 text-orange-900";
 
           return (
             <div
@@ -211,28 +227,38 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className={`text-lg font-semibold ${textColor}`}>
-                    {friday.fridayDate.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
+                    {friday.fridayDate.toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
                     })}
                   </h3>
-                  <p className={`text-sm ${textColor}`}>6 PM - Close</p>
+                  <p className={`text-sm ${textColor}`}>7 PM - Close</p>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}>
-                  {`${attendeeCount} ${attendeeCount === 1 ? 'person' : 'people'}`}
+                <div
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}
+                >
+                  {`${attendeeCount} ${
+                    attendeeCount === 1 ? "person" : "people"
+                  }`}
                 </div>
               </div>
 
               <div className="mb-4">
                 {attendeeCount > 0 ? (
                   <p className={`text-sm ${textColor}`}>
-                    {attendeeCount >= FRIDAY_EVENING_CONFIG.minAttendanceForGreen
-                      ? '✓ Enough people to visit!'
-                      : `Need ${FRIDAY_EVENING_CONFIG.minAttendanceForGreen - attendeeCount} more`}
+                    {attendeeCount >=
+                    FRIDAY_EVENING_CONFIG.minAttendanceForGreen
+                      ? "✓ Enough people to visit!"
+                      : `Need ${
+                          FRIDAY_EVENING_CONFIG.minAttendanceForGreen -
+                          attendeeCount
+                        } more`}
                   </p>
                 ) : (
-                  <p className={`text-sm ${textColor}`}>Be the first to sign up!</p>
+                  <p className={`text-sm ${textColor}`}>
+                    Be the first to sign up!
+                  </p>
                 )}
               </div>
 
@@ -248,7 +274,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                       Signing up...
                     </>
                   ) : (
-                    '+ Sign Up (7-9 PM)'
+                    "+ Sign Up (7-9 PM)"
                   )}
                 </button>
               ) : (
@@ -293,7 +319,7 @@ function getNextFridays(count: number): Date[] {
  */
 function formatDateToString(date: Date): string {
   const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
