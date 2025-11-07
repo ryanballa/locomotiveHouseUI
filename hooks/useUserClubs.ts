@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient, type Club } from "@/lib/api";
+import { useSessionUser } from "./useSessionUser";
 import { getCookie, setCookie } from "@/lib/cookieUtils";
 
 interface UseUserClubsReturn {
@@ -15,9 +16,12 @@ interface UseUserClubsReturn {
  * Custom hook to fetch and manage all clubs accessible to the current user
  * Returns list of clubs, current club ID, loading state, and error state
  * Includes selectClub function to change the active club
+ *
+ * Uses session user data for user-specific info, fetches club list separately
  */
 export function useUserClubs(): UseUserClubsReturn {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken } = useAuth();
+  const { user, isLoading: userLoading } = useSessionUser();
   const [clubs, setClubs] = useState<Club[]>([]);
   const [currentClubId, setCurrentClubId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,9 +37,24 @@ export function useUserClubs(): UseUserClubsReturn {
     }
   }, []);
 
+  // Extract user's primary club ID from session data
+  const userClubId = useMemo(() => {
+    if (!user) return null;
+
+    // Check if user has clubs array (new format)
+    if ((user as any).clubs && Array.isArray((user as any).clubs)) {
+      const firstClub = (user as any).clubs[0];
+      return firstClub ? firstClub.club_id : null;
+    }
+
+    // Fall back to direct club_id field
+    return user.club_id || null;
+  }, [user]);
+
+  // Fetch clubs when user is ready
   useEffect(() => {
-    // Don't fetch until we've checked the cookie
-    if (!isHydrated) {
+    // Don't fetch until we've checked the cookie and user is loaded
+    if (!isHydrated || userLoading) {
       return;
     }
 
@@ -46,7 +65,7 @@ export function useUserClubs(): UseUserClubsReturn {
         setLoading(true);
         setError(null);
 
-        if (!isSignedIn) {
+        if (!user) {
           setClubs([]);
           setCurrentClubId(null);
           return;
@@ -65,26 +84,7 @@ export function useUserClubs(): UseUserClubsReturn {
         const allClubs = await apiClient.getClubs(token);
         if (!isActive) return;
 
-        // Fetch current user to determine current club
-        const currentUserData = await apiClient.getCurrentUser(token);
-        if (!isActive) return;
-
         setClubs(allClubs);
-
-        // Extract current club ID from user data
-        let userClubId: number | null = null;
-        if (currentUserData) {
-          // Check if user has clubs array (new format)
-          if ((currentUserData as any).clubs && Array.isArray((currentUserData as any).clubs)) {
-            const firstClub = (currentUserData as any).clubs[0];
-            if (firstClub) {
-              userClubId = firstClub.club_id;
-            }
-          } else if (currentUserData.club_id) {
-            // Fall back to direct club_id field
-            userClubId = currentUserData.club_id;
-          }
-        }
 
         // Use saved club ID from cookie if available and valid, otherwise use user's default club
         const savedClubId = getCookie("selectedClubId");
@@ -119,16 +119,16 @@ export function useUserClubs(): UseUserClubsReturn {
     return () => {
       isActive = false;
     };
-  }, [isSignedIn, getToken, isHydrated]);
+  }, [user, getToken, isHydrated, userLoading, userClubId]);
 
   /**
    * Select a club and store in cookie for persistence
    * Cookie persists across pages and browser sessions
    */
-  const selectClub = (clubId: number) => {
+  const selectClub = useCallback((clubId: number) => {
     setCurrentClubId(clubId);
     setCookie("selectedClubId", clubId.toString(), 365);
-  };
+  }, []);
 
   return {
     clubs,

@@ -5,6 +5,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { useRouter, useParams } from 'next/navigation';
 import EditAppointment from './page';
 import { apiClient } from '@/lib/api';
+import { UserSessionProvider } from '@/components/UserSessionProvider';
 
 // Mock the modules
 vi.mock('@clerk/nextjs', () => ({
@@ -34,6 +35,13 @@ vi.mock('@/lib/sessionCache', () => ({
   clearUserCache: vi.fn(),
 }));
 
+vi.mock('@/context/UserSessionContext', () => {
+  const React = require('react');
+  return {
+    UserSessionContext: React.createContext(null),
+  };
+});
+
 describe('EditAppointment Page', () => {
   const mockGetToken = vi.fn();
   const mockPush = vi.fn();
@@ -51,11 +59,21 @@ describe('EditAppointment Page', () => {
     user_id: 1,
   };
 
+  // Helper function to render with UserSessionProvider
+  const renderWithProvider = (component: React.ReactElement) => {
+    return render(
+      <UserSessionProvider>
+        {component}
+      </UserSessionProvider>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
     (useAuth as any).mockReturnValue({
       getToken: mockGetToken,
+      isSignedIn: true,
     });
 
     (useUser as any).mockReturnValue({
@@ -78,7 +96,7 @@ describe('EditAppointment Page', () => {
 
   describe('Loading appointment', () => {
     it('should show loading state initially', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       // Wait for component to load
       await waitFor(() => {
@@ -87,7 +105,7 @@ describe('EditAppointment Page', () => {
     });
 
     it('should load and display appointment data', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       // Wait for the loading spinner to disappear and form to be shown
       await waitFor(() => {
@@ -103,7 +121,7 @@ describe('EditAppointment Page', () => {
     it('should display error if appointment not found', async () => {
       (apiClient.getAppointments as any).mockResolvedValue([]);
 
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getByText('Appointment not found')).toBeInTheDocument();
@@ -113,7 +131,7 @@ describe('EditAppointment Page', () => {
 
   describe('Date and time display', () => {
     it('should correctly parse and display appointment schedule without "Invalid Date"', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         const scheduledText = screen.queryByText(/scheduled:/i);
@@ -124,7 +142,7 @@ describe('EditAppointment Page', () => {
     });
 
     it('should display scheduled date and time correctly when both are selected', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       // Wait for the form to be populated
       await waitFor(() => {
@@ -144,7 +162,7 @@ describe('EditAppointment Page', () => {
     });
 
     it('should show time in 12-hour format', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         const timeSelect = screen.getByLabelText(/select time/i);
@@ -162,7 +180,7 @@ describe('EditAppointment Page', () => {
   describe('Form interactions', () => {
     it('should allow changing the date', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getByLabelText(/select date/i)).toBeInTheDocument();
@@ -177,7 +195,7 @@ describe('EditAppointment Page', () => {
 
     it('should allow changing the time', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         const timeSelect = screen.getByLabelText(/select time/i) as HTMLSelectElement;
@@ -198,7 +216,7 @@ describe('EditAppointment Page', () => {
 
     it('should allow changing the duration', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getByLabelText(/duration:/i)).toBeInTheDocument();
@@ -222,7 +240,7 @@ describe('EditAppointment Page', () => {
     });
 
     it('should display user information', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getByText(/user:/i)).toBeInTheDocument();
@@ -235,7 +253,7 @@ describe('EditAppointment Page', () => {
 
   describe('Form submission', () => {
     it('should have submit button visible and enabled', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       // Wait for form to be populated
       await waitFor(() => {
@@ -249,7 +267,7 @@ describe('EditAppointment Page', () => {
 
     it('should have cancel button that navigates to home', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       // Wait for buttons to appear
       await waitFor(() => {
@@ -265,7 +283,7 @@ describe('EditAppointment Page', () => {
     });
 
     it('should display appointment details section', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       // Wait for the component to load completely with both date and time
       await waitFor(() => {
@@ -281,7 +299,7 @@ describe('EditAppointment Page', () => {
 
     it('should update form when date changes', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         const dateInput = screen.getByLabelText(/select date/i) as HTMLInputElement;
@@ -302,7 +320,7 @@ describe('EditAppointment Page', () => {
 
     it('should allow duration adjustment', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getByLabelText(/duration:/i)).toBeInTheDocument();
@@ -329,7 +347,7 @@ describe('EditAppointment Page', () => {
   describe('Date and time validation', () => {
     it('should reset time when date is changed', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         const dateInput = screen.getByLabelText(/select date/i);
@@ -357,7 +375,7 @@ describe('EditAppointment Page', () => {
     });
 
     it('should show day name and opening hours for selected date', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         const dateInput = screen.getByLabelText(/select date/i) as HTMLInputElement;
@@ -371,7 +389,7 @@ describe('EditAppointment Page', () => {
 
     it('should disable time selection when no date is selected', async () => {
       const user = userEvent.setup();
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getByLabelText(/select date/i)).toBeInTheDocument();
@@ -392,7 +410,7 @@ describe('EditAppointment Page', () => {
 
   describe('Duration display', () => {
     it('should show duration in both minutes and hours', async () => {
-      render(<EditAppointment />);
+      renderWithProvider(<EditAppointment />);
 
       await waitFor(() => {
         expect(screen.getAllByText(/60 minutes/i).length).toBeGreaterThan(0);

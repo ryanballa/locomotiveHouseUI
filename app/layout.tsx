@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { UserProvider } from "@/components/user-provider";
+import { UserSessionProvider } from "@/components/UserSessionProvider";
 import "./globals.css";
 
 export const dynamic = 'force-dynamic';
@@ -19,9 +19,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className="antialiased">
-          <UserProvider>
+          <UserSessionProvider>
             {children}
-          </UserProvider>
+          </UserSessionProvider>
         </body>
       </html>
     </ClerkProvider>
