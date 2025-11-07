@@ -15,6 +15,8 @@ vi.mock('@/lib/api', () => ({
     getAppointments: vi.fn(),
     getCurrentUser: vi.fn(),
     createAppointment: vi.fn(),
+    getUsers: vi.fn(),
+    deleteAppointment: vi.fn(),
   },
 }));
 
@@ -57,7 +59,9 @@ describe('FridayEveningCard Component', () => {
     // Default mock implementations
     (apiClient.getCurrentUser as any).mockResolvedValue(mockCurrentUser);
     (apiClient.getAppointments as any).mockResolvedValue([]);
+    (apiClient.getUsers as any).mockResolvedValue([mockCurrentUser]);
     (apiClient.createAppointment as any).mockResolvedValue({ created: true, id: 100 });
+    (apiClient.deleteAppointment as any).mockResolvedValue({ deleted: true });
   });
 
   afterEach(() => {
