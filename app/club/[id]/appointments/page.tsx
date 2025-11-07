@@ -166,6 +166,7 @@ function ClubAppointmentsContent() {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       timeStyle: "short",
+      timeZone: "UTC",
     }).format(date);
   };
 
