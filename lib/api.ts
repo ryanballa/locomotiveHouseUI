@@ -28,6 +28,13 @@ export interface Address {
   club_id?: number;
 }
 
+export interface Tower {
+  id: number;
+  name: string;
+  description?: string;
+  club_id: number;
+}
+
 interface ApiResponse<T> {
   result?: T[];
   error?: string;
@@ -785,6 +792,143 @@ class ApiClient {
         error: message,
       };
     }
+  }
+
+  // Towers API
+  async getTowersByClubId(clubId: number, token?: string): Promise<Tower[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers`, {
+      method: 'GET',
+      headers,
+    });
+
+    // Backend returns { result: [...] } for club-scoped towers
+    return response.result || [];
+  }
+
+  async getTowerById(clubId: number, towerId: number, token?: string): Promise<Tower | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers/${towerId}`, {
+      method: 'GET',
+      headers,
+    });
+
+    // Handle different response formats
+    if ((response as any).tower) {
+      return (response as any).tower;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  async createTower(
+    clubId: number,
+    data: Omit<Tower, 'id' | 'club_id'>,
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    const towerData = {
+      ...data,
+      club_id: clubId,
+    };
+
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(towerData),
+    });
+
+    // Handle different response formats
+    let created = false;
+    let id: number | undefined = undefined;
+
+    if (response.created) {
+      created = true;
+      id = response.id;
+    } else if ((response as any).tower?.data && Array.isArray((response as any).tower.data)) {
+      const towerData = (response as any).tower.data[0];
+      if (towerData?.id) {
+        created = true;
+        id = towerData.id;
+      }
+    } else if ((response as any).result && Array.isArray((response as any).result) && (response as any).result.length > 0) {
+      created = true;
+      id = (response as any).result[0]?.id;
+    }
+
+    return {
+      created: !!created,
+      id,
+    };
+  }
+
+  async updateTower(
+    clubId: number,
+    towerId: number,
+    data: Partial<Omit<Tower, 'id'>>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers/${towerId}`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    // Handle different response formats
+    let updated = false;
+
+    if (response.updated) {
+      updated = true;
+    } else if ((response as any).tower?.data && Array.isArray((response as any).tower.data)) {
+      updated = (response as any).tower.data.length > 0;
+    } else if ((response as any).tower && !Array.isArray((response as any).tower)) {
+      updated = true;
+    }
+
+    return {
+      updated: !!updated,
+    };
+  }
+
+  async deleteTower(
+    clubId: number,
+    towerId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers/${towerId}`, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    // Handle different response formats
+    let deleted = false;
+
+    if (response.deleted) {
+      deleted = true;
+    } else if ((response as any).tower?.data && Array.isArray((response as any).tower.data)) {
+      deleted = (response as any).tower.data.length > 0;
+    } else if ((response as any).tower && !Array.isArray((response as any).tower)) {
+      deleted = true;
+    }
+
+    return {
+      deleted: !!deleted,
+    };
   }
 }
 
