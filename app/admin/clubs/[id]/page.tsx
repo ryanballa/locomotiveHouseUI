@@ -28,6 +28,9 @@ function ClubDetailPageContent() {
   const [unassigningUserId, setUnassigningUserId] = useState<number | null>(
     null
   );
+  const [selectedPermissions, setSelectedPermissions] = useState<
+    Record<number, number>
+  >({});
 
   const { isAdmin } = useAdminCheck();
 
@@ -50,13 +53,18 @@ function ClubDetailPageContent() {
         return;
       }
 
-      // Find the user to get their permission level
-      const userToAssign = unassignedUsers.find((u) => u.id === userId);
       const updateData: any = { club_id: clubId };
 
-      // Include permission if the user has it
-      if (userToAssign?.permission !== undefined) {
-        updateData.permission = userToAssign.permission;
+      // Use selected permission if available, otherwise use user's existing permission
+      const selectedPermission = selectedPermissions[userId];
+      if (selectedPermission !== undefined) {
+        updateData.permission = selectedPermission;
+      } else {
+        // Fallback to user's existing permission level
+        const userToAssign = unassignedUsers.find((u) => u.id === userId);
+        if (userToAssign?.permission !== undefined) {
+          updateData.permission = userToAssign.permission;
+        }
       }
 
       const result = await apiClient.updateUser(
@@ -66,6 +74,12 @@ function ClubDetailPageContent() {
       );
 
       if (result.updated) {
+        // Clear the selected permission for this user
+        setSelectedPermissions((prev) => {
+          const updated = { ...prev };
+          delete updated[userId];
+          return updated;
+        });
         // Refetch to ensure data is in sync
         await fetchClubDetails();
       } else {
@@ -388,9 +402,37 @@ function ClubDetailPageContent() {
                       {user.clerkEmail || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.permission !== null && user.permission !== undefined
-                        ? enrichPermissions({ permission: user.permission })
-                        : "N/A"}
+                      <select
+                        value={selectedPermissions[user.id] ?? (user.permission ?? "")}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === "") {
+                            setSelectedPermissions((prev) => {
+                              const updated = { ...prev };
+                              delete updated[user.id];
+                              return updated;
+                            });
+                          } else {
+                            setSelectedPermissions((prev) => ({
+                              ...prev,
+                              [user.id]: Number(value),
+                            }));
+                          }
+                        }}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      >
+                        {user.permission !== null && user.permission !== undefined ? (
+                          <option value={user.permission}>
+                            {enrichPermissions({ permission: user.permission })}
+                          </option>
+                        ) : (
+                          <option value="">Select a permission...</option>
+                        )}
+                        <option value="1">Admin</option>
+                        <option value="2">Regular</option>
+                        <option value="3">Super Admin</option>
+                        <option value="4">Limited</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
