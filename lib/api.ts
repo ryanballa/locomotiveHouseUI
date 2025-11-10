@@ -35,6 +35,20 @@ export interface Tower {
   club_id: number;
 }
 
+export type IssueStatus = 'Open' | 'In Progress' | 'Done' | 'Closed';
+
+export interface Issue {
+  id: number;
+  tower_id: number;
+  user_id: number;
+  title: string;
+  type: string;
+  description?: string;
+  status: IssueStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface ApiResponse<T> {
   result?: T[];
   error?: string;
@@ -923,6 +937,208 @@ class ApiClient {
     } else if ((response as any).tower?.data && Array.isArray((response as any).tower.data)) {
       deleted = (response as any).tower.data.length > 0;
     } else if ((response as any).tower && !Array.isArray((response as any).tower)) {
+      deleted = true;
+    }
+
+    return {
+      deleted: !!deleted,
+    };
+  }
+
+  // Issues API
+  /**
+   * Fetch all issues for a specific tower
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param token - Authentication token
+   * @returns Array of issues for the tower
+   */
+  async getIssuesByTowerId(
+    clubId: number,
+    towerId: number,
+    token?: string
+  ): Promise<Issue[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues`,
+      {
+        method: 'GET',
+        headers,
+      }
+    );
+
+    return response.result || [];
+  }
+
+  /**
+   * Fetch a single issue by ID
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param issueId - The issue ID
+   * @param token - Authentication token
+   * @returns Single issue or null if not found
+   */
+  async getIssueById(
+    clubId: number,
+    towerId: number,
+    issueId: number,
+    token?: string
+  ): Promise<Issue | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues/${issueId}`,
+      {
+        method: 'GET',
+        headers,
+      }
+    );
+
+    if ((response as any).issue) {
+      return (response as any).issue;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  /**
+   * Create a new issue for a tower
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param data - Issue data (title, type, description, status, user_id)
+   * @param token - Authentication token
+   * @returns Object with created flag and issue ID
+   */
+  async createIssue(
+    clubId: number,
+    towerId: number,
+    data: Omit<Issue, 'id' | 'tower_id' | 'created_at' | 'updated_at'>,
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    const issueData = {
+      ...data,
+      tower_id: towerId,
+    };
+
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(issueData),
+      }
+    );
+
+    // Handle different response formats
+    let created = false;
+    let id: number | undefined = undefined;
+
+    if (response.created) {
+      created = true;
+      id = response.id;
+    } else if ((response as any).issue?.data && Array.isArray((response as any).issue.data)) {
+      const issueData = (response as any).issue.data[0];
+      if (issueData?.id) {
+        created = true;
+        id = issueData.id;
+      }
+    } else if ((response as any).result && Array.isArray((response as any).result) && (response as any).result.length > 0) {
+      created = true;
+      id = (response as any).result[0]?.id;
+    }
+
+    return {
+      created: !!created,
+      id,
+    };
+  }
+
+  /**
+   * Update an existing issue
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param issueId - The issue ID to update
+   * @param data - Partial issue data to update
+   * @param token - Authentication token
+   * @returns Object with updated flag
+   */
+  async updateIssue(
+    clubId: number,
+    towerId: number,
+    issueId: number,
+    data: Partial<Omit<Issue, 'id' | 'tower_id' | 'created_at' | 'updated_at'>>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues/${issueId}`,
+      {
+        method: 'PUT',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    // Handle different response formats
+    let updated = false;
+
+    if (response.updated) {
+      updated = true;
+    } else if ((response as any).issue?.data && Array.isArray((response as any).issue.data)) {
+      updated = (response as any).issue.data.length > 0;
+    } else if ((response as any).issue && !Array.isArray((response as any).issue)) {
+      updated = true;
+    }
+
+    return {
+      updated: !!updated,
+    };
+  }
+
+  /**
+   * Delete an issue
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param issueId - The issue ID to delete
+   * @param token - Authentication token
+   * @returns Object with deleted flag
+   */
+  async deleteIssue(
+    clubId: number,
+    towerId: number,
+    issueId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues/${issueId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Handle different response formats
+    let deleted = false;
+
+    if (response.deleted) {
+      deleted = true;
+    } else if ((response as any).issue?.data && Array.isArray((response as any).issue.data)) {
+      deleted = (response as any).issue.data.length > 0;
+    } else if ((response as any).issue && !Array.isArray((response as any).issue)) {
       deleted = true;
     }
 
