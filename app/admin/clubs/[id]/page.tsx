@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Club, type User, type Tower, type Issue, type IssueStatus } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
@@ -15,6 +15,7 @@ interface EnrichedUser extends User {
 
 function ClubDetailPageContent() {
   const { getToken } = useAuth();
+  const { user: clerkUser } = useUser();
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
@@ -22,6 +23,7 @@ function ClubDetailPageContent() {
   const [club, setClub] = useState<Club | null>(null);
   const [users, setUsers] = useState<EnrichedUser[]>([]);
   const [unassignedUsers, setUnassignedUsers] = useState<EnrichedUser[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
@@ -47,7 +49,7 @@ function ClubDetailPageContent() {
     type: "",
     description: "",
     status: "Open" as IssueStatus,
-    user_id: 1,
+    user_id: 0,
   });
   const [creatingIssue, setCreatingIssue] = useState(false);
   const [deletingIssueId, setDeletingIssueId] = useState<number | null>(null);
@@ -343,7 +345,7 @@ function ClubDetailPageContent() {
       type: "",
       description: "",
       status: "Open",
-      user_id: 1,
+      user_id: currentUser?.id || 0,
     });
   };
 
@@ -385,7 +387,7 @@ function ClubDetailPageContent() {
           type: "",
           description: "",
           status: "Open",
-          user_id: 1,
+          user_id: currentUser?.id || 0,
         });
       } else {
         setError("Failed to create issue");
@@ -439,7 +441,7 @@ function ClubDetailPageContent() {
           type: "",
           description: "",
           status: "Open",
-          user_id: 1,
+          user_id: currentUser?.id || 0,
         });
       } else {
         setError("Failed to update issue");
@@ -563,6 +565,19 @@ function ClubDetailPageContent() {
 
       setUsers(enrichedClubUsers);
       setUnassignedUsers(enrichedUnassignedUsers);
+
+      // Find current user by matching Clerk ID
+      if (clerkUser?.id) {
+        const matchedUser = usersWithClubId.find((u) => u.token === clerkUser.id);
+        if (matchedUser) {
+          setCurrentUser(matchedUser);
+          // Update issue form with current user ID
+          setIssueFormData((prev) => ({
+            ...prev,
+            user_id: matchedUser.id,
+          }));
+        }
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load club details";
@@ -1056,7 +1071,7 @@ function ClubDetailPageContent() {
                             type: "",
                             description: "",
                             status: "Open",
-                            user_id: 1,
+                            user_id: currentUser?.id || 0,
                           });
                         }}
                         className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-2 focus:ring-gray-400"
