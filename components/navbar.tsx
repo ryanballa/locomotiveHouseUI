@@ -210,7 +210,14 @@ export function Navbar() {
                 <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
                   Issues
                 </div>
-              ) : currentClubId || isAdmin ? (
+              ) : currentClubId ? (
+                <Link
+                  href={`/club/${currentClubId}/issues`}
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                >
+                  Issues
+                </Link>
+              ) : isAdmin ? (
                 <Link
                   href="/issues"
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
