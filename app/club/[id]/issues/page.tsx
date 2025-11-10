@@ -371,6 +371,7 @@ export default function ClubIssuesPage() {
                       deletingIssueId={deletingIssueId}
                       editingIssueId={editingIssueId}
                       towerName={tower.name}
+                      clubId={clubId}
                     />
                   )}
                 </div>

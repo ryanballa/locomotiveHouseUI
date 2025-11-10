@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Issue, IssueStatus } from "@/lib/api";
 
 interface IssueTableProps {
@@ -49,6 +50,11 @@ interface IssueTableProps {
    * Show club name column (useful when displaying all issues)
    */
   showClubName?: boolean;
+
+  /**
+   * Club ID for generating issue detail links (required to show clickable titles)
+   */
+  clubId?: number;
 }
 
 /**
@@ -65,6 +71,7 @@ export function IssueTable({
   clubName,
   showTowerName = false,
   showClubName = false,
+  clubId,
 }: IssueTableProps) {
   if (issues.length === 0) {
     return (
@@ -127,8 +134,17 @@ export function IssueTable({
                 {issue.tower_id}
               </td>
             )}
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-              {issue.title}
+            <td className="px-6 py-4 whitespace-nowrap text-sm">
+              {clubId ? (
+                <Link
+                  href={`/club/${clubId}/issues/${issue.id}`}
+                  className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                >
+                  {issue.title}
+                </Link>
+              ) : (
+                <span className="text-gray-600">{issue.title}</span>
+              )}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
               {issue.type}
