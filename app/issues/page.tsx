@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { apiClient, type Issue, type IssueStatus } from "@/lib/api";
+import { apiClient, type Issue, type IssueStatus, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { IssueTable } from "@/components/IssueTable";
+import { useUserClubs } from "@/hooks/useUserClubs";
 
 interface EnrichedIssue extends Issue {
   clubId?: number;
@@ -14,8 +15,15 @@ interface EnrichedIssue extends Issue {
 
 export default function IssuesPage() {
   const { getToken, isSignedIn } = useAuth();
-  const { user } = useUser();
-  const [issues, setIssues] = useState<EnrichedIssue[]>([]);
+  const { user: clerkUser } = useUser();
+  const {
+    clubs,
+    currentClubId,
+    loading: clubsLoading,
+  } = useUserClubs();
+  const [allIssues, setAllIssues] = useState<EnrichedIssue[]>([]);
+  const [filteredIssues, setFilteredIssues] = useState<EnrichedIssue[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingIssueId, setDeletingIssueId] = useState<number | null>(null);
@@ -30,6 +38,11 @@ export default function IssuesPage() {
   });
 
   /**
+   * Check if current user is admin (permission level 1 or 3)
+   */
+  const isAdmin = currentUser && (currentUser.permission === 1 || currentUser.permission === 3);
+
+  /**
    * Fetch all issues across all clubs and towers
    */
   const fetchIssues = async () => {
@@ -42,8 +55,21 @@ export default function IssuesPage() {
         return;
       }
 
-      const allIssues = await apiClient.getAllIssues(token!);
-      setIssues(allIssues);
+      // Fetch issues and current user in parallel
+      const [allIssuesData, usersData] = await Promise.all([
+        apiClient.getAllIssues(token!),
+        apiClient.getUsers(token),
+      ]);
+
+      setAllIssues(allIssuesData);
+
+      // Find current user by matching Clerk ID
+      if (clerkUser?.id && usersData.length > 0) {
+        const matchedUser = usersData.find((u) => u.token === clerkUser.id);
+        if (matchedUser) {
+          setCurrentUser(matchedUser);
+        }
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load issues";
@@ -53,6 +79,22 @@ export default function IssuesPage() {
       setLoading(false);
     }
   };
+
+  /**
+   * Filter issues based on selected club and user permissions
+   */
+  useEffect(() => {
+    if (isAdmin) {
+      // Admins see all issues
+      setFilteredIssues(allIssues);
+    } else if (currentClubId) {
+      // Non-admins see only issues from their selected club
+      setFilteredIssues(allIssues.filter((issue) => issue.clubId === currentClubId));
+    } else {
+      // No club selected, show no issues
+      setFilteredIssues([]);
+    }
+  }, [allIssues, currentClubId, isAdmin]);
 
   /**
    * Delete an issue
@@ -187,7 +229,11 @@ export default function IssuesPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Issues</h1>
           <p className="text-gray-600">
-            View and manage all issues across all towers and clubs
+            {isAdmin
+              ? "View and manage all issues across all towers and clubs"
+              : clubs.find((c) => c.id === currentClubId)?.name
+              ? `View and manage issues for ${clubs.find((c) => c.id === currentClubId)?.name}`
+              : "Select a club from the navigation to view issues"}
           </p>
         </div>
 
@@ -202,7 +248,7 @@ export default function IssuesPage() {
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <h2 className="text-2xl font-bold text-gray-900">
-              All Issues ({issues.length})
+              {isAdmin ? "All Issues" : "Issues"} ({filteredIssues.length})
             </h2>
           </div>
 
@@ -299,9 +345,13 @@ export default function IssuesPage() {
           )}
 
           {/* Issues Table - Custom wrapper to add club/tower columns */}
-          {issues.length === 0 ? (
+          {filteredIssues.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg">No issues found.</p>
+              <p className="text-gray-500 text-lg">
+                {!isAdmin && !currentClubId
+                  ? "Please select a club from the navigation to view issues."
+                  : "No issues found."}
+              </p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
@@ -310,9 +360,11 @@ export default function IssuesPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Club
-                  </th>
+                  {isAdmin && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Club
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tower
                   </th>
@@ -334,14 +386,16 @@ export default function IssuesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {issues.map((issue) => (
+                {filteredIssues.map((issue) => (
                   <tr key={issue.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {issue.id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {issue.clubName || "-"}
-                    </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {issue.clubName || "-"}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {issue.towerName || "-"}
                     </td>
