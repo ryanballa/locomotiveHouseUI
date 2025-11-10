@@ -1146,6 +1146,42 @@ class ApiClient {
       deleted: !!deleted,
     };
   }
+
+  /**
+   * Fetch all issues across all clubs and towers
+   * Note: This is a convenience method that fetches all clubs and their towers' issues
+   * @param token - Authentication token (required for nested API calls)
+   * @returns Array of all issues with their tower and club information
+   */
+  async getAllIssues(token: string): Promise<(Issue & { clubId?: number; clubName?: string; towerName?: string })[]> {
+    try {
+      // Fetch all clubs
+      const clubs = await this.getClubs(token);
+      const allIssues: (Issue & { clubId?: number; clubName?: string; towerName?: string })[] = [];
+
+      // For each club, fetch towers and then their issues
+      for (const club of clubs) {
+        const towers = await this.getTowersByClubId(club.id, token);
+        for (const tower of towers) {
+          const issues = await this.getIssuesByTowerId(club.id, tower.id, token);
+          // Enrich issues with club and tower info
+          allIssues.push(
+            ...issues.map((issue) => ({
+              ...issue,
+              clubId: club.id,
+              clubName: club.name,
+              towerName: tower.name,
+            }))
+          );
+        }
+      }
+
+      return allIssues;
+    } catch (error) {
+      console.error('Error fetching all issues:', error);
+      return [];
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

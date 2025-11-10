@@ -7,6 +7,7 @@ import { apiClient, type Club, type User, type Tower, type Issue, type IssueStat
 import { Navbar } from "@/components/navbar";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { IssueTable } from "@/components/IssueTable";
 
 interface EnrichedUser extends User {
   clerkName?: string;
@@ -1093,87 +1094,14 @@ function ClubDetailPageContent() {
             </div>
 
             {/* Issues List */}
-            {!towerIssues[selectedTowerForIssues] || towerIssues[selectedTowerForIssues].length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-gray-500 text-lg">
-                  No issues created for this tower yet.
-                </p>
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {towerIssues[selectedTowerForIssues]?.map((issue) => (
-                    <tr key={issue.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {issue.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {issue.title}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {issue.type}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span
-                          className={`px-3 py-1 rounded-full text-white font-medium ${
-                            issue.status === "Open"
-                              ? "bg-blue-500"
-                              : issue.status === "In Progress"
-                              ? "bg-yellow-500"
-                              : issue.status === "Done"
-                              ? "bg-green-500"
-                              : "bg-gray-500"
-                          }`}
-                        >
-                          {issue.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {issue.description || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <button
-                          onClick={() => startEditingIssue(issue)}
-                          disabled={editingIssueId !== null}
-                          className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteIssue(issue.id)}
-                          disabled={deletingIssueId === issue.id}
-                          className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {deletingIssueId === issue.id ? "Deleting..." : "Delete"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <IssueTable
+              issues={towerIssues[selectedTowerForIssues] || []}
+              onEdit={startEditingIssue}
+              onDelete={handleDeleteIssue}
+              deletingIssueId={deletingIssueId}
+              editingIssueId={editingIssueId}
+              towerName={towers.find((t) => t.id === selectedTowerForIssues)?.name}
+            />
           </div>
         )}
       </main>
