@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useParams } from "next/navigation";
-import { apiClient, type Issue, type IssueStatus, type User } from "@/lib/api";
+import { apiClient, type Issue, type IssueStatus, type User, type Tower } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { IssueTable } from "@/components/IssueTable";
 
@@ -20,7 +20,8 @@ export default function ClubIssuesPage() {
   const { getToken, isSignedIn } = useAuth();
   const { user: clerkUser } = useUser();
   const [club, setClub] = useState<{ id: number; name: string } | null>(null);
-  const [allIssues, setAllIssues] = useState<EnrichedIssue[]>([]);
+  const [towers, setTowers] = useState<Tower[]>([]);
+  const [towerIssues, setTowerIssues] = useState<Record<number, Issue[]>>({});
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export default function ClubIssuesPage() {
   });
 
   /**
-   * Fetch club details and all issues for this club
+   * Fetch club details, towers, and all issues for this club
    */
   const fetchClubAndIssues = async () => {
     try {
@@ -48,10 +49,10 @@ export default function ClubIssuesPage() {
         return;
       }
 
-      // Fetch club, issues for this club, and current user in parallel
-      const [clubs, allClubIssues, usersData] = await Promise.all([
+      // Fetch club, towers, and current user in parallel
+      const [clubs, towersData, usersData] = await Promise.all([
         apiClient.getClubs(token),
-        apiClient.getIssuesByClubId(clubId, token),
+        apiClient.getTowersByClubId(clubId, token),
         apiClient.getUsers(token),
       ]);
 
@@ -62,7 +63,15 @@ export default function ClubIssuesPage() {
       }
 
       setClub(clubData);
-      setAllIssues(allClubIssues);
+      setTowers(towersData);
+
+      // Fetch issues for each tower
+      const issuesByTower: Record<number, Issue[]> = {};
+      for (const tower of towersData) {
+        const issues = await apiClient.getIssuesByTowerId(clubId, tower.id, token);
+        issuesByTower[tower.id] = issues;
+      }
+      setTowerIssues(issuesByTower);
 
       // Find current user by matching Clerk ID
       if (clerkUser?.id && usersData.length > 0) {
@@ -222,193 +231,153 @@ export default function ClubIssuesPage() {
           </div>
         )}
 
-        {/* Issues Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Issues ({allIssues.length})
-            </h2>
-          </div>
-
-          {/* Edit Form Modal */}
-          {showEditForm && editingIssue && (
-            <div className="px-6 py-4 border-b border-gray-200 bg-yellow-50">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.title}
-                      onChange={(e) =>
-                        setEditFormData({ ...editFormData, title: e.target.value })
-                      }
-                      placeholder="Enter issue title"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.type}
-                      onChange={(e) =>
-                        setEditFormData({ ...editFormData, type: e.target.value })
-                      }
-                      placeholder="e.g., Maintenance, Bug, Feature"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
+        {/* Edit Form Modal - Shared across all towers */}
+        {showEditForm && editingIssue && (
+          <div className="mb-6 bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Issue</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description (Optional)
+                    Title
                   </label>
-                  <textarea
-                    value={editFormData.description}
+                  <input
+                    type="text"
+                    value={editFormData.title}
                     onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        description: e.target.value,
-                      })
+                      setEditFormData({ ...editFormData, title: e.target.value })
                     }
-                    placeholder="Enter issue description"
-                    rows={3}
+                    placeholder="Enter issue title"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status
+                    Type
                   </label>
-                  <select
-                    value={editFormData.status}
+                  <input
+                    type="text"
+                    value={editFormData.type}
                     onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        status: e.target.value as IssueStatus,
-                      })
+                      setEditFormData({ ...editFormData, type: e.target.value })
                     }
+                    placeholder="e.g., Maintenance, Bug, Feature"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="Open">Open</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                    <option value="Closed">Closed</option>
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveIssue}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowEditForm(false);
-                      setEditingIssue(null);
-                    }}
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  >
-                    Cancel
-                  </button>
+                  />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Enter issue description"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={editFormData.status}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      status: e.target.value as IssueStatus,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Open">Open</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveIssue}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditForm(false);
+                    setEditingIssue(null);
+                  }}
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-2 focus:ring-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Issues Table */}
-          {allIssues.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg">No issues found.</p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tower
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {allIssues.map((issue) => (
-                  <tr key={issue.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {issue.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {issue.towerName || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {issue.title}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {issue.type}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-3 py-1 rounded-full text-white font-medium ${
-                          issue.status === "Open"
-                            ? "bg-blue-500"
-                            : issue.status === "In Progress"
-                            ? "bg-yellow-500"
-                            : issue.status === "Done"
-                            ? "bg-green-500"
-                            : "bg-gray-500"
-                        }`}
-                      >
-                        {issue.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {issue.description || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => handleEditIssue(issue)}
-                        disabled={editingIssueId !== null}
-                        className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteIssue(issue)}
-                        disabled={deletingIssueId === issue.id}
-                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {deletingIssueId === issue.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {/* Issues by Tower */}
+        {towers.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <p className="text-gray-500 text-lg">No towers found for this club.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {towers.map((tower) => {
+              const issuesForTower = towerIssues[tower.id] || [];
+              return (
+                <div key={tower.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                  {/* Tower Header */}
+                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {tower.name} ({issuesForTower.length})
+                    </h3>
+                    {tower.description && (
+                      <p className="text-gray-600 text-sm mt-1">{tower.description}</p>
+                    )}
+                  </div>
+
+                  {/* Tower Issues Table */}
+                  {issuesForTower.length === 0 ? (
+                    <div className="px-6 py-8 text-center">
+                      <p className="text-gray-500">No issues for this tower.</p>
+                    </div>
+                  ) : (
+                    <IssueTable
+                      issues={issuesForTower}
+                      onEdit={(issue) =>
+                        handleEditIssue({
+                          ...issue,
+                          towerName: tower.name,
+                        } as EnrichedIssue)
+                      }
+                      onDelete={(issueId) => {
+                        const issue = issuesForTower.find((i) => i.id === issueId);
+                        if (issue) {
+                          handleDeleteIssue({
+                            ...issue,
+                            towerName: tower.name,
+                          } as EnrichedIssue);
+                        }
+                      }}
+                      deletingIssueId={deletingIssueId}
+                      editingIssueId={editingIssueId}
+                      towerName={tower.name}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </main>
     </div>
   );
