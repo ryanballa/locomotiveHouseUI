@@ -18,8 +18,6 @@ function ClubAddressesContent() {
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [clubs, setClubs] = useState<{id: number; name: string}[]>([]);
-  const [userClubs, setUserClubs] = useState<{id: number; name: string}[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,23 +62,6 @@ function ClubAddressesContent() {
     }
   }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
 
-  // Update available clubs for the selected user
-  useEffect(() => {
-    if (formData.user_id && clubs.length > 0) {
-      // Find the selected user
-      const selectedUser = users.find((u) => u.id === formData.user_id);
-
-      if (selectedUser && selectedUser.clubs && selectedUser.clubs.length > 0) {
-        // User has clubs assigned, use those
-        setUserClubs(selectedUser.clubs);
-      } else {
-        // User doesn't have clubs assigned - they can't create addresses
-        setUserClubs([]);
-      }
-    } else {
-      setUserClubs([]);
-    }
-  }, [formData.user_id, users, clubs]);
 
   const fetchData = async () => {
     try {
@@ -115,38 +96,12 @@ function ClubAddressesContent() {
       setUsers(enrichedUsers);
 
       // Find and set current user info by matching Clerk ID
-      let currentUserData: User | null = null;
       if (clerkUserId && enrichedUsers.length > 0) {
         const matchedUser = enrichedUsers.find((u) => u.token === clerkUserId);
         if (matchedUser) {
           setCurrentUser(matchedUser);
-          currentUserData = matchedUser;
         }
       }
-
-      // Determine clubs based on user permission level
-      let clubsData: {id: number; name: string}[];
-      const userIsAdmin = currentUserData && (currentUserData.permission === 1 || currentUserData.permission === 3);
-
-      if (userIsAdmin) {
-        // Admins can see all clubs - always fetch fresh
-        clubsData = await apiClient.getClubs(token);
-      } else {
-        // Non-admins get clubs from localStorage (assigned clubs)
-        try {
-          const storedClubs = localStorage.getItem("assignedClubs");
-          clubsData = storedClubs ? JSON.parse(storedClubs) : [];
-          // If localStorage is empty or invalid, fetch from API as fallback
-          if (!Array.isArray(clubsData) || clubsData.length === 0) {
-            clubsData = await apiClient.getClubs(token);
-          }
-        } catch (e) {
-          // Fallback to fetching if localStorage fails
-          clubsData = await apiClient.getClubs(token);
-        }
-      }
-
-      setClubs(clubsData);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load data";
@@ -174,10 +129,6 @@ function ClubAddressesContent() {
     }
     if (formData.user_id === 0) {
       setError("User assignment is required");
-      return false;
-    }
-    if (formData.club_id === 0) {
-      setError("Club assignment is required");
       return false;
     }
     return true;
@@ -422,7 +373,7 @@ function ClubAddressesContent() {
               <select
                 value={formData.user_id}
                 onChange={(e) =>
-                  setFormData({ ...formData, user_id: parseInt(e.target.value), club_id: clubId })
+                  setFormData({ ...formData, user_id: parseInt(e.target.value) })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isCreating || editingId !== null}
@@ -438,36 +389,6 @@ function ClubAddressesContent() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Club
-              </label>
-              {formData.user_id === 0 ? (
-                <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-500 text-sm">
-                  Select a user first
-                </div>
-              ) : userClubs.length === 0 ? (
-                <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-700 text-sm">
-                  Selected user has no club assigned
-                </div>
-              ) : (
-                <select
-                  value={formData.club_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, club_id: parseInt(e.target.value) })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
-                >
-                  <option value={0}>Select a club...</option>
-                  {userClubs.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
