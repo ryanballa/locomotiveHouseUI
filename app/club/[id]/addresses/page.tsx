@@ -129,13 +129,17 @@ function ClubAddressesContent() {
       const userIsAdmin = currentUserData && (currentUserData.permission === 1 || currentUserData.permission === 3);
 
       if (userIsAdmin) {
-        // Admins can see all clubs
+        // Admins can see all clubs - always fetch fresh
         clubsData = await apiClient.getClubs(token);
       } else {
         // Non-admins get clubs from localStorage (assigned clubs)
         try {
           const storedClubs = localStorage.getItem("assignedClubs");
           clubsData = storedClubs ? JSON.parse(storedClubs) : [];
+          // If localStorage is empty or invalid, fetch from API as fallback
+          if (!Array.isArray(clubsData) || clubsData.length === 0) {
+            clubsData = await apiClient.getClubs(token);
+          }
         } catch (e) {
           // Fallback to fetching if localStorage fails
           clubsData = await apiClient.getClubs(token);
