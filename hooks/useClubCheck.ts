@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
-import { getCachedUser, setCachedUser, clearUserCache } from "@/lib/sessionCache";
+import {
+  getCachedUser,
+  setCachedUser,
+  clearUserCache,
+} from "@/lib/sessionCache";
 
 interface UseClubCheckReturn {
   clubId: number | null;
@@ -60,14 +64,16 @@ export function useClubCheck(): UseClubCheckReturn {
       let userClubIds: number[] = [];
       const userIsSuperAdmin = cachedUser.permission === 3;
 
-      if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
+      if (
+        (cachedUser as any).clubs &&
+        Array.isArray((cachedUser as any).clubs)
+      ) {
         userClubIds = (cachedUser as any).clubs.map((c: any) => c.club_id);
         if (userClubIds.length > 0) {
           userClubId = userClubIds[0];
         }
-      } else if (cachedUser.club_id) {
-        userClubId = cachedUser.club_id;
-        userClubIds = [cachedUser.club_id];
+      } else if (cachedUser.clubs) {
+        userClubId = cachedUser.clubs[0].id;
       }
 
       setClubId(userClubId);
@@ -101,15 +107,17 @@ export function useClubCheck(): UseClubCheckReturn {
           const userIsSuperAdmin = cachedUser.permission === 3;
 
           // Check if user has clubs array (new format)
-          if ((cachedUser as any).clubs && Array.isArray((cachedUser as any).clubs)) {
+          if (
+            (cachedUser as any).clubs &&
+            Array.isArray((cachedUser as any).clubs)
+          ) {
             userClubIds = (cachedUser as any).clubs.map((c: any) => c.club_id);
             if (userClubIds.length > 0) {
               userClubId = userClubIds[0];
             }
-          } else if (cachedUser.club_id) {
+          } else if (cachedUser.clubs) {
             // Fall back to direct club_id field
-            userClubId = cachedUser.club_id;
-            userClubIds = [cachedUser.club_id];
+            userClubId = cachedUser.clubs[0].id;
           }
 
           setClubId(userClubId);
@@ -148,16 +156,16 @@ export function useClubCheck(): UseClubCheckReturn {
           // Cache the user data for future use
           setCachedUser(currentUserData);
 
-          // Check if user has clubs array (new format)
-          if ((currentUserData as any).clubs && Array.isArray((currentUserData as any).clubs)) {
-            userClubIds = (currentUserData as any).clubs.map((c: any) => c.club_id);
+          if (
+            (currentUserData as any).clubs &&
+            Array.isArray((currentUserData as any).clubs)
+          ) {
+            userClubIds = (currentUserData as any).clubs.map(
+              (c: any) => c.club_id
+            );
             if (userClubIds.length > 0) {
               userClubId = userClubIds[0];
             }
-          } else if (currentUserData.club_id) {
-            // Fall back to direct club_id field
-            userClubId = currentUserData.club_id;
-            userClubIds = [currentUserData.club_id];
           }
         }
 
@@ -182,12 +190,15 @@ export function useClubCheck(): UseClubCheckReturn {
     };
   }, [isSignedIn, getToken]);
 
-  const hasAccessToClub = useCallback((requestedClubId: number): boolean => {
-    // Super admins can access any club
-    if (isSuperAdmin) return true;
-    // Regular users can access clubs they're assigned to
-    return clubIds.includes(requestedClubId);
-  }, [isSuperAdmin, clubIds]);
+  const hasAccessToClub = useCallback(
+    (requestedClubId: number): boolean => {
+      // Super admins can access any club
+      if (isSuperAdmin) return true;
+      // Regular users can access clubs they're assigned to
+      return clubIds.includes(requestedClubId);
+    },
+    [isSuperAdmin, clubIds]
+  );
 
   return {
     clubId,

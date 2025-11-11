@@ -27,7 +27,7 @@ export function useUserClubs(): UseUserClubsReturn {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [currentClubId, setCurrentClubId] = useState<number | null>(null);
   const [currentClubsData, setCurrentClubsData] = useLocalStorage<Club[]>(
-    "name",
+    "assignedClubs",
     []
   );
   const [loading, setLoading] = useState(true);
@@ -46,6 +46,13 @@ export function useUserClubs(): UseUserClubsReturn {
   useEffect(() => {
     // Don't fetch until we've checked the cookie
     if (!isHydrated) {
+      return;
+    }
+
+    // Set data based on storage
+    if (currentClubId && currentClubsData.find((c) => c.id === currentClubId)) {
+      setClubs(currentClubsData);
+      setLoading(false);
       return;
     }
 
@@ -91,9 +98,17 @@ export function useUserClubs(): UseUserClubsReturn {
         // Extract current club ID from user data
         // The User object has a club_id field that indicates their primary club
         let userClubId: number | null = null;
-        if (currentUserData && currentUserData.club_id) {
-          userClubId = currentUserData.club_id;
+        if (currentUserData && currentUserData.clubs) {
+          userClubId = currentUserData.clubs[0].id;
         }
+
+        //Save all assigned clubs to local storage
+        const assignedClubs = allClubs.filter((c) => {
+          return currentUserData?.clubs?.filter((cd) => {
+            return cd.id === c.id;
+          });
+        });
+        setCurrentClubsData(assignedClubs);
 
         // Use saved club ID from cookie if available and valid, otherwise use user's default club
         const savedClubId = getCookie("selectedClubId");
