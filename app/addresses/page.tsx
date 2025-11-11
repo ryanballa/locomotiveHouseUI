@@ -86,10 +86,12 @@ export default function AddressesPage() {
           const clerkInfo = await apiClient.getClerkUserInfo(user.token);
 
           return {
-            ...user,
-            clubs: user.clubs,
-            email: clerkInfo.email,
+            id: user.id,
+            token: user.token,
             name: user.name || clerkInfo.name,
+            email: clerkInfo.email,
+            permission: user.permission,
+            clubs: user.clubs,
           };
         })
       );
