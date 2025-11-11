@@ -133,8 +133,8 @@ export default function EditAppointment() {
       const [year, month, day] = formData.date.split("-").map(Number);
       const { hour, minute } = parse12HourTime(formData.time);
 
-      // Create date in local timezone
-      const scheduleDateTime = new Date(year, month - 1, day, hour, minute);
+      // Create date in UTC to avoid timezone offset issues
+      const scheduleDateTime = new Date(Date.UTC(year, month - 1, day, hour, minute));
 
       const appointmentData = {
         schedule: scheduleDateTime.toISOString(),
