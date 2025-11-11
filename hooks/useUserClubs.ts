@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { apiClient, type Club } from "@/lib/api";
 import { getCookie, setCookie } from "@/lib/cookieUtils";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface UseUserClubsReturn {
   clubs: Club[];
@@ -9,6 +10,11 @@ interface UseUserClubsReturn {
   loading: boolean;
   error: string | null;
   selectClub: (clubId: number) => void;
+}
+
+interface CurrentUser {
+  id: number;
+  name: string;
 }
 
 /**
@@ -20,6 +26,10 @@ export function useUserClubs(): UseUserClubsReturn {
   const { getToken, isSignedIn } = useAuth();
   const [clubs, setClubs] = useState<Club[]>([]);
   const [currentClubId, setCurrentClubId] = useState<number | null>(null);
+  const [currentClubsData, setCurrentClubsData] = useLocalStorage<Club[]>(
+    "name",
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -40,6 +50,13 @@ export function useUserClubs(): UseUserClubsReturn {
     }
 
     let isActive = true;
+
+    // const getClubData = () => {
+    //   const storedName = localStorage.getItem("selectedClubName");
+    //   if (storedName) {
+    //     setCurrentClubName(storedName);
+    //   }
+    // };
 
     const fetchUserClubs = async () => {
       try {
@@ -72,18 +89,10 @@ export function useUserClubs(): UseUserClubsReturn {
         setClubs(allClubs);
 
         // Extract current club ID from user data
+        // The User object has a club_id field that indicates their primary club
         let userClubId: number | null = null;
-        if (currentUserData) {
-          // Check if user has clubs array (new format)
-          if ((currentUserData as any).clubs && Array.isArray((currentUserData as any).clubs)) {
-            const firstClub = (currentUserData as any).clubs[0];
-            if (firstClub) {
-              userClubId = firstClub.club_id;
-            }
-          } else if (currentUserData.club_id) {
-            // Fall back to direct club_id field
-            userClubId = currentUserData.club_id;
-          }
+        if (currentUserData && currentUserData.club_id) {
+          userClubId = currentUserData.club_id;
         }
 
         // Use saved club ID from cookie if available and valid, otherwise use user's default club
@@ -103,7 +112,8 @@ export function useUserClubs(): UseUserClubsReturn {
         }
       } catch (err) {
         if (!isActive) return;
-        const errorMessage = err instanceof Error ? err.message : "Failed to load clubs";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load clubs";
         console.error("Error fetching user clubs:", err);
         setError(errorMessage);
         setClubs([]);
