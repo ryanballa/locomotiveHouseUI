@@ -70,16 +70,11 @@ function ClubAddressesContent() {
       // Find the selected user
       const selectedUser = users.find((u) => u.id === formData.user_id);
 
-      if (selectedUser && selectedUser.club_id) {
-        // User has a club_id, so show that club
-        const userClub = clubs.find((c) => c.id === selectedUser.club_id);
-        if (userClub) {
-          setUserClubs([userClub]);
-        } else {
-          setUserClubs([]);
-        }
+      if (selectedUser && selectedUser.clubs && selectedUser.clubs.length > 0) {
+        // User has clubs assigned, use those
+        setUserClubs(selectedUser.clubs);
       } else {
-        // User doesn't have a club assigned - they can't create addresses
+        // User doesn't have clubs assigned - they can't create addresses
         setUserClubs([]);
       }
     } else {
@@ -97,25 +92,19 @@ function ClubAddressesContent() {
         return;
       }
 
-      const [addressesData, usersData, clubsData] = await Promise.all([
+      const [addressesData, usersData] = await Promise.all([
         apiClient.getClubAddresses(clubId, token),
         apiClient.getUsers(token),
-        apiClient.getClubs(token),
       ]);
 
-      // Enrich users with Clerk data (email) and extract club_id
+      // Enrich users with Clerk data (email)
       const enrichedUsers = await Promise.all(
         usersData.map(async (user) => {
           const clerkInfo = await apiClient.getClerkUserInfo(user.token);
 
-          // Extract club_id from clubs array - use the first club if multiple
-          const clubIdFromUser = (user as any).clubs && (user as any).clubs.length > 0
-            ? (user as any).clubs[0].club_id
-            : user.club_id;
-
           return {
             ...user,
-            club_id: clubIdFromUser,
+            clubs: user.clubs,
             email: clerkInfo.email,
             name: user.name || clerkInfo.name,
           };
@@ -124,15 +113,36 @@ function ClubAddressesContent() {
 
       setAddresses(addressesData);
       setUsers(enrichedUsers);
-      setClubs(clubsData);
 
       // Find and set current user info by matching Clerk ID
+      let currentUserData: User | null = null;
       if (clerkUserId && enrichedUsers.length > 0) {
         const matchedUser = enrichedUsers.find((u) => u.token === clerkUserId);
         if (matchedUser) {
           setCurrentUser(matchedUser);
+          currentUserData = matchedUser;
         }
       }
+
+      // Determine clubs based on user permission level
+      let clubsData: {id: number; name: string}[];
+      const userIsAdmin = currentUserData && (currentUserData.permission === 1 || currentUserData.permission === 3);
+
+      if (userIsAdmin) {
+        // Admins can see all clubs
+        clubsData = await apiClient.getClubs(token);
+      } else {
+        // Non-admins get clubs from localStorage (assigned clubs)
+        try {
+          const storedClubs = localStorage.getItem("assignedClubs");
+          clubsData = storedClubs ? JSON.parse(storedClubs) : [];
+        } catch (e) {
+          // Fallback to fetching if localStorage fails
+          clubsData = await apiClient.getClubs(token);
+        }
+      }
+
+      setClubs(clubsData);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load data";

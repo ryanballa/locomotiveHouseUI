@@ -535,25 +535,24 @@ function ClubDetailPageContent() {
       setClub(clubData);
       setTowers(towersData);
 
-      // Extract club_id from clubs array for each user
-      const usersWithClubId = allUsers.map((user) => {
-        const clubIds = (user as any).clubs && Array.isArray((user as any).clubs)
-          ? (user as any).clubs.map((c: any) => c.club_id)
+      // Extract club IDs from clubs array for each user
+      const usersWithClubIds = allUsers.map((user) => {
+        const clubIds = user.clubs && Array.isArray(user.clubs)
+          ? user.clubs.map((c: Club) => c.id)
           : [];
         return {
           ...user,
           clubIds,
-          club_id: clubIds.length > 0 ? clubIds[0] : user.club_id, // Use first club for primary display
         };
       });
 
-      // Filter users by club_id - check if the club is in their clubs array
-      const clubUsers = usersWithClubId.filter((user) => {
-        const userClubIds = (user as any).clubIds || [];
-        return userClubIds.includes(clubId) || user.club_id === clubId;
+      // Filter users by club - check if the club is in their clubs array
+      const clubUsers = usersWithClubIds.filter((user) => {
+        const userClubIds = user.clubIds || [];
+        return userClubIds.includes(clubId);
       });
-      const usersWithoutClub = usersWithClubId.filter((user) => {
-        const userClubIds = (user as any).clubIds || [];
+      const usersWithoutClub = usersWithClubIds.filter((user) => {
+        const userClubIds = user.clubIds || [];
         // Show users NOT assigned to this specific club (they may be in other clubs)
         return !userClubIds.includes(clubId);
       });
@@ -569,7 +568,7 @@ function ClubDetailPageContent() {
 
       // Find current user by matching Clerk ID
       if (clerkUser?.id) {
-        const matchedUser = usersWithClubId.find((u) => u.token === clerkUser.id);
+        const matchedUser = usersWithClubIds.find((u) => u.token === clerkUser.id);
         if (matchedUser) {
           setCurrentUser(matchedUser);
           // Update issue form with current user ID
