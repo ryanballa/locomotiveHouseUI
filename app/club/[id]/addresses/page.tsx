@@ -18,8 +18,6 @@ function ClubAddressesContent() {
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [clubs, setClubs] = useState<{id: number; name: string}[]>([]);
-  const [userClubs, setUserClubs] = useState<{id: number; name: string}[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,28 +62,6 @@ function ClubAddressesContent() {
     }
   }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
 
-  // Update available clubs for the selected user
-  useEffect(() => {
-    if (formData.user_id && clubs.length > 0) {
-      // Find the selected user
-      const selectedUser = users.find((u) => u.id === formData.user_id);
-
-      if (selectedUser && selectedUser.club_id) {
-        // User has a club_id, so show that club
-        const userClub = clubs.find((c) => c.id === selectedUser.club_id);
-        if (userClub) {
-          setUserClubs([userClub]);
-        } else {
-          setUserClubs([]);
-        }
-      } else {
-        // User doesn't have a club assigned - they can't create addresses
-        setUserClubs([]);
-      }
-    } else {
-      setUserClubs([]);
-    }
-  }, [formData.user_id, users, clubs]);
 
   const fetchData = async () => {
     try {
@@ -97,25 +73,19 @@ function ClubAddressesContent() {
         return;
       }
 
-      const [addressesData, usersData, clubsData] = await Promise.all([
+      const [addressesData, usersData] = await Promise.all([
         apiClient.getClubAddresses(clubId, token),
         apiClient.getUsers(token),
-        apiClient.getClubs(token),
       ]);
 
-      // Enrich users with Clerk data (email) and extract club_id
+      // Enrich users with Clerk data (email)
       const enrichedUsers = await Promise.all(
         usersData.map(async (user) => {
           const clerkInfo = await apiClient.getClerkUserInfo(user.token);
 
-          // Extract club_id from clubs array - use the first club if multiple
-          const clubIdFromUser = (user as any).clubs && (user as any).clubs.length > 0
-            ? (user as any).clubs[0].club_id
-            : user.club_id;
-
           return {
             ...user,
-            club_id: clubIdFromUser,
+            clubs: user.clubs,
             email: clerkInfo.email,
             name: user.name || clerkInfo.name,
           };
@@ -124,7 +94,6 @@ function ClubAddressesContent() {
 
       setAddresses(addressesData);
       setUsers(enrichedUsers);
-      setClubs(clubsData);
 
       // Find and set current user info by matching Clerk ID
       if (clerkUserId && enrichedUsers.length > 0) {
@@ -160,10 +129,6 @@ function ClubAddressesContent() {
     }
     if (formData.user_id === 0) {
       setError("User assignment is required");
-      return false;
-    }
-    if (formData.club_id === 0) {
-      setError("Club assignment is required");
       return false;
     }
     return true;
@@ -408,7 +373,7 @@ function ClubAddressesContent() {
               <select
                 value={formData.user_id}
                 onChange={(e) =>
-                  setFormData({ ...formData, user_id: parseInt(e.target.value), club_id: clubId })
+                  setFormData({ ...formData, user_id: parseInt(e.target.value) })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isCreating || editingId !== null}
@@ -424,36 +389,6 @@ function ClubAddressesContent() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Club
-              </label>
-              {formData.user_id === 0 ? (
-                <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-500 text-sm">
-                  Select a user first
-                </div>
-              ) : userClubs.length === 0 ? (
-                <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-700 text-sm">
-                  Selected user has no club assigned
-                </div>
-              ) : (
-                <select
-                  value={formData.club_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, club_id: parseInt(e.target.value) })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
-                >
-                  <option value={0}>Select a club...</option>
-                  {userClubs.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
