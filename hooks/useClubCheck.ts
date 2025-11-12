@@ -73,7 +73,7 @@ export function useClubCheck(): UseClubCheckReturn {
           userClubId = userClubIds[0];
         }
       } else if (cachedUser.clubs) {
-        userClubId = cachedUser.clubs[0].id;
+        userClubId = cachedUser.clubs[0].club_id;
       }
 
       setClubId(userClubId);
@@ -117,7 +117,7 @@ export function useClubCheck(): UseClubCheckReturn {
             }
           } else if (cachedUser.clubs) {
             // Fall back to direct club_id field
-            userClubId = cachedUser.clubs[0].id;
+            userClubId = cachedUser.clubs[0].club_id;
           }
 
           setClubId(userClubId);

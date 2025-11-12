@@ -11,12 +11,17 @@ export interface User {
   name?: string;
   email?: string;
   permission: number | null;
-  clubs: Club[] | null;
+  clubs: UserClubRelation[] | null;
 }
 
 export interface Club {
   id: number;
   name: string;
+}
+
+export interface UserClubRelation {
+  user_id?: number;
+  club_id: number;
 }
 
 export interface Address {

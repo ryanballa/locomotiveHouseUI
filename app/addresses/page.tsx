@@ -54,8 +54,10 @@ export default function AddressesPage() {
       const selectedUser = users.find((u) => u.id === formData.user_id);
 
       if (selectedUser && selectedUser.clubs && selectedUser.clubs.length > 0) {
-        // User has clubs assigned, use those
-        setUserClubs(selectedUser.clubs);
+        // User has clubs assigned, map the club relations to full club objects
+        const userClubIds = selectedUser.clubs.map((c) => c.club_id);
+        const userClubObjects = clubs.filter((club) => userClubIds.includes(club.id));
+        setUserClubs(userClubObjects);
       } else {
         // User doesn't have clubs assigned - they can't create addresses
         setUserClubs([]);

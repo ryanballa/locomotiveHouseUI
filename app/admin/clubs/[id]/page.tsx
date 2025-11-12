@@ -538,7 +538,7 @@ function ClubDetailPageContent() {
       // Extract club IDs from clubs array for each user
       const usersWithClubIds = allUsers.map((user) => {
         const clubIds = user.clubs && Array.isArray(user.clubs)
-          ? user.clubs.map((c: Club) => c.club_id)
+          ? user.clubs.map((c) => c.club_id).filter((id): id is number => id !== undefined)
           : [];
         return {
           ...user,

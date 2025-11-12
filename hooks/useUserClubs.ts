@@ -99,13 +99,13 @@ export function useUserClubs(): UseUserClubsReturn {
         // The User object has a club_id field that indicates their primary club
         let userClubId: number | null = null;
         if (currentUserData && currentUserData.clubs) {
-          userClubId = currentUserData.clubs[0].id;
+          userClubId = currentUserData.clubs[0].club_id;
         }
 
         //Save all assigned clubs to local storage
         const assignedClubs = allClubs.filter((c) => {
           return currentUserData?.clubs?.filter((cd) => {
-            return cd.id === c.id;
+            return cd.club_id === c.id;
           });
         });
         setCurrentClubsData(assignedClubs);
