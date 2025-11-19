@@ -14,7 +14,7 @@ function ClubAddressesContent() {
   const params = useParams();
   const router = useRouter();
   const clubId = Number(params.id);
-  const { hasAccessToClub, isSuperAdmin, loading: clubCheckLoading } = useClubCheck();
+  const { hasAccessToClub, loading: clubCheckLoading } = useClubCheck();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -42,7 +42,19 @@ function ClubAddressesContent() {
   const currentUserLhId = currentUser?.id;
 
   // Check if current user is admin (permission level 1 or 3)
-  const isAdmin = currentUser && (currentUser.permission === 1 || currentUser.permission === 3);
+  const isAdmin =
+    currentUser &&
+    (currentUser.permission === 1 || currentUser.permission === 3);
+
+  // Auto-set current user when admin status changes
+  useEffect(() => {
+    if (!isAdmin && currentUserLhId) {
+      setFormData((prev) => ({
+        ...prev,
+        user_id: currentUserLhId,
+      }));
+    }
+  }, [isAdmin, currentUserLhId]);
 
   // Verify user has access to this club and fetch data
   useEffect(() => {
@@ -51,7 +63,7 @@ function ClubAddressesContent() {
       return;
     }
 
-    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
+    if (!hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
       return;
@@ -60,8 +72,7 @@ function ClubAddressesContent() {
     if (isSignedIn) {
       fetchData();
     }
-  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
-
+  }, [clubId, hasAccessToClub, isSignedIn, clubCheckLoading]);
 
   const fetchData = async () => {
     try {
@@ -141,13 +152,17 @@ function ClubAddressesContent() {
 
     // Permission check: Users can only create addresses for themselves, admins can create for anyone
     if (!isAdmin && formData.user_id !== currentUserLhId) {
-      setError("You can only create addresses for your own account. Contact an admin to create addresses for others.");
+      setError(
+        "You can only create addresses for your own account. Contact an admin to create addresses for others."
+      );
       return;
     }
 
     // Debug: Check if currentUser is loaded
     if (!currentUser) {
-      setError("User data is still loading. Please wait and try again. If this persists, please refresh the page.");
+      setError(
+        "User data is still loading. Please wait and try again. If this persists, please refresh the page."
+      );
       return;
     }
 
@@ -194,7 +209,9 @@ function ClubAddressesContent() {
 
     // Permission check: Users can only edit their own addresses, admins can edit any
     if (!isAdmin && addressBeingEdited.user_id !== currentUserLhId) {
-      setError("You can only edit your own addresses. Contact an admin for help.");
+      setError(
+        "You can only edit your own addresses. Contact an admin for help."
+      );
       return;
     }
 
@@ -235,7 +252,9 @@ function ClubAddressesContent() {
 
     // Permission check: Users can only delete their own addresses, admins can delete any
     if (!isAdmin && addressBeingDeleted.user_id !== currentUserLhId) {
-      setError("You can only delete your own addresses. Contact an admin for help.");
+      setError(
+        "You can only delete your own addresses. Contact an admin for help."
+      );
       return;
     }
 
@@ -370,21 +389,31 @@ function ClubAddressesContent() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assigned User
               </label>
-              <select
-                value={formData.user_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, user_id: parseInt(e.target.value) })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
-              >
-                <option value={0}>Select a user...</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {getUserDisplay(user)}
-                  </option>
-                ))}
-              </select>
+              {isAdmin ? (
+                <select
+                  value={formData.user_id}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      user_id: parseInt(e.target.value),
+                      club_id: clubId,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                >
+                  <option value={0}>Select a user...</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {getUserDisplay(user)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 flex items-center">
+                  {currentUserClerkName}
+                </div>
+              )}
             </div>
           </div>
 
@@ -424,10 +453,19 @@ function ClubAddressesContent() {
 
           <button
             onClick={handleCreate}
-            disabled={isCreating || editingId !== null || !formData.description.trim() || loading}
+            disabled={
+              isCreating ||
+              editingId !== null ||
+              !formData.description.trim() ||
+              loading
+            }
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isCreating ? "Creating..." : loading ? "Loading..." : "Create Address"}
+            {isCreating
+              ? "Creating..."
+              : loading
+              ? "Loading..."
+              : "Create Address"}
           </button>
         </div>
 
@@ -514,23 +552,29 @@ function ClubAddressesContent() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingId === address.id ? (
-                        <select
-                          value={formData.user_id}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              user_id: parseInt(e.target.value),
-                            })
-                          }
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value={0}>Select a user...</option>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {getUserDisplay(user)}
-                            </option>
-                          ))}
-                        </select>
+                        isAdmin ? (
+                          <select
+                            value={formData.user_id}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                user_id: parseInt(e.target.value),
+                              })
+                            }
+                            className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value={0}>Select a user...</option>
+                            {users.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {getUserDisplay(user)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="px-3 py-1 bg-gray-50 text-gray-900 rounded-md text-sm">
+                            {getUserName(address.user_id)}
+                          </div>
+                        )
                       ) : (
                         <div className="text-sm text-gray-900">
                           {getUserName(address.user_id)}
@@ -589,10 +633,14 @@ function ClubAddressesContent() {
                           </button>
                           <button
                             onClick={() => handleDelete(address.id)}
-                            disabled={deletingId === address.id || editingId !== null}
+                            disabled={
+                              deletingId === address.id || editingId !== null
+                            }
                             className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {deletingId === address.id ? "Deleting..." : "Delete"}
+                            {deletingId === address.id
+                              ? "Deleting..."
+                              : "Delete"}
                           </button>
                         </div>
                       ) : (
