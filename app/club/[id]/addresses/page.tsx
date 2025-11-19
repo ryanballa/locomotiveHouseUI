@@ -46,6 +46,16 @@ function ClubAddressesContent() {
     currentUser &&
     (currentUser.permission === 1 || currentUser.permission === 3);
 
+  // Auto-set current user when admin status changes
+  useEffect(() => {
+    if (!isAdmin && currentUserLhId) {
+      setFormData((prev) => ({
+        ...prev,
+        user_id: currentUserLhId,
+      }));
+    }
+  }, [isAdmin, currentUserLhId]);
+
   // Verify user has access to this club and fetch data
   useEffect(() => {
     // Wait for club check to complete before verifying access
@@ -379,25 +389,31 @@ function ClubAddressesContent() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assigned User
               </label>
-              <select
-                value={formData.user_id}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    user_id: parseInt(e.target.value),
-                    club_id: clubId,
-                  })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
-              >
-                <option value={0}>Select a user...</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {getUserDisplay(user)}
-                  </option>
-                ))}
-              </select>
+              {isAdmin ? (
+                <select
+                  value={formData.user_id}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      user_id: parseInt(e.target.value),
+                      club_id: clubId,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                >
+                  <option value={0}>Select a user...</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {getUserDisplay(user)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 flex items-center">
+                  {currentUserClerkName}
+                </div>
+              )}
             </div>
           </div>
 
@@ -536,23 +552,29 @@ function ClubAddressesContent() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {editingId === address.id ? (
-                        <select
-                          value={formData.user_id}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              user_id: parseInt(e.target.value),
-                            })
-                          }
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value={0}>Select a user...</option>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {getUserDisplay(user)}
-                            </option>
-                          ))}
-                        </select>
+                        isAdmin ? (
+                          <select
+                            value={formData.user_id}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                user_id: parseInt(e.target.value),
+                              })
+                            }
+                            className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value={0}>Select a user...</option>
+                            {users.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {getUserDisplay(user)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="px-3 py-1 bg-gray-50 text-gray-900 rounded-md text-sm">
+                            {getUserName(address.user_id)}
+                          </div>
+                        )
                       ) : (
                         <div className="text-sm text-gray-900">
                           {getUserName(address.user_id)}
