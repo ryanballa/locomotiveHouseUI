@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { useParams } from "next/navigation";
+
 interface AppointmentsByDate {
   [date: string]: number;
 }
@@ -35,6 +38,8 @@ export function ScheduledVisitsCard({
   loading,
   error,
 }: ScheduledVisitsCardProps) {
+  const params = useParams();
+  const clubId = params.id as string;
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -81,8 +86,10 @@ export function ScheduledVisitsCard({
         <div className="space-y-2">
           {dates.map((date) => {
             const count = appointmentsByDate[date];
-            return (
-              <div key={date} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            const isClickable = count > 1;
+
+            const content = (
+              <div className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${isClickable ? "hover:bg-gray-100 cursor-pointer transition" : ""}`}>
                 <span className="text-sm font-medium text-gray-900">
                   {formatDate(date)}
                 </span>
@@ -91,6 +98,19 @@ export function ScheduledVisitsCard({
                 </span>
               </div>
             );
+
+            if (isClickable) {
+              return (
+                <Link
+                  key={date}
+                  href={`/club/${clubId}/appointments/${date}`}
+                >
+                  {content}
+                </Link>
+              );
+            } else {
+              return <div key={date}>{content}</div>;
+            }
           })}
         </div>
       )}
