@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { useUserClubs } from "@/hooks/useUserClubs";
+import { ClubGuard } from "@/components/ClubGuard";
 
 /**
  * Homepage for Locomotive House application
@@ -20,10 +21,7 @@ import { useUserClubs } from "@/hooks/useUserClubs";
 export default function Home() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
-  const {
-    currentClubId,
-    loading: clubLoading,
-  } = useUserClubs();
+  const { currentClubId, loading: clubLoading } = useUserClubs();
 
   useEffect(() => {
     // If user has a club assignment, redirect to club dashboard
@@ -70,38 +68,12 @@ export default function Home() {
     );
   }
 
-  // Loading club assignment
-  if (clubLoading) {
-    return (
+  // User signed in - use ClubGuard to handle club assignment and loading states
+  return (
+    <ClubGuard isContentLoading={clubLoading}>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        </main>
       </div>
-    );
-  }
-
-  // User signed in but no club assignment
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-lg max-w-md">
-          <h2 className="text-lg font-semibold mb-2">
-            Club Assignment Required
-          </h2>
-          <p className="text-sm mb-4">
-            You need to be assigned to a club to access Locomotive House. Please
-            contact an administrator or ask for a club invite link.
-          </p>
-          <p className="text-sm">
-            If you have an invite link, visit it to join a club.
-          </p>
-        </div>
-      </main>
-    </div>
+    </ClubGuard>
   );
 }
