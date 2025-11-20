@@ -314,7 +314,7 @@ export function Navbar() {
         </div>
 
         {/* Club Selector Bar - Desktop (hidden for non-admins with only 1 club) */}
-        {(isAdmin || clubs.length > 1) && (
+        {!clubsLoading && (isAdmin || clubs.length > 1) && (
           <div className="hidden md:block w-full bg-gray-900 border-t border-gray-700 py-2">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end">
               <SignedIn>
@@ -446,7 +446,7 @@ export function Navbar() {
               </div>
 
               {/* Mobile Club Selector (hidden for non-admins with only 1 club) */}
-              {(isAdmin || clubs.length > 1) && (
+              {!clubsLoading && (isAdmin || clubs.length > 1) && (
                 <div className="pt-2">
                   <button
                     onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
