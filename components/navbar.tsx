@@ -54,7 +54,7 @@ export function Navbar() {
   } = useUserClubs();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const devModeOverride = searchParams.get("devMode");
+  const devModeOff = searchParams.get("devMode") === "off";
 
   // Load cached club name from localStorage on mount
   useEffect(() => {
@@ -79,16 +79,14 @@ export function Navbar() {
     }
   }, [currentClubId, clubs]);
 
-  // Apply dev mode override class if specified in querystring
+  // Apply production mode class if devMode=off
   useEffect(() => {
-    const validModes = ["slate", "red", "blue"];
-    if (devModeOverride && validModes.includes(devModeOverride)) {
-      document.body.className = `dev-mode-${devModeOverride}`;
-    } else if (devModeOverride) {
-      // Remove invalid dev mode class
-      document.body.className = document.body.className.replace(/dev-mode-\w+\s?/, "");
+    if (devModeOff) {
+      document.body.classList.add("dev-mode-off");
+    } else {
+      document.body.classList.remove("dev-mode-off");
     }
-  }, [devModeOverride]);
+  }, [devModeOff]);
 
   const handleClubSelect = (selectedClubId: number) => {
     selectClub(selectedClubId);
@@ -104,7 +102,7 @@ export function Navbar() {
   // Determine if we're in development mode and get appropriate navbar color
   const isDevelopment = process.env.NODE_ENV === "development";
   const navbarBgColor = isDevelopment
-    ? "bg-[var(--dev-navbar-bg)]"
+    ? "bg-[var(--navbar-bg)]"
     : "bg-gray-800";
 
   return (

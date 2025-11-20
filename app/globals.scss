@@ -5,14 +5,14 @@
 @tailwind utilities;
 
 :root {
-  --background: #{$dev-bg-light};
+  --background: #ffffff;
   --foreground: #171717;
-  --dev-navbar-bg: #{$navbar-dev-bg};
+  --navbar-bg: #{$navbar-dev-bg};
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #{$dev-bg-dark};
+    --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
@@ -23,17 +23,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Development Mode Overrides */
-body.dev-mode-slate {
-  --dev-navbar-bg: #{$navbar-dev-bg-slate} !important;
-}
-
-body.dev-mode-red {
-  --dev-navbar-bg: #{$navbar-dev-bg-red} !important;
-}
-
-body.dev-mode-blue {
-  --dev-navbar-bg: #{$navbar-dev-bg-blue} !important;
+/* Production mode override (devMode=off) */
+body.dev-mode-off {
+  --navbar-bg: #{$navbar-prod-bg} !important;
 }
 
 @layer utilities {
