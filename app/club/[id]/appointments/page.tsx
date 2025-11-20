@@ -43,6 +43,7 @@ function ClubAppointmentsContent() {
   } = useClubCheck();
 
   // Use useCallback to memoize fetchData and prevent unnecessary re-renders
+  // Note: getToken dependency is necessary - it changes when auth state changes
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -149,14 +150,18 @@ function ClubAppointmentsContent() {
       return;
     }
 
+    // Only check access if club check is complete
     if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
       return;
     }
 
+    // Reset error if access is allowed
+    setError(null);
     fetchData();
-  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading, fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clubId, clubCheckLoading, isSignedIn]);
 
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
