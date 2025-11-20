@@ -2,11 +2,12 @@
 
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { useUserClubs } from "@/hooks/useUserClubs";
 import { useRouter } from "next/navigation";
+import { getCookie } from "@/lib/cookieUtils";
 
 /**
  * Main navigation bar component for the application.
@@ -40,6 +41,9 @@ export function Navbar() {
     useState(false);
   const [isClubSelectorOpen, setIsClubSelectorOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [cachedClubName, setCachedClubName] = useState<string>("Select Club");
+  const [isHydrated, setIsHydrated] = useState(false);
+
   const { isAdmin, loading } = useAdminCheck();
   const { clubId, loading: clubLoading } = useClubCheck();
   const {
@@ -50,16 +54,39 @@ export function Navbar() {
   } = useUserClubs();
   const router = useRouter();
 
+  // Load cached club name from localStorage on mount
+  useEffect(() => {
+    const savedClubId = getCookie("selectedClubId");
+    if (savedClubId) {
+      const savedClubName = localStorage.getItem("selectedClubName");
+      if (savedClubName) {
+        setCachedClubName(savedClubName);
+      }
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Update cached club name when currentClubId changes
+  useEffect(() => {
+    if (currentClubId && clubs.length > 0) {
+      const clubName = clubs.find((c) => c.id === currentClubId)?.name;
+      if (clubName) {
+        setCachedClubName(clubName);
+        localStorage.setItem("selectedClubName", clubName);
+      }
+    }
+  }, [currentClubId, clubs]);
+
   const handleClubSelect = (selectedClubId: number) => {
     selectClub(selectedClubId);
     setIsClubSelectorOpen(false);
     setIsMobileMenuOpen(false);
-    // Navigate to appointments for the selected club
-    router.push(`/club/${selectedClubId}/appointments`);
+    // Navigate to dashboard for the selected club
+    router.push(`/club/${selectedClubId}`);
   };
 
   const currentClubName =
-    clubs.find((c) => c.id === currentClubId)?.name || "Select Club";
+    clubs.find((c) => c.id === currentClubId)?.name || cachedClubName;
 
   // Determine if we're in development mode
   const isDevelopment = process.env.NODE_ENV === "development";
@@ -131,61 +158,6 @@ export function Navbar() {
                       <div className="px-4 py-2 text-sm text-gray-400">
                         No club assigned
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Club Selector Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
-                  title="Select a club"
-                >
-                  {clubsLoading ? "Loading..." : currentClubName}
-                  <svg
-                    className={`w-4 h-4 transition-transform ${
-                      isClubSelectorOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                    />
-                  </svg>
-                </button>
-
-                {/* Club Selector Dropdown Menu */}
-                {isClubSelectorOpen && (
-                  <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
-                    {clubsLoading ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">
-                        Loading clubs...
-                      </div>
-                    ) : clubs.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">
-                        No clubs available
-                      </div>
-                    ) : (
-                      clubs.map((club) => (
-                        <button
-                          key={club.id}
-                          onClick={() => handleClubSelect(club.id)}
-                          className={`block w-full text-left px-4 py-2 text-sm transition ${
-                            club.id === currentClubId
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : "hover:bg-gray-600"
-                          }`}
-                        >
-                          {club.name}
-                        </button>
-                      ))
                     )}
                   </div>
                 )}
@@ -324,6 +296,67 @@ export function Navbar() {
             </SignedOut>
             <SignedIn>
               <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+          </div>
+        </div>
+
+        {/* Club Selector Bar - Desktop */}
+        <div className="hidden md:block bg-gray-900 border-t border-gray-700 py-3">
+          <div className="flex justify-end">
+            <SignedIn>
+              <div className="relative">
+                <button
+                  onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
+                  className="px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition flex items-center gap-2"
+                  title="Select a club"
+                >
+                  {clubsLoading ? "Loading..." : currentClubName}
+                  <svg
+                    className={`w-4 h-4 transition-transform ${
+                      isClubSelectorOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
+                  </svg>
+                </button>
+
+                {/* Club Selector Dropdown Menu */}
+                {isClubSelectorOpen && (
+                  <div className="absolute right-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
+                    {clubsLoading ? (
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        Loading clubs...
+                      </div>
+                    ) : clubs.length === 0 ? (
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        No clubs available
+                      </div>
+                    ) : (
+                      clubs.map((club) => (
+                        <button
+                          key={club.id}
+                          onClick={() => handleClubSelect(club.id)}
+                          className={`block w-full text-left px-4 py-2 text-sm transition ${
+                            club.id === currentClubId
+                              ? "bg-blue-600 hover:bg-blue-700"
+                              : "hover:bg-gray-600"
+                          }`}
+                        >
+                          {club.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </SignedIn>
           </div>
         </div>
