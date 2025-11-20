@@ -301,13 +301,13 @@ export function Navbar() {
         </div>
 
         {/* Club Selector Bar - Desktop */}
-        <div className="hidden md:block bg-gray-900 border-t border-gray-700 py-3">
-          <div className="flex justify-end">
+        <div className="hidden md:block w-full bg-gray-900 border-t border-gray-700 py-2">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end">
             <SignedIn>
               <div className="relative">
                 <button
                   onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
-                  className="px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition flex items-center gap-2"
+                  className="px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition flex items-center gap-2 bg-gray-800"
                   title="Select a club"
                 >
                   {clubsLoading ? "Loading..." : currentClubName}
