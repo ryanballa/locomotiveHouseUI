@@ -139,7 +139,14 @@ function ClubAppointmentsContent() {
   }, [isSignedIn]);
 
   // Verify user has access to this club and fetch data
+  const [hasInitialized, setHasInitialized] = useState(false);
+
   useEffect(() => {
+    // Only run this effect once per clubId
+    if (hasInitialized) {
+      return;
+    }
+
     // Wait for club check to complete before verifying access
     if (clubCheckLoading) {
       return;
@@ -147,6 +154,7 @@ function ClubAppointmentsContent() {
 
     if (!isSignedIn) {
       setLoading(false);
+      setHasInitialized(true);
       return;
     }
 
@@ -154,14 +162,16 @@ function ClubAppointmentsContent() {
     if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
+      setHasInitialized(true);
       return;
     }
 
     // Reset error if access is allowed
     setError(null);
     fetchData();
+    setHasInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId, clubCheckLoading, isSignedIn]);
+  }, [clubId]);
 
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
