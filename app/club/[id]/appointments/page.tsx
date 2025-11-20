@@ -42,6 +42,17 @@ function ClubAppointmentsContent() {
     loading: clubCheckLoading,
   } = useClubCheck();
 
+  // Clear clerk user cache on logout
+  useEffect(() => {
+    if (!isSignedIn) {
+      try {
+        localStorage.removeItem("clerkUserCache");
+      } catch {
+        // Ignore errors clearing cache
+      }
+    }
+  }, [isSignedIn]);
+
   // Verify user has access to this club and fetch data
   useEffect(() => {
     // Wait for club check to complete before verifying access
@@ -89,14 +100,35 @@ function ClubAppointmentsContent() {
         setCurrentUserLhId(userIdData.lhUserId);
       }
 
-      // Fetch Clerk user details for each user
+      // Fetch Clerk user details for each user with localStorage caching
       const userMapData: UserMap = {};
+      const clerkUserCache = (() => {
+        try {
+          const cached = localStorage.getItem("clerkUserCache");
+          return cached ? JSON.parse(cached) : {};
+        } catch {
+          return {};
+        }
+      })();
+
       const clerkUserPromises = usersData.map(async (user) => {
         try {
+          // Check cache first
+          if (clerkUserCache[user.token]) {
+            const cachedData = clerkUserCache[user.token];
+            const displayName = cachedData.name || user.name || `User ${user.id}`;
+            userMapData[user.id] = { name: displayName, permission: user.permission };
+            return;
+          }
+
           const response = await fetch(
             `/api/clerk-user/${encodeURIComponent(user.token)}`
           );
           const data = await response.json();
+
+          // Cache the result
+          clerkUserCache[user.token] = data;
+          localStorage.setItem("clerkUserCache", JSON.stringify(clerkUserCache));
 
           // Use name from Clerk if available, otherwise use database name
           const displayName = data.name || user.name || `User ${user.id}`;
