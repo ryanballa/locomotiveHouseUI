@@ -2,7 +2,7 @@
 
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { useUserClubs } from "@/hooks/useUserClubs";
@@ -55,6 +55,7 @@ export function Navbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const devModeOff = searchParams.get("devMode") === "off";
+  const [isPending, startTransition] = useTransition();
 
   // Load cached club name from localStorage on mount
   useEffect(() => {
@@ -89,11 +90,13 @@ export function Navbar() {
   }, [devModeOff]);
 
   const handleClubSelect = (selectedClubId: number) => {
-    selectClub(selectedClubId);
-    setIsClubSelectorOpen(false);
-    setIsMobileMenuOpen(false);
-    // Navigate to dashboard for the selected club
-    router.push(`/club/${selectedClubId}`);
+    startTransition(() => {
+      selectClub(selectedClubId);
+      setIsClubSelectorOpen(false);
+      setIsMobileMenuOpen(false);
+      // Navigate to dashboard for the selected club
+      router.push(`/club/${selectedClubId}`);
+    });
   };
 
   const currentClubName =
