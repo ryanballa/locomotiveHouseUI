@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { UserProvider } from "@/components/user-provider";
-import "./globals.css";
+import "./globals.scss";
 import { Archivo_Black, Roboto_Condensed, Roboto } from "next/font/google";
 
 export const dynamic = "force-dynamic";
