@@ -93,8 +93,6 @@ export function useUserClubs(): UseUserClubsReturn {
         const currentUserData = await apiClient.getCurrentUser(token);
         if (!isActive) return;
 
-        setClubs(allClubs);
-
         // Extract current club ID from user data
         // The User object has a club_id field that indicates their primary club
         let userClubId: number | null = null;
@@ -102,12 +100,13 @@ export function useUserClubs(): UseUserClubsReturn {
           userClubId = currentUserData.clubs[0].club_id;
         }
 
-        //Save all assigned clubs to local storage
+        // Filter to only include clubs the user has permission to view
         const assignedClubs = allClubs.filter((c) => {
-          return currentUserData?.clubs?.filter((cd) => {
-            return cd.club_id === c.id;
-          });
+          return currentUserData?.clubs?.some((cd) => cd.club_id === c.id);
         });
+
+        // Set only the user's assigned clubs
+        setClubs(assignedClubs);
         setCurrentClubsData(assignedClubs);
 
         // Use saved club ID from cookie if available and valid, otherwise use user's default club
@@ -115,7 +114,7 @@ export function useUserClubs(): UseUserClubsReturn {
         if (savedClubId) {
           const parsedSavedId = parseInt(savedClubId, 10);
           // Only use saved ID if it's in the list of accessible clubs
-          if (allClubs.some((club) => club.id === parsedSavedId)) {
+          if (assignedClubs.some((club) => club.id === parsedSavedId)) {
             setCurrentClubId(parsedSavedId);
           } else {
             // Saved club is not accessible, use user's primary club

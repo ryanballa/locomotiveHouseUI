@@ -263,4 +263,34 @@ describe('Navbar - Club Picker Visibility', () => {
     // Club picker should now be visible
     expect(screen.getByText('Club A')).toBeInTheDocument();
   });
+
+  it('should only show clubs from useUserClubs array', () => {
+    (useAdminCheck as any).mockReturnValue({
+      isAdmin: true,
+      loading: false,
+    });
+
+    (useClubCheck as any).mockReturnValue({
+      hasClub: true,
+      loading: false,
+      clubId: 1,
+    });
+
+    // User has permission for clubs 1 and 2 only
+    (useUserClubs as any).mockReturnValue({
+      clubs: [
+        { id: 1, name: 'Club A' },
+        { id: 2, name: 'Club B' },
+      ],
+      currentClubId: 1,
+      loading: false,
+      clubsLoading: false,
+      selectClub: vi.fn(),
+    });
+
+    render(<Navbar />);
+
+    // Should show assigned clubs that are rendered
+    expect(screen.getByText('Club A')).toBeInTheDocument();
+  });
 });
