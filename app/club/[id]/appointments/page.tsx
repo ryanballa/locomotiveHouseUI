@@ -210,16 +210,7 @@ function ClubAppointmentsContent() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        </main>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -353,8 +344,6 @@ function ClubAppointmentsContent() {
 }
 
 export default function ClubAppointmentsPage() {
-  // ClubAppointmentsContent has its own loading state, so we rely on ClubGuard's default
-  // isContentLoading=true to show loading spinner during initial club check
   return (
     <ClubGuard>
       <ClubAppointmentsContent />
