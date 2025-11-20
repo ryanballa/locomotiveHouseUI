@@ -42,39 +42,8 @@ function ClubAppointmentsContent() {
     loading: clubCheckLoading,
   } = useClubCheck();
 
-  // Clear clerk user cache on logout
-  useEffect(() => {
-    if (!isSignedIn) {
-      try {
-        localStorage.removeItem("clerkUserCache");
-      } catch {
-        // Ignore errors clearing cache
-      }
-    }
-  }, [isSignedIn]);
-
-  // Verify user has access to this club and fetch data
-  useEffect(() => {
-    // Wait for club check to complete before verifying access
-    if (clubCheckLoading) {
-      return;
-    }
-
-    if (!isSignedIn) {
-      setLoading(false);
-      return;
-    }
-
-    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
-      setError("You do not have access to this club");
-      setLoading(false);
-      return;
-    }
-
-    fetchData();
-  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
-
-  const fetchData = async () => {
+  // Use useCallback to memoize fetchData and prevent unnecessary re-renders
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const token = await getToken();
@@ -155,7 +124,39 @@ function ClubAppointmentsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId, getToken]);
+
+  // Clear clerk user cache on logout
+  useEffect(() => {
+    if (!isSignedIn) {
+      try {
+        localStorage.removeItem("clerkUserCache");
+      } catch {
+        // Ignore errors clearing cache
+      }
+    }
+  }, [isSignedIn]);
+
+  // Verify user has access to this club and fetch data
+  useEffect(() => {
+    // Wait for club check to complete before verifying access
+    if (clubCheckLoading) {
+      return;
+    }
+
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
+    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
+      setError("You do not have access to this club");
+      setLoading(false);
+      return;
+    }
+
+    fetchData();
+  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading, fetchData]);
 
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
