@@ -43,6 +43,15 @@ export function useUserClubs(): UseUserClubsReturn {
     }
   }, []);
 
+  // Clear cached clubs when auth state changes
+  useEffect(() => {
+    if (!isSignedIn) {
+      setCurrentClubsData([]);
+      setClubs([]);
+      setCurrentClubId(null);
+    }
+  }, [isSignedIn, setCurrentClubsData]);
+
   useEffect(() => {
     // Don't fetch until we've checked the cookie
     if (!isHydrated) {
