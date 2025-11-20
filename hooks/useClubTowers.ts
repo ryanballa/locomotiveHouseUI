@@ -74,7 +74,7 @@ export function useClubTowers(clubId: number | string): UseClubTowersReturn {
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn, getToken]);
+  }, [clubId, isSignedIn]);
 
   return { towers, loading, error };
 }

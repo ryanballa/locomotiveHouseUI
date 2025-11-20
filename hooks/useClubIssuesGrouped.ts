@@ -95,7 +95,7 @@ export function useClubIssuesGrouped(
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn, getToken]);
+  }, [clubId, isSignedIn]);
 
   return { issuesByTower, loading, error };
 }

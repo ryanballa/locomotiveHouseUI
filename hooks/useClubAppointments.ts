@@ -111,7 +111,7 @@ export function useClubAppointments(
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn, getToken]);
+  }, [clubId, isSignedIn]);
 
   return { appointmentsByDate, loading, error };
 }

@@ -79,7 +79,7 @@ export function useClubMembers(clubId: number | string): UseClubMembersReturn {
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn, getToken]);
+  }, [clubId, isSignedIn]);
 
   return { memberCount, loading, error };
 }

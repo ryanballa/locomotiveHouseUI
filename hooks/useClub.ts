@@ -85,7 +85,7 @@ export function useClub(clubId: number | string): UseClubReturn {
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn, getToken]);
+  }, [clubId, isSignedIn]);
 
   return { club, loading, error };
 }

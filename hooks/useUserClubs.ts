@@ -152,7 +152,7 @@ export function useUserClubs(): UseUserClubsReturn {
     return () => {
       isActive = false;
     };
-  }, [isSignedIn, getToken, isHydrated]);
+  }, [isSignedIn, isHydrated]);
 
   /**
    * Select a club and store in cookie for persistence

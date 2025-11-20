@@ -77,7 +77,7 @@ export function useClubAddresses(clubId: number | string): UseClubAddressesRetur
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn, getToken]);
+  }, [clubId, isSignedIn]);
 
   return { addresses, loading, error };
 }
