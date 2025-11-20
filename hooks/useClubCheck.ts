@@ -188,7 +188,7 @@ export function useClubCheck(): UseClubCheckReturn {
     return () => {
       isActive = false;
     };
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn]);
 
   const hasAccessToClub = useCallback(
     (requestedClubId: number): boolean => {

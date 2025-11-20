@@ -161,7 +161,7 @@ function ClubAppointmentsContent() {
     };
 
     performFetch();
-  }, [clubId, clubCheckLoading, isSignedIn, isSuperAdmin, clubIds, getToken]);
+  }, [clubId, clubCheckLoading, isSignedIn, isSuperAdmin, clubIds]);
 
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
