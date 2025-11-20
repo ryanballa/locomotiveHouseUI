@@ -49,15 +49,18 @@ function ClubAppointmentsContent() {
       return;
     }
 
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
     if (!isSuperAdmin && !hasAccessToClub(clubId)) {
       setError("You do not have access to this club");
       setLoading(false);
       return;
     }
 
-    if (isSignedIn) {
-      fetchData();
-    }
+    fetchData();
   }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
 
   const fetchData = async () => {
@@ -65,20 +68,26 @@ function ClubAppointmentsContent() {
       setLoading(true);
       const token = await getToken();
 
-      // Fetch current user's lhUserId and other data in parallel
-      const [appointmentsData, usersData, userIdResponse] = await Promise.all([
-        apiClient.getClubAppointments(clubId, token || undefined),
-        apiClient.getUsers(token || ""),
-        fetch("/api/user-id"),
-      ]);
+      if (!token) {
+        setError("Authentication required");
+        setLoading(false);
+        return;
+      }
 
+      // Fetch appointments data
+      const appointmentsData = await apiClient.getClubAppointments(clubId, token);
+      setAppointments(appointmentsData);
+
+      // Fetch users data
+      const usersData = await apiClient.getUsers(token);
+      setUsers(usersData);
+
+      // Fetch current user ID
+      const userIdResponse = await fetch("/api/user-id");
       const userIdData = await userIdResponse.json();
       if (userIdData.lhUserId) {
         setCurrentUserLhId(userIdData.lhUserId);
       }
-
-      setAppointments(appointmentsData);
-      setUsers(usersData);
 
       // Fetch Clerk user details for each user
       const userMapData: UserMap = {};
@@ -344,6 +353,8 @@ function ClubAppointmentsContent() {
 }
 
 export default function ClubAppointmentsPage() {
+  // ClubAppointmentsContent has its own loading state, so we rely on ClubGuard's default
+  // isContentLoading=true to show loading spinner during initial club check
   return (
     <ClubGuard>
       <ClubAppointmentsContent />

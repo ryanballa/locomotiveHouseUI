@@ -3,6 +3,7 @@ import { Navbar } from "@/components/navbar";
 
 interface ClubGuardProps {
   children: React.ReactNode;
+  isContentLoading?: boolean;
 }
 
 /**
@@ -36,10 +37,11 @@ interface ClubGuardProps {
  * // Other users see "Club Assignment Required" message
  * ```
  */
-export function ClubGuard({ children }: ClubGuardProps) {
+export function ClubGuard({ children, isContentLoading = false }: ClubGuardProps) {
   const { hasClub, loading } = useClubCheck();
 
-  if (loading) {
+  // Show loading state while checking club access or loading content
+  if (loading || isContentLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -52,6 +54,7 @@ export function ClubGuard({ children }: ClubGuardProps) {
     );
   }
 
+  // Only show error after club check is complete and user doesn't have access
   if (!hasClub) {
     return (
       <div className="min-h-screen bg-gray-50">

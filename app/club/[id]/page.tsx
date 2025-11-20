@@ -1,22 +1,38 @@
 "use client";
-import { useAuth } from "@clerk/nextjs";
+import { useParams } from "next/navigation";
 import { Navbar } from "@/components/navbar";
+import { ClubGuard } from "@/components/ClubGuard";
+import { useClub } from "@/hooks/useClub";
+import { useClubIssuesGrouped } from "@/hooks/useClubIssuesGrouped";
+import { useClubAddresses } from "@/hooks/useClubAddresses";
+import { useClubMembers } from "@/hooks/useClubMembers";
+import { useClubAppointments } from "@/hooks/useClubAppointments";
+import { TowerIssuesCard } from "@/components/TowerIssuesCard";
+import { RecentAddressesCard } from "@/components/RecentAddressesCard";
+import { ClubMembersCard } from "@/components/ClubMembersCard";
+import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
 
 /**
  * Homepage for Locomotive House application
  *
  * Features:
  * - Club landing page
- * - Redirects to club page is not authenticated
+ * - Shows error if a user is not assigned to a club
  * - Sign in prompt for unauthenticated users
  *
  * @returns {JSX.Element} Rendered homepage
  */
 export default function ClubHome() {
-  const { isSignedIn, isLoaded } = useAuth();
-  if (!isLoaded) {
+  const params = useParams();
+  const clubId = params.id as string;
+  const { club, loading, error } = useClub(clubId);
+  const { issuesByTower, loading: issuesLoading, error: issuesError } = useClubIssuesGrouped(clubId);
+  const { addresses, loading: addressesLoading, error: addressesError } = useClubAddresses(clubId);
+  const { memberCount, loading: membersLoading, error: membersError } = useClubMembers(clubId);
+  const { appointmentsByDate, loading: appointmentsLoading, error: appointmentsError } = useClubAppointments(clubId);
+
+  if (loading) {
     return (
-      // Loading authentication state
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -28,23 +44,58 @@ export default function ClubHome() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="text-sm font-medium text-red-800">{error}</div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-lg max-w-md">
-          <h2 className="text-lg font-semibold mb-2">
-            Club Assignment Required
-          </h2>
-          <p className="text-sm mb-4">
-            You need to be assigned to a club to access Locomotive House. Please
-            contact an administrator or ask for a club invite link.
-          </p>
-          <p className="text-sm">
-            If you have an invite link, visit it to join a club.
-          </p>
-        </div>
-      </main>
-    </div>
+    <ClubGuard isContentLoading={loading || !club}>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {error ? (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="text-sm font-medium text-red-800">{error}</div>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900 mb-8">{club?.name}</h1>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ClubMembersCard
+              memberCount={memberCount}
+              loading={membersLoading}
+              error={membersError}
+            />
+            <ScheduledVisitsCard
+              appointmentsByDate={appointmentsByDate}
+              loading={appointmentsLoading}
+              error={appointmentsError}
+            />
+            <TowerIssuesCard
+              issuesByTower={issuesByTower}
+              loading={issuesLoading}
+              error={issuesError}
+            />
+            <RecentAddressesCard
+              addresses={addresses}
+              loading={addressesLoading}
+              error={addressesError}
+            />
+          </div>
+            </>
+          )}
+        </main>
+      </div>
+    </ClubGuard>
   );
 }
