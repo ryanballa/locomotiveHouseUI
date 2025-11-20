@@ -91,7 +91,7 @@ export default function EditAppointment() {
     if (user) {
       fetchAppointment();
     }
-  }, [user, getToken, appointmentId]);
+  }, [user, appointmentId]);
 
   // Update available time slots when date changes
   useEffect(() => {

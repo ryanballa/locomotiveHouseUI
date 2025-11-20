@@ -50,7 +50,7 @@ export function useUserClubs(): UseUserClubsReturn {
       setClubs([]);
       setCurrentClubId(null);
     }
-  }, [isSignedIn, setCurrentClubsData]);
+  }, [isSignedIn]);
 
   useEffect(() => {
     // Don't fetch until we've checked the cookie

@@ -28,7 +28,7 @@ export default function Home() {
     if (!clubLoading && currentClubId) {
       router.push(`/club/${currentClubId}`);
     }
-  }, [currentClubId, clubLoading, router]);
+  }, [currentClubId, clubLoading]);
 
   // Loading authentication state
   if (!isLoaded) {
