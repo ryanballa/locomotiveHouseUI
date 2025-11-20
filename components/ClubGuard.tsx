@@ -37,7 +37,10 @@ interface ClubGuardProps {
  * // Other users see "Club Assignment Required" message
  * ```
  */
-export function ClubGuard({ children, isContentLoading = false }: ClubGuardProps) {
+export function ClubGuard({
+  children,
+  isContentLoading = false,
+}: ClubGuardProps) {
   const { hasClub, loading } = useClubCheck();
 
   // Show loading state while checking club access or loading content
@@ -55,15 +58,18 @@ export function ClubGuard({ children, isContentLoading = false }: ClubGuardProps
   }
 
   // Only show error after club check is complete and user doesn't have access
-  if (!hasClub) {
+  if (!hasClub && !loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-lg">
-            <h2 className="text-lg font-semibold mb-2">Club Assignment Required</h2>
+            <h2 className="text-lg font-semibold mb-2">
+              Club Assignment Required
+            </h2>
             <p className="text-sm">
-              You need to be assigned to a club to access this feature. Please contact an administrator to assign you to a club.
+              You need to be assigned to a club to access this feature. Please
+              contact an administrator to assign you to a club.
             </p>
           </div>
         </main>

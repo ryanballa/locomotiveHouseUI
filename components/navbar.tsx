@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { useUserClubs } from "@/hooks/useUserClubs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getCookie } from "@/lib/cookieUtils";
 
 /**
@@ -53,6 +53,8 @@ export function Navbar() {
     selectClub,
   } = useUserClubs();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const devModeOverride = searchParams.get("devMode");
 
   // Load cached club name from localStorage on mount
   useEffect(() => {
@@ -77,6 +79,17 @@ export function Navbar() {
     }
   }, [currentClubId, clubs]);
 
+  // Apply dev mode override class if specified in querystring
+  useEffect(() => {
+    const validModes = ["slate", "red", "blue"];
+    if (devModeOverride && validModes.includes(devModeOverride)) {
+      document.body.className = `dev-mode-${devModeOverride}`;
+    } else if (devModeOverride) {
+      // Remove invalid dev mode class
+      document.body.className = document.body.className.replace(/dev-mode-\w+\s?/, "");
+    }
+  }, [devModeOverride]);
+
   const handleClubSelect = (selectedClubId: number) => {
     selectClub(selectedClubId);
     setIsClubSelectorOpen(false);
@@ -88,9 +101,11 @@ export function Navbar() {
   const currentClubName =
     clubs.find((c) => c.id === currentClubId)?.name || cachedClubName;
 
-  // Determine if we're in development mode
+  // Determine if we're in development mode and get appropriate navbar color
   const isDevelopment = process.env.NODE_ENV === "development";
-  const navbarBgColor = isDevelopment ? "bg-amber-900" : "bg-gray-800";
+  const navbarBgColor = isDevelopment
+    ? "bg-[var(--dev-navbar-bg)]"
+    : "bg-gray-800";
 
   return (
     <nav className={`${navbarBgColor} text-white shadow-lg`}>

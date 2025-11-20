@@ -4,6 +4,21 @@ $color-bg-1: #fce9cb;
 $color-bg-2: #cdc9b8;
 $header-footer: #482218;
 
+/* Development Mode Colors */
+$dev-bg-light: #ffffff;
+$dev-bg-dark: #0a0a0a;
+$dev-bg-slate: #f1f5f9;
+$dev-bg-amber: #fef3c7;
+$dev-bg-red: #fee2e2;
+$dev-bg-blue: #dbeafe;
+
+/* Navbar */
+$navbar-prod-bg: #1f2937;
+$navbar-dev-bg: #78350f;
+$navbar-dev-bg-slate: #1e293b;
+$navbar-dev-bg-red: #7f1d1d;
+$navbar-dev-bg-blue: #1e3a8a;
+
 /* Fonts */
 $font-body: var(--font-roboto);
 $font-heading: var(--font-roboto-condensed);
@@ -13,8 +28,8 @@ $text-light-color: #f0f0f0;
 $text-dark-color: #1d1d1d;
 
 /* Links */
-$link-color: #fb2aff;
-$link-color-hover: #751877;
+$link-color: #87e9f3;
+$link-color-hover: #7bd4de;
 
 $link-color-dark: #505050;
 $link-color-dark-hover: #313031;

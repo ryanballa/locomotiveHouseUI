@@ -1,16 +1,18 @@
+@import "../styles/variables";
 @import "../styles/global.scss";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #{$dev-bg-light};
   --foreground: #171717;
+  --dev-navbar-bg: #{$navbar-dev-bg};
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #{$dev-bg-dark};
     --foreground: #ededed;
   }
 }
@@ -19,6 +21,19 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Development Mode Overrides */
+body.dev-mode-slate {
+  --dev-navbar-bg: #{$navbar-dev-bg-slate} !important;
+}
+
+body.dev-mode-red {
+  --dev-navbar-bg: #{$navbar-dev-bg-red} !important;
+}
+
+body.dev-mode-blue {
+  --dev-navbar-bg: #{$navbar-dev-bg-blue} !important;
 }
 
 @layer utilities {
