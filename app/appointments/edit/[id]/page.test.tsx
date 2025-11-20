@@ -19,6 +19,7 @@ vi.mock('@clerk/nextjs', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
   useParams: vi.fn(),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
 vi.mock('@/lib/api', () => ({
