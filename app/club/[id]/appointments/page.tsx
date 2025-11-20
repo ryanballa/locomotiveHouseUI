@@ -37,95 +37,10 @@ function ClubAppointmentsContent() {
   const [creatingFriday, setCreatingFriday] = useState<string | null>(null);
 
   const {
-    hasAccessToClub,
     isSuperAdmin,
+    clubIds,
     loading: clubCheckLoading,
   } = useClubCheck();
-
-  // Use useCallback to memoize fetchData and prevent unnecessary re-renders
-  // Note: getToken dependency is necessary - it changes when auth state changes
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = await getToken();
-
-      if (!token) {
-        setError("Authentication required");
-        setLoading(false);
-        return;
-      }
-
-      // Fetch appointments data
-      const appointmentsData = await apiClient.getClubAppointments(clubId, token);
-      setAppointments(appointmentsData);
-
-      // Fetch users data
-      const usersData = await apiClient.getUsers(token);
-      setUsers(usersData);
-
-      // Fetch current user ID
-      const userIdResponse = await fetch("/api/user-id");
-      const userIdData = await userIdResponse.json();
-      if (userIdData.lhUserId) {
-        setCurrentUserLhId(userIdData.lhUserId);
-      }
-
-      // Fetch Clerk user details for each user with localStorage caching
-      const userMapData: UserMap = {};
-      const clerkUserCache = (() => {
-        try {
-          const cached = localStorage.getItem("clerkUserCache");
-          return cached ? JSON.parse(cached) : {};
-        } catch {
-          return {};
-        }
-      })();
-
-      const clerkUserPromises = usersData.map(async (user) => {
-        try {
-          // Check cache first
-          if (clerkUserCache[user.token]) {
-            const cachedData = clerkUserCache[user.token];
-            const displayName = cachedData.name || user.name || `User ${user.id}`;
-            userMapData[user.id] = { name: displayName, permission: user.permission };
-            return;
-          }
-
-          const response = await fetch(
-            `/api/clerk-user/${encodeURIComponent(user.token)}`
-          );
-          const data = await response.json();
-
-          // Cache the result
-          clerkUserCache[user.token] = data;
-          localStorage.setItem("clerkUserCache", JSON.stringify(clerkUserCache));
-
-          // Use name from Clerk if available, otherwise use database name
-          const displayName = data.name || user.name || `User ${user.id}`;
-          userMapData[user.id] = { name: displayName, permission: user.permission };
-        } catch (err) {
-          console.error(`Failed to fetch Clerk user for ${user.token}`, err);
-          userMapData[user.id] = { name: `User ${user.id}`, permission: user.permission };
-        }
-      });
-
-      await Promise.all(clerkUserPromises);
-      setUserMap(userMapData);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load data";
-      if (
-        errorMessage.includes("Unauthenticated") ||
-        errorMessage.includes("401")
-      ) {
-        setError("Please sign in to view and manage appointments.");
-      } else {
-        setError(errorMessage);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [clubId, getToken]);
 
   // Clear clerk user cache on logout
   useEffect(() => {
@@ -139,14 +54,7 @@ function ClubAppointmentsContent() {
   }, [isSignedIn]);
 
   // Verify user has access to this club and fetch data
-  const [hasInitialized, setHasInitialized] = useState(false);
-
   useEffect(() => {
-    // Only run this effect once per clubId
-    if (hasInitialized) {
-      return;
-    }
-
     // Wait for club check to complete before verifying access
     if (clubCheckLoading) {
       return;
@@ -154,24 +62,106 @@ function ClubAppointmentsContent() {
 
     if (!isSignedIn) {
       setLoading(false);
-      setHasInitialized(true);
       return;
     }
 
-    // Only check access if club check is complete
-    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
+    // Check if user has access to this club
+    const hasAccess = isSuperAdmin || clubIds.includes(clubId);
+    if (!hasAccess) {
       setError("You do not have access to this club");
       setLoading(false);
-      setHasInitialized(true);
       return;
     }
 
     // Reset error if access is allowed
     setError(null);
-    fetchData();
-    setHasInitialized(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId]);
+
+    // Fetch data in a separate async function
+    const performFetch = async () => {
+      try {
+        setLoading(true);
+        const token = await getToken();
+
+        if (!token) {
+          setError("Authentication required");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch appointments data
+        const appointmentsData = await apiClient.getClubAppointments(clubId, token);
+        setAppointments(appointmentsData);
+
+        // Fetch users data
+        const usersData = await apiClient.getUsers(token);
+        setUsers(usersData);
+
+        // Fetch current user ID
+        const userIdResponse = await fetch("/api/user-id");
+        const userIdData = await userIdResponse.json();
+        if (userIdData.lhUserId) {
+          setCurrentUserLhId(userIdData.lhUserId);
+        }
+
+        // Fetch Clerk user details for each user with localStorage caching
+        const userMapData: UserMap = {};
+        const clerkUserCache = (() => {
+          try {
+            const cached = localStorage.getItem("clerkUserCache");
+            return cached ? JSON.parse(cached) : {};
+          } catch {
+            return {};
+          }
+        })();
+
+        const clerkUserPromises = usersData.map(async (user) => {
+          try {
+            // Check cache first
+            if (clerkUserCache[user.token]) {
+              const cachedData = clerkUserCache[user.token];
+              const displayName = cachedData.name || user.name || `User ${user.id}`;
+              userMapData[user.id] = { name: displayName, permission: user.permission };
+              return;
+            }
+
+            const response = await fetch(
+              `/api/clerk-user/${encodeURIComponent(user.token)}`
+            );
+            const data = await response.json();
+
+            // Cache the result
+            clerkUserCache[user.token] = data;
+            localStorage.setItem("clerkUserCache", JSON.stringify(clerkUserCache));
+
+            // Use name from Clerk if available, otherwise use database name
+            const displayName = data.name || user.name || `User ${user.id}`;
+            userMapData[user.id] = { name: displayName, permission: user.permission };
+          } catch (err) {
+            console.error(`Failed to fetch Clerk user for ${user.token}`, err);
+            userMapData[user.id] = { name: `User ${user.id}`, permission: user.permission };
+          }
+        });
+
+        await Promise.all(clerkUserPromises);
+        setUserMap(userMapData);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load data";
+        if (
+          errorMessage.includes("Unauthenticated") ||
+          errorMessage.includes("401")
+        ) {
+          setError("Please sign in to view and manage appointments.");
+        } else {
+          setError(errorMessage);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    performFetch();
+  }, [clubId, clubCheckLoading, isSignedIn, isSuperAdmin, clubIds, getToken]);
 
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
@@ -257,7 +247,7 @@ function ClubAppointmentsContent() {
     }
   };
 
-  if (loading) {
+  if (clubCheckLoading) {
     return null;
   }
 
@@ -280,6 +270,12 @@ function ClubAppointmentsContent() {
             ← Back
           </button>
         </div>
+
+        {loading && (
+          <div className="flex justify-center py-12">
+            <div className="text-gray-500">Loading appointments...</div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -305,13 +301,13 @@ function ClubAppointmentsContent() {
           </Link>
         </header>
 
-        {appointments.length === 0 ? (
+        {!loading && appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <p className="text-gray-500 text-lg">
               No appointments scheduled yet.
             </p>
           </div>
-        ) : (
+        ) : !loading ? (
           <div className="space-y-8">
             {sortedDates.map((dateKey) => (
               <div key={dateKey}>
@@ -385,7 +381,7 @@ function ClubAppointmentsContent() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </main>
     </div>
   );
