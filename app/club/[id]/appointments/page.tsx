@@ -347,16 +347,16 @@ function ClubAppointmentsContent() {
                         </p>
                         {currentUserLhId === appointment.user_id && (
                           <div className="flex gap-2">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/appointments/edit/${appointment.id}`
-                                )
-                              }
-                              className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            <Link
+                              href={`/appointments/edit/${appointment.id}`}
+                              className="flex-1"
                             >
-                              Edit
-                            </button>
+                              <button
+                                className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              >
+                                Edit
+                              </button>
+                            </Link>
                             <button
                               onClick={() => handleDelete(appointment.id)}
                               disabled={deletingId === appointment.id}
