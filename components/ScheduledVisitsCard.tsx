@@ -86,7 +86,7 @@ export function ScheduledVisitsCard({
         <div className="space-y-2">
           {dates.map((date) => {
             const count = appointmentsByDate[date];
-            const isClickable = count > 1;
+            const isClickable = count > 0;
 
             const content = (
               <div className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg ${isClickable ? "hover:bg-gray-100 cursor-pointer transition" : ""}`}>
