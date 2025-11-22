@@ -2,11 +2,12 @@
 
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { useUserClubs } from "@/hooks/useUserClubs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getCookie } from "@/lib/cookieUtils";
 
 /**
  * Main navigation bar component for the application.
@@ -40,6 +41,9 @@ export function Navbar() {
     useState(false);
   const [isClubSelectorOpen, setIsClubSelectorOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [cachedClubName, setCachedClubName] = useState<string>("Select Club");
+  const [isHydrated, setIsHydrated] = useState(false);
+
   const { isAdmin, loading } = useAdminCheck();
   const { clubId, loading: clubLoading } = useClubCheck();
   const {
@@ -49,21 +53,60 @@ export function Navbar() {
     selectClub,
   } = useUserClubs();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const devModeOff = searchParams.get("devMode") === "off";
+  const [isPending, startTransition] = useTransition();
+
+  // Load cached club name from localStorage on mount
+  useEffect(() => {
+    const savedClubId = getCookie("selectedClubId");
+    if (savedClubId) {
+      const savedClubName = localStorage.getItem("selectedClubName");
+      if (savedClubName) {
+        setCachedClubName(savedClubName);
+      }
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Update cached club name when currentClubId changes
+  useEffect(() => {
+    if (currentClubId && clubs.length > 0) {
+      const clubName = clubs.find((c) => c.id === currentClubId)?.name;
+      if (clubName) {
+        setCachedClubName(clubName);
+        localStorage.setItem("selectedClubName", clubName);
+      }
+    }
+  }, [currentClubId, clubs]);
+
+  // Apply production mode class if devMode=off
+  useEffect(() => {
+    if (devModeOff) {
+      document.body.classList.add("dev-mode-off");
+    } else {
+      document.body.classList.remove("dev-mode-off");
+    }
+  }, [devModeOff]);
 
   const handleClubSelect = (selectedClubId: number) => {
-    selectClub(selectedClubId);
-    setIsClubSelectorOpen(false);
-    setIsMobileMenuOpen(false);
-    // Navigate to appointments for the selected club
-    router.push(`/club/${selectedClubId}/appointments`);
+    startTransition(() => {
+      selectClub(selectedClubId);
+      setIsClubSelectorOpen(false);
+      setIsMobileMenuOpen(false);
+      // Navigate to dashboard for the selected club
+      router.push(`/club/${selectedClubId}`);
+    });
   };
 
   const currentClubName =
-    clubs.find((c) => c.id === currentClubId)?.name || "Select Club";
+    clubs.find((c) => c.id === currentClubId)?.name || cachedClubName;
 
-  // Determine if we're in development mode
+  // Determine if we're in development mode and get appropriate navbar color
   const isDevelopment = process.env.NODE_ENV === "development";
-  const navbarBgColor = isDevelopment ? "bg-amber-900" : "bg-gray-800";
+  const navbarBgColor = isDevelopment
+    ? "bg-[var(--navbar-bg)]"
+    : "bg-gray-800";
 
   return (
     <nav className={`${navbarBgColor} text-white shadow-lg`}>
@@ -131,61 +174,6 @@ export function Navbar() {
                       <div className="px-4 py-2 text-sm text-gray-400">
                         No club assigned
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Club Selector Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
-                  title="Select a club"
-                >
-                  {clubsLoading ? "Loading..." : currentClubName}
-                  <svg
-                    className={`w-4 h-4 transition-transform ${
-                      isClubSelectorOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                    />
-                  </svg>
-                </button>
-
-                {/* Club Selector Dropdown Menu */}
-                {isClubSelectorOpen && (
-                  <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
-                    {clubsLoading ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">
-                        Loading clubs...
-                      </div>
-                    ) : clubs.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">
-                        No clubs available
-                      </div>
-                    ) : (
-                      clubs.map((club) => (
-                        <button
-                          key={club.id}
-                          onClick={() => handleClubSelect(club.id)}
-                          className={`block w-full text-left px-4 py-2 text-sm transition ${
-                            club.id === currentClubId
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : "hover:bg-gray-600"
-                          }`}
-                        >
-                          {club.name}
-                        </button>
-                      ))
                     )}
                   </div>
                 )}
@@ -328,6 +316,69 @@ export function Navbar() {
           </div>
         </div>
 
+        {/* Club Selector Bar - Desktop (hidden for non-admins with only 1 club) */}
+        {!clubsLoading && (isAdmin || clubs.length > 1) && (
+          <div className="hidden md:block w-full bg-gray-900 border-t border-gray-700 py-2">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end">
+              <SignedIn>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
+                    className="px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition flex items-center gap-2 bg-gray-800"
+                    title="Select a club"
+                  >
+                    {clubsLoading ? "Loading..." : currentClubName}
+                    <svg
+                      className={`w-4 h-4 transition-transform ${
+                        isClubSelectorOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Club Selector Dropdown Menu */}
+                  {isClubSelectorOpen && (
+                    <div className="absolute right-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
+                      {clubsLoading ? (
+                        <div className="px-4 py-2 text-sm text-gray-400">
+                          Loading clubs...
+                        </div>
+                      ) : clubs.length === 0 ? (
+                        <div className="px-4 py-2 text-sm text-gray-400">
+                          No clubs available
+                        </div>
+                      ) : (
+                        clubs.map((club) => (
+                          <button
+                            key={club.id}
+                            onClick={() => handleClubSelect(club.id)}
+                            className={`block w-full text-left px-4 py-2 text-sm transition ${
+                              club.id === currentClubId
+                                ? "bg-blue-600 hover:bg-blue-700"
+                                : "hover:bg-gray-600"
+                            }`}
+                          >
+                            {club.name}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </SignedIn>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden pb-4 border-t border-gray-700">
@@ -397,59 +448,61 @@ export function Navbar() {
                 )}
               </div>
 
-              {/* Mobile Club Selector */}
-              <div className="pt-2">
-                <button
-                  onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
-                  className="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
-                >
-                  {clubsLoading ? "Loading..." : currentClubName}
-                  <svg
-                    className={`w-4 h-4 transition-transform ml-auto ${
-                      isClubSelectorOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              {/* Mobile Club Selector (hidden for non-admins with only 1 club) */}
+              {!clubsLoading && (isAdmin || clubs.length > 1) && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => setIsClubSelectorOpen(!isClubSelectorOpen)}
+                    className="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                    />
-                  </svg>
-                </button>
+                    {clubsLoading ? "Loading..." : currentClubName}
+                    <svg
+                      className={`w-4 h-4 transition-transform ml-auto ${
+                        isClubSelectorOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </button>
 
-                {/* Mobile Club Selector Dropdown */}
-                {isClubSelectorOpen && (
-                  <div className="bg-gray-700 rounded-md py-1">
-                    {clubsLoading ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">
-                        Loading clubs...
-                      </div>
-                    ) : clubs.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-gray-400">
-                        No clubs available
-                      </div>
-                    ) : (
-                      clubs.map((club) => (
-                        <button
-                          key={club.id}
-                          onClick={() => handleClubSelect(club.id)}
-                          className={`block w-full text-left px-6 py-2 text-sm transition ${
-                            club.id === currentClubId
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : "hover:bg-gray-600"
-                          }`}
-                        >
-                          {club.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
+                  {/* Mobile Club Selector Dropdown */}
+                  {isClubSelectorOpen && (
+                    <div className="bg-gray-700 rounded-md py-1">
+                      {clubsLoading ? (
+                        <div className="px-4 py-2 text-sm text-gray-400">
+                          Loading clubs...
+                        </div>
+                      ) : clubs.length === 0 ? (
+                        <div className="px-4 py-2 text-sm text-gray-400">
+                          No clubs available
+                        </div>
+                      ) : (
+                        clubs.map((club) => (
+                          <button
+                            key={club.id}
+                            onClick={() => handleClubSelect(club.id)}
+                            className={`block w-full text-left px-6 py-2 text-sm transition ${
+                              club.id === currentClubId
+                                ? "bg-blue-600 hover:bg-blue-700"
+                                : "hover:bg-gray-600"
+                            }`}
+                          >
+                            {club.name}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Mobile Addresses Link */}
               {clubsLoading ? (

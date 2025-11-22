@@ -65,7 +65,7 @@ function ClubDetailPageContent() {
       return;
     }
     fetchClubDetails();
-  }, [clubId, getToken]);
+  }, [clubId]);
 
   const handleAssignUser = async (userId: number) => {
     try {

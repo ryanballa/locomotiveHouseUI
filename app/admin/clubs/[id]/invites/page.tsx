@@ -43,7 +43,7 @@ function InvitesPageContent() {
       return;
     }
     fetchData();
-  }, [clubId, getToken]);
+  }, [clubId]);
 
   const fetchData = async () => {
     try {

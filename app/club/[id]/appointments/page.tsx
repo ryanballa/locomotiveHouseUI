@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Appointment, type User } from "@/lib/api";
@@ -37,10 +37,21 @@ function ClubAppointmentsContent() {
   const [creatingFriday, setCreatingFriday] = useState<string | null>(null);
 
   const {
-    hasAccessToClub,
     isSuperAdmin,
+    clubIds,
     loading: clubCheckLoading,
   } = useClubCheck();
+
+  // Clear clerk user cache on logout
+  useEffect(() => {
+    if (!isSignedIn) {
+      try {
+        localStorage.removeItem("clerkUserCache");
+      } catch {
+        // Ignore errors clearing cache
+      }
+    }
+  }, [isSignedIn]);
 
   // Verify user has access to this club and fetch data
   useEffect(() => {
@@ -49,72 +60,108 @@ function ClubAppointmentsContent() {
       return;
     }
 
-    if (!isSuperAdmin && !hasAccessToClub(clubId)) {
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
+    // Check if user has access to this club
+    const hasAccess = isSuperAdmin || clubIds.includes(clubId);
+    if (!hasAccess) {
       setError("You do not have access to this club");
       setLoading(false);
       return;
     }
 
-    if (isSignedIn) {
-      fetchData();
-    }
-  }, [clubId, hasAccessToClub, isSuperAdmin, isSignedIn, clubCheckLoading]);
+    // Reset error if access is allowed
+    setError(null);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const token = await getToken();
+    // Fetch data in a separate async function
+    const performFetch = async () => {
+      try {
+        setLoading(true);
+        const token = await getToken();
 
-      // Fetch current user's lhUserId and other data in parallel
-      const [appointmentsData, usersData, userIdResponse] = await Promise.all([
-        apiClient.getClubAppointments(clubId, token || undefined),
-        apiClient.getUsers(token || ""),
-        fetch("/api/user-id"),
-      ]);
-
-      const userIdData = await userIdResponse.json();
-      if (userIdData.lhUserId) {
-        setCurrentUserLhId(userIdData.lhUserId);
-      }
-
-      setAppointments(appointmentsData);
-      setUsers(usersData);
-
-      // Fetch Clerk user details for each user
-      const userMapData: UserMap = {};
-      const clerkUserPromises = usersData.map(async (user) => {
-        try {
-          const response = await fetch(
-            `/api/clerk-user/${encodeURIComponent(user.token)}`
-          );
-          const data = await response.json();
-
-          // Use name from Clerk if available, otherwise use database name
-          const displayName = data.name || user.name || `User ${user.id}`;
-          userMapData[user.id] = { name: displayName, permission: user.permission };
-        } catch (err) {
-          console.error(`Failed to fetch Clerk user for ${user.token}`, err);
-          userMapData[user.id] = { name: `User ${user.id}`, permission: user.permission };
+        if (!token) {
+          setError("Authentication required");
+          setLoading(false);
+          return;
         }
-      });
 
-      await Promise.all(clerkUserPromises);
-      setUserMap(userMapData);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load data";
-      if (
-        errorMessage.includes("Unauthenticated") ||
-        errorMessage.includes("401")
-      ) {
-        setError("Please sign in to view and manage appointments.");
-      } else {
-        setError(errorMessage);
+        // Fetch appointments data
+        const appointmentsData = await apiClient.getClubAppointments(clubId, token);
+        setAppointments(appointmentsData);
+
+        // Fetch users data
+        const usersData = await apiClient.getUsers(token);
+        setUsers(usersData);
+
+        // Fetch current user ID
+        const userIdResponse = await fetch("/api/user-id");
+        const userIdData = await userIdResponse.json();
+        if (userIdData.lhUserId) {
+          setCurrentUserLhId(userIdData.lhUserId);
+        }
+
+        // Fetch Clerk user details for each user with localStorage caching
+        const userMapData: UserMap = {};
+        const clerkUserCache = (() => {
+          try {
+            const cached = localStorage.getItem("clerkUserCache");
+            return cached ? JSON.parse(cached) : {};
+          } catch {
+            return {};
+          }
+        })();
+
+        const clerkUserPromises = usersData.map(async (user) => {
+          try {
+            // Check cache first
+            if (clerkUserCache[user.token]) {
+              const cachedData = clerkUserCache[user.token];
+              const displayName = cachedData.name || user.name || `User ${user.id}`;
+              userMapData[user.id] = { name: displayName, permission: user.permission };
+              return;
+            }
+
+            const response = await fetch(
+              `/api/clerk-user/${encodeURIComponent(user.token)}`
+            );
+            const data = await response.json();
+
+            // Cache the result
+            clerkUserCache[user.token] = data;
+            localStorage.setItem("clerkUserCache", JSON.stringify(clerkUserCache));
+
+            // Use name from Clerk if available, otherwise use database name
+            const displayName = data.name || user.name || `User ${user.id}`;
+            userMapData[user.id] = { name: displayName, permission: user.permission };
+          } catch (err) {
+            console.error(`Failed to fetch Clerk user for ${user.token}`, err);
+            userMapData[user.id] = { name: `User ${user.id}`, permission: user.permission };
+          }
+        });
+
+        await Promise.all(clerkUserPromises);
+        setUserMap(userMapData);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load data";
+        if (
+          errorMessage.includes("Unauthenticated") ||
+          errorMessage.includes("401")
+        ) {
+          setError("Please sign in to view and manage appointments.");
+        } else {
+          setError(errorMessage);
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    performFetch();
+  }, [clubId, clubCheckLoading, isSignedIn, isSuperAdmin, clubIds]);
 
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
@@ -200,17 +247,8 @@ function ClubAppointmentsContent() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        </main>
-      </div>
-    );
+  if (clubCheckLoading) {
+    return null;
   }
 
   return (
@@ -232,6 +270,12 @@ function ClubAppointmentsContent() {
             ← Back
           </button>
         </div>
+
+        {loading && (
+          <div className="flex justify-center py-12">
+            <div className="text-gray-500">Loading appointments...</div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -257,13 +301,13 @@ function ClubAppointmentsContent() {
           </Link>
         </header>
 
-        {appointments.length === 0 ? (
+        {!loading && appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <p className="text-gray-500 text-lg">
               No appointments scheduled yet.
             </p>
           </div>
-        ) : (
+        ) : !loading ? (
           <div className="space-y-8">
             {sortedDates.map((dateKey) => (
               <div key={dateKey}>
@@ -309,16 +353,16 @@ function ClubAppointmentsContent() {
                         </p>
                         {currentUserLhId === appointment.user_id && (
                           <div className="flex gap-2">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/appointments/edit/${appointment.id}`
-                                )
-                              }
-                              className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            <Link
+                              href={`/appointments/edit/${appointment.id}`}
+                              className="flex-1"
                             >
-                              Edit
-                            </button>
+                              <button
+                                className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              >
+                                Edit
+                              </button>
+                            </Link>
                             <button
                               onClick={() => handleDelete(appointment.id)}
                               disabled={deletingId === appointment.id}
@@ -337,7 +381,7 @@ function ClubAppointmentsContent() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </main>
     </div>
   );

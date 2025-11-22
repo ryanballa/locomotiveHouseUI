@@ -659,6 +659,8 @@ function ClubAddressesContent() {
 }
 
 export default function ClubAddressesPage() {
+  // ClubAddressesContent has its own loading state, so we rely on ClubGuard's default
+  // isContentLoading=true to show loading spinner during initial club check
   return (
     <ClubGuard>
       <ClubAddressesContent />

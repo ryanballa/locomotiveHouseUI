@@ -312,6 +312,8 @@ function CreateClubAppointmentContent() {
 }
 
 export default function CreateClubAppointment() {
+  // CreateClubAppointmentContent has its own loading state, so we rely on ClubGuard's default
+  // isContentLoading=true to show loading spinner during initial club check
   return (
     <ClubGuard>
       <CreateClubAppointmentContent />

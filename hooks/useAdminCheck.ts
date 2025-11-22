@@ -227,7 +227,7 @@ export function useAdminCheck(): UseAdminCheckReturn {
     return () => {
       isActive = false;
     };
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn]);
 
   const isAdmin =
     currentUser &&

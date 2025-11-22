@@ -93,7 +93,7 @@ export default function ClubInvitePage() {
     if (token && isLoaded && isSignedIn) {
       validateToken();
     }
-  }, [token, isLoaded, isSignedIn, getToken]);
+  }, [token, isLoaded, isSignedIn]);
 
   /**
    * Handle redirect after successful club join
@@ -108,7 +108,7 @@ export default function ClubInvitePage() {
       // Cleanup function to clear timeout if component unmounts
       return () => clearTimeout(timer);
     }
-  }, [success, clubInfo?.id, router]);
+  }, [success, clubInfo?.id]);
 
   /**
    * Handle joining the club with the invite token
