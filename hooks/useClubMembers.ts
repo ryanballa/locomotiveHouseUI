@@ -41,17 +41,20 @@ export function useClubMembers(clubId: number | string): UseClubMembersReturn {
           return;
         }
 
-        const users = await apiClient.getUsers(token);
+        const clubUsers = await apiClient.getClubUsers(Number(clubId), token);
         if (!isActive) return;
 
-        // Count users that have access to this club
-        const clubIdNum = Number(clubId);
-        const membersInClub = users.filter((user) => {
-          return user.clubs && user.clubs.some((c) => c.club_id === clubIdNum);
-        });
+        // Extract user objects from the API response
+        const usersList: { id: number }[] = [];
+        for (const item of clubUsers) {
+          const userItem = (item as any).user;
+          if (userItem) {
+            usersList.push(userItem);
+          }
+        }
 
         if (isActive) {
-          setMemberCount(membersInClub.length);
+          setMemberCount(usersList.length);
         }
       } catch (err) {
         if (!isActive) return;

@@ -8,6 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { IssueTable } from "@/components/IssueTable";
+import { TowerReportsSection } from "@/components/TowerReportsSection";
 
 interface EnrichedUser extends User {
   clerkName?: string;
@@ -528,47 +529,43 @@ function ClubDetailPageContent() {
       // Fetch club details, users, and towers in parallel
       const [clubData, allUsers, towersData] = await Promise.all([
         apiClient.getClubById(clubId, token),
-        apiClient.getUsers(token),
+        apiClient.getClubUsers(clubId, token),
         apiClient.getTowersByClubId(clubId, token),
       ]);
 
       setClub(clubData);
       setTowers(towersData);
 
-      // Extract club IDs from clubs array for each user
-      const usersWithClubIds = allUsers.map((user) => {
-        const clubIds = user.clubs && Array.isArray(user.clubs)
-          ? user.clubs.map((c) => c.club_id).filter((id): id is number => id !== undefined)
-          : [];
-        return {
-          ...user,
-          clubIds,
-        };
-      });
-
-      // Filter users by club - check if the club is in their clubs array
-      const clubUsers = usersWithClubIds.filter((user) => {
-        const userClubIds = user.clubIds || [];
-        return userClubIds.includes(clubId);
-      });
-      const usersWithoutClub = usersWithClubIds.filter((user) => {
-        const userClubIds = user.clubIds || [];
-        // Show users NOT assigned to this specific club (they may be in other clubs)
-        return !userClubIds.includes(clubId);
-      });
+      // Extract user objects from the API response
+      // The response is an array of objects with structure: { user: {...}, clubs: {...} }
+      const clubUsers: User[] = [];
+      for (const item of allUsers) {
+        const userItem = (item as any).user;
+        if (userItem) {
+          clubUsers.push(userItem);
+        }
+      }
 
       // Enrich users with Clerk data
-      const [enrichedClubUsers, enrichedUnassignedUsers] = await Promise.all([
-        enrichUsersWithClerkData(clubUsers),
-        enrichUsersWithClerkData(usersWithoutClub),
-      ]);
-
+      const enrichedClubUsers = await enrichUsersWithClerkData(clubUsers);
       setUsers(enrichedClubUsers);
-      setUnassignedUsers(enrichedUnassignedUsers);
+
+      // For unassigned users, we need to get all users and filter out the ones already assigned
+      try {
+        const allUsersInSystem = await apiClient.getUsers(token);
+        const clubUserIds = new Set(clubUsers.map((u) => u.id));
+        const unassignedUsers = allUsersInSystem.filter((u) => !clubUserIds.has(u.id));
+        const enrichedUnassignedUsers = await enrichUsersWithClerkData(unassignedUsers);
+        setUnassignedUsers(enrichedUnassignedUsers);
+      } catch (err) {
+        console.error("Failed to fetch unassigned users:", err);
+        // If we can't get unassigned users, that's ok - admins can still manage assigned users
+        setUnassignedUsers([]);
+      }
 
       // Find current user by matching Clerk ID
       if (clerkUser?.id) {
-        const matchedUser = usersWithClubIds.find((u) => u.token === clerkUser.id);
+        const matchedUser = clubUsers.find((u) => u.token === clerkUser.id);
         if (matchedUser) {
           setCurrentUser(matchedUser);
           // Update issue form with current user ID
@@ -1103,6 +1100,11 @@ function ClubDetailPageContent() {
             />
           </div>
         )}
+
+        {/* Tower Reports Section */}
+        <div className="mt-8">
+          <TowerReportsSection clubId={clubId} towers={towers} />
+        </div>
       </main>
     </div>
   );

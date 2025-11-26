@@ -49,11 +49,11 @@ export default function ClubIssuesPage() {
         return;
       }
 
-      // Fetch club, towers, and current user in parallel
-      const [clubs, towersData, usersData] = await Promise.all([
+      // Fetch club, towers, and club users in parallel
+      const [clubs, towersData, clubUsersData] = await Promise.all([
         apiClient.getClubs(token),
         apiClient.getTowersByClubId(clubId, token),
-        apiClient.getUsers(token),
+        apiClient.getClubUsers(clubId, token),
       ]);
 
       const clubData = clubs.find((c) => c.id === clubId);
@@ -73,11 +73,14 @@ export default function ClubIssuesPage() {
       }
       setTowerIssues(issuesByTower);
 
-      // Find current user by matching Clerk ID
-      if (clerkUser?.id && usersData.length > 0) {
-        const matchedUser = usersData.find((u) => u.token === clerkUser.id);
-        if (matchedUser) {
-          setCurrentUser(matchedUser);
+      // Extract user objects from the API response and find current user
+      if (clerkUser?.id) {
+        for (const item of clubUsersData) {
+          const userItem = (item as any).user;
+          if (userItem && userItem.token === clerkUser.id) {
+            setCurrentUser(userItem);
+            break;
+          }
         }
       }
     } catch (err) {

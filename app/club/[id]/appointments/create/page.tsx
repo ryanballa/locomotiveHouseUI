@@ -121,7 +121,7 @@ function CreateClubAppointmentContent() {
       // Parse the 12-hour time format
       const [year, month, day] = formData.date.split("-").map(Number);
       const { hour, minute } = parse12HourTime(formData.time);
-      const scheduleDateTime = new Date(year, month - 1, day, hour, minute);
+      const scheduleDateTime = new Date(Date.UTC(year, month - 1, day, hour, minute));
 
       const appointmentData = {
         schedule: scheduleDateTime.toISOString(),

@@ -214,6 +214,20 @@ export function Navbar() {
                 </Link>
               ) : null}
 
+              {/* Reports Link */}
+              {clubsLoading ? (
+                <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Reports
+                </div>
+              ) : currentClubId ? (
+                <Link
+                  href={`/club/${currentClubId}/reports`}
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                >
+                  Reports
+                </Link>
+              ) : null}
+
               {/* Admin Dropdown */}
               {loading ? (
                 <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
@@ -516,6 +530,21 @@ export function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Addresses
+                </Link>
+              ) : null}
+
+              {/* Mobile Reports Link */}
+              {clubsLoading ? (
+                <div className="block px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Reports
+                </div>
+              ) : currentClubId ? (
+                <Link
+                  href={`/club/${currentClubId}/reports`}
+                  className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Reports
                 </Link>
               ) : null}
 
