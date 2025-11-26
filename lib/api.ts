@@ -118,18 +118,6 @@ class ApiClient {
           errorData.message ||
           `API request failed with status ${response.status}`;
 
-        // If error is an empty object, stringify the full response for debugging
-        if (typeof errorData.error === "object" && Object.keys(errorData.error).length === 0) {
-          errorMessage = JSON.stringify(errorData);
-        }
-
-        console.error("API Error:", {
-          url,
-          status: response.status,
-          error: errorMessage,
-          body: options.body,
-          fullResponse: errorData,
-        });
         throw new Error(errorMessage);
       }
 
