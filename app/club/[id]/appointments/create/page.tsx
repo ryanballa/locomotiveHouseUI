@@ -153,10 +153,10 @@ function CreateClubAppointmentContent() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Create Appointment
+              Create Session
             </h1>
             <p className="text-gray-600">
-              Schedule an appointment with customizable duration
+              Schedule a session with customizable duration
             </p>
           </div>
           <button
@@ -294,7 +294,7 @@ function CreateClubAppointmentContent() {
                   ? "Creating..."
                   : !lhUserId
                   ? "User Not Set Up"
-                  : "Create Appointment"}
+                  : "Create Session"}
               </button>
               <button
                 type="button"
