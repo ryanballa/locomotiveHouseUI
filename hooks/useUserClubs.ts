@@ -109,12 +109,17 @@ export function useUserClubs(): UseUserClubsReturn {
           userClubId = currentUserData.clubs[0].club_id;
         }
 
-        // Filter to only include clubs the user has permission to view
-        const assignedClubs = allClubs.filter((c) => {
-          return currentUserData?.clubs?.some((cd) => cd.club_id === c.id);
-        });
+        // Determine if user is a super admin (permission level 3)
+        const isSuperAdmin = currentUserData?.permission === 3;
 
-        // Set only the user's assigned clubs
+        // Filter clubs: super admins get all clubs, others get only assigned clubs
+        const assignedClubs = isSuperAdmin
+          ? allClubs
+          : allClubs.filter((c) => {
+              return currentUserData?.clubs?.some((cd) => cd.club_id === c.id);
+            });
+
+        // Set the user's clubs (all for super admins, assigned for others)
         setClubs(assignedClubs);
         setCurrentClubsData(assignedClubs);
 

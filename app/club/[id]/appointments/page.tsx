@@ -7,6 +7,7 @@ import { apiClient, type Appointment, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
 import { FridayEveningCard } from "@/components/FridayEveningCard";
+import { ScheduledSessionsCard } from "@/components/ScheduledSessionsCard";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { shouldShowFridayEvening } from "@/lib/fridayEveningConfig";
 import { filterFutureAppointments } from "@/lib/appointmentUtils";
@@ -287,10 +288,15 @@ function ClubAppointmentsContent() {
           <FridayEveningCard clubId={clubId} />
         )}
 
+        <ScheduledSessionsCard clubId={clubId} />
+
         <header className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Sessions
+            Visit Another Time
           </h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Visit the club at another time and let others know you are visiting
+          </p>
           <Link href={`/club/${clubId}/appointments/create`}>
             <button
               onClick={handleAddSchedule}

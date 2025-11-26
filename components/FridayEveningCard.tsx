@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
-import { FRIDAY_EVENING_CONFIG } from '@/lib/fridayEveningConfig';
+import { FRIDAY_EVENING_CONFIG, isFridayExcluded } from '@/lib/fridayEveningConfig';
 import type { Appointment, User } from '@/lib/api';
 
 interface Attendee {
@@ -329,7 +329,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                   <h3 className={`text-lg font-semibold ${textColor}`}>
                     {formatDateToUTC(friday.fridayDate)}
                   </h3>
-                  <p className={`text-sm ${textColor}`}>6 PM - Close</p>
+                  <p className={`text-sm ${textColor}`}>7PM - Close</p>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}>
                   {`${attendeeCount} ${attendeeCount === 1 ? 'person' : 'people'}`}
@@ -361,7 +361,11 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                 )}
               </div>
 
-              {!friday.isUserAttending ? (
+              {isFridayExcluded(friday.fridayDate) ? (
+                <div className="w-full px-4 py-2 bg-gray-300 text-gray-600 font-medium rounded-lg text-center cursor-not-allowed opacity-50">
+                  Not Available
+                </div>
+              ) : !friday.isUserAttending ? (
                 <button
                   onClick={() => handleSignup(index)}
                   disabled={signingUp === index}

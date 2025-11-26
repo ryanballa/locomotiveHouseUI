@@ -6,7 +6,6 @@ import { useClub } from "@/hooks/useClub";
 import { useClubIssuesGrouped } from "@/hooks/useClubIssuesGrouped";
 import { useClubAddresses } from "@/hooks/useClubAddresses";
 import { useClubMembers } from "@/hooks/useClubMembers";
-import { useClubAppointments } from "@/hooks/useClubAppointments";
 import { TowerIssuesCard } from "@/components/TowerIssuesCard";
 import { RecentAddressesCard } from "@/components/RecentAddressesCard";
 import { ClubMembersCard } from "@/components/ClubMembersCard";
@@ -29,7 +28,6 @@ export default function ClubHome() {
   const { issuesByTower, loading: issuesLoading, error: issuesError } = useClubIssuesGrouped(clubId);
   const { addresses, loading: addressesLoading, error: addressesError } = useClubAddresses(clubId);
   const { memberCount, loading: membersLoading, error: membersError } = useClubMembers(clubId);
-  const { appointmentsByDate, loading: appointmentsLoading, error: appointmentsError } = useClubAppointments(clubId);
 
   return (
     <ClubGuard isContentLoading={loading || !club}>
@@ -53,9 +51,7 @@ export default function ClubHome() {
               error={membersError}
             />
             <ScheduledVisitsCard
-              appointmentsByDate={appointmentsByDate}
-              loading={appointmentsLoading}
-              error={appointmentsError}
+              clubId={clubId}
             />
             <TowerIssuesCard
               issuesByTower={issuesByTower}

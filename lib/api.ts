@@ -41,6 +41,13 @@ export interface Tower {
   owner_id?: number;
 }
 
+export interface ScheduledSession {
+  id: number;
+  schedule: string | Date;
+  club_id: number;
+  description?: string;
+}
+
 export interface TowerReport {
   id: number;
   tower_id: number;
@@ -1585,6 +1592,111 @@ class ApiClient {
       console.error("Error fetching all issues:", error);
       return [];
     }
+  }
+
+  // Scheduled Sessions API
+  async getScheduledSessionsByClubId(
+    clubId: number,
+    token: string
+  ): Promise<ScheduledSession[]> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.result || [];
+  }
+
+  async getScheduledSessionById(
+    clubId: number,
+    sessionId: number,
+    token: string
+  ): Promise<ScheduledSession | null> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.session || null;
+  }
+
+  async createScheduledSession(
+    clubId: number,
+    data: Omit<ScheduledSession, "id">,
+    token: string
+  ): Promise<{ created: boolean; id?: number; session?: ScheduledSession }> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          schedule: data.schedule,
+          description: data.description,
+        }),
+      }
+    );
+
+    return {
+      created: response.created || false,
+      id: response.id,
+      session: response.session,
+    };
+  }
+
+  async updateScheduledSession(
+    clubId: number,
+    sessionId: number,
+    data: Partial<Omit<ScheduledSession, "id" | "club_id">>,
+    token: string
+  ): Promise<{ updated: boolean; session?: ScheduledSession }> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      updated: response.updated || false,
+      session: response.session,
+    };
+  }
+
+  async deleteScheduledSession(
+    clubId: number,
+    sessionId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      deleted: response.deleted || false,
+    };
   }
 }
 
