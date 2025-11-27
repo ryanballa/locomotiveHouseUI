@@ -600,6 +600,66 @@ function ClubDetailPageContent() {
     }
   };
 
+  /**
+   * Updates an existing scheduled session
+   * @param sessionId The session ID to update
+   */
+  const handleUpdateScheduledSession = async (sessionId: number) => {
+    try {
+      if (!sessionFormData.schedule.trim()) {
+        setError("Session date/time is required");
+        return;
+      }
+
+      setEditingSessionId(sessionId);
+      setError(null);
+      const token = await getToken();
+      if (!token) {
+        setError("Authentication required");
+        return;
+      }
+
+      const result = await apiClient.updateScheduledSession(
+        clubId,
+        sessionId,
+        {
+          schedule: new Date(sessionFormData.schedule),
+          description: sessionFormData.description,
+        },
+        token
+      );
+
+      if (result.updated) {
+        setSessionFormData({ schedule: "", description: "" });
+        setEditingSessionId(null);
+        await fetchClubDetails();
+      } else {
+        setError("Failed to update scheduled session");
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to update scheduled session";
+      console.error("Error updating scheduled session:", err);
+      setError(errorMsg);
+    } finally {
+      setEditingSessionId(null);
+    }
+  };
+
+  /**
+   * Starts editing a scheduled session by populating the form with its data
+   * @param session The session to edit
+   */
+  const startEditingScheduledSession = (session: ScheduledSession) => {
+    // Format the date for datetime-local input (YYYY-MM-DDTHH:mm)
+    const date = new Date(session.schedule);
+    const formattedDate = date.toISOString().slice(0, 16);
+    setSessionFormData({
+      schedule: formattedDate,
+      description: session.description || "",
+    });
+    setEditingSessionId(session.id);
+  };
+
   const fetchClubDetails = async () => {
     try {
       setLoading(true);
@@ -1195,7 +1255,7 @@ function ClubDetailPageContent() {
             </h2>
           </div>
 
-          {/* Create Scheduled Session Form */}
+          {/* Create/Edit Scheduled Session Form */}
           <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
             <div className="space-y-4">
               <div>
@@ -1226,14 +1286,35 @@ function ClubDetailPageContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <div>
-                <button
-                  onClick={handleCreateScheduledSession}
-                  disabled={creatingSession}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creatingSession ? "Creating..." : "Create Scheduled Session"}
-                </button>
+              <div className="flex gap-2">
+                {editingSessionId ? (
+                  <>
+                    <button
+                      onClick={() => handleUpdateScheduledSession(editingSessionId)}
+                      disabled={creatingSession}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Update Session
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSessionFormData({ schedule: "", description: "" });
+                        setEditingSessionId(null);
+                      }}
+                      className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleCreateScheduledSession}
+                    disabled={creatingSession}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creatingSession ? "Creating..." : "Create Scheduled Session"}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1276,7 +1357,14 @@ function ClubDetailPageContent() {
                     <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
                       {session.description || "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => startEditingScheduledSession(session)}
+                        disabled={editingSessionId !== null}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => handleDeleteScheduledSession(session.id)}
                         disabled={deletingSessionId === session.id}
