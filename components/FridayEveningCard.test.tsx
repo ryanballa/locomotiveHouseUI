@@ -30,6 +30,7 @@ vi.mock('@/lib/fridayEveningConfig', () => ({
     numFridaysToShow: 4,
   },
   shouldShowFridayEvening: vi.fn(),
+  isFridayExcluded: vi.fn(() => false),
 }));
 
 import { useAuth } from '@clerk/nextjs';

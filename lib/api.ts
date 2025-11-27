@@ -1627,7 +1627,10 @@ class ApiClient {
       }
     );
 
-    return response.session || null;
+    if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+    return null;
   }
 
   async createScheduledSession(
@@ -1652,7 +1655,7 @@ class ApiClient {
     return {
       created: response.created || false,
       id: response.id,
-      session: response.session,
+      session: response.result?.[0],
     };
   }
 
@@ -1675,7 +1678,7 @@ class ApiClient {
 
     return {
       updated: response.updated || false,
-      session: response.session,
+      session: response.result?.[0],
     };
   }
 
