@@ -82,19 +82,14 @@ export default function AddressesPage() {
         apiClient.getUsers(token),
       ]);
 
-      // Enrich users with Clerk data (email)
-      const enrichedUsers = await Promise.all(
-        usersData.map(async (user) => {
-          const clerkInfo = await apiClient.getClerkUserInfo(user.token);
-
-          return {
-            ...user,
-            clubs: user.clubs,
-            email: clerkInfo.email,
-            name: user.name || clerkInfo.name,
-          };
-        })
-      );
+      // Use firstName, lastName, and email from backend (synced from Clerk during profile completion)
+      const enrichedUsers = usersData.map((user) => ({
+        ...user,
+        clubs: user.clubs,
+        // firstName and lastName are now stored in backend after profile completion
+        // email is also stored in backend
+        name: user.name || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : undefined),
+      }));
 
       setAddresses(addressesData);
       setUsers(enrichedUsers);

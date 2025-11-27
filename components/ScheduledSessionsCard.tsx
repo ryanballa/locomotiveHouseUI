@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useScheduledSessions } from "@/hooks/useScheduledSessions";
-import type { ScheduledSession } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+import { apiClient, type Appointment, type ScheduledSession } from "@/lib/api";
+import { useDialog } from "@/hooks/useDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface ScheduledSessionsCardProps {
   clubId: number;
@@ -13,7 +17,51 @@ interface ScheduledSessionsCardProps {
  */
 export function ScheduledSessionsCard({ clubId }: ScheduledSessionsCardProps) {
   const router = useRouter();
+  const { getToken } = useAuth();
   const { sessions, loading, error } = useScheduledSessions(clubId);
+  const [userSignedUpSessions, setUserSignedUpSessions] = useState<
+    Map<number, number>
+  >(new Map());
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<number | null>(
+    null
+  );
+  const { isOpen, open, close } = useDialog();
+  const [pendingSessionId, setPendingSessionId] = useState<number | null>(null);
+
+  // Fetch current user ID and their appointments to check for signed up sessions
+  useEffect(() => {
+    const fetchUserAndAppointments = async () => {
+      try {
+        const userIdResponse = await fetch("/api/user-id");
+        const userIdData = await userIdResponse.json();
+
+        if (userIdData.lhUserId) {
+          setCurrentUserId(userIdData.lhUserId);
+
+          // Fetch appointments for this user
+          const token = await getToken();
+          if (token) {
+            const appointments = await apiClient.getAppointments(token);
+            // Find all appointments with scheduled_session_id and map session ID to appointment ID
+            const signedUpSessionMap = new Map<number, number>(
+              appointments
+                .filter((apt: Appointment) => apt.scheduled_session_id)
+                .map((apt: Appointment) => [
+                  apt.scheduled_session_id as number,
+                  apt.id,
+                ])
+            );
+            setUserSignedUpSessions(signedUpSessionMap);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch user appointments:", err);
+      }
+    };
+
+    fetchUserAndAppointments();
+  }, [getToken]);
 
   const handleSignUp = (session: ScheduledSession) => {
     const scheduledDate = new Date(session.schedule);
@@ -35,9 +83,52 @@ export function ScheduledSessionsCard({ clubId }: ScheduledSessionsCardProps) {
     const params = new URLSearchParams({
       date: dateStr,
       time: timeStr,
+      scheduledSessionId: session.id.toString(),
     });
 
     router.push(`/club/${clubId}/appointments/create?${params.toString()}`);
+  };
+
+  const handleUnsubscribeClick = (sessionId: number) => {
+    setPendingSessionId(sessionId);
+    open();
+  };
+
+  const handleUnsubscribeConfirm = async () => {
+    if (pendingSessionId === null) return;
+
+    try {
+      setDeletingSessionId(pendingSessionId);
+      const appointmentId = userSignedUpSessions.get(pendingSessionId);
+
+      if (!appointmentId) {
+        console.error("Appointment ID not found for session", pendingSessionId);
+        return;
+      }
+
+      const token = await getToken();
+      if (!token) {
+        console.error("Authentication required");
+        return;
+      }
+
+      const result = await apiClient.deleteAppointment(appointmentId, token);
+
+      if (result.deleted) {
+        // Update the state to remove this session from signed up
+        const updatedMap = new Map(userSignedUpSessions);
+        updatedMap.delete(pendingSessionId);
+        setUserSignedUpSessions(updatedMap);
+      } else {
+        console.error("Failed to cancel sign-up");
+      }
+    } catch (err) {
+      console.error("Error canceling sign-up:", err);
+    } finally {
+      setDeletingSessionId(null);
+      close();
+      setPendingSessionId(null);
+    }
   };
 
   if (loading) {
@@ -101,21 +192,48 @@ export function ScheduledSessionsCard({ clubId }: ScheduledSessionsCardProps) {
                 </p>
               )}
 
-              <button
-                onClick={() => handleSignUp(session)}
-                disabled={isPast}
-                className={`w-full px-4 py-2 rounded-lg font-medium transition ${
-                  isPast
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed opacity-50"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                }`}
-              >
-                {isPast ? "Session Passed" : "+ Sign Up"}
-              </button>
+              {userSignedUpSessions.has(session.id) ? (
+                <button
+                  onClick={() => handleUnsubscribeClick(session.id)}
+                  disabled={deletingSessionId === session.id}
+                  className="w-full px-4 py-2 rounded-lg font-medium transition bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {deletingSessionId === session.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Canceling...
+                    </>
+                  ) : (
+                    "✓ Signed Up"
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSignUp(session)}
+                  disabled={isPast}
+                  className={`w-full px-4 py-2 rounded-lg font-medium transition ${
+                    isPast
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed opacity-50"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                >
+                  {isPast ? "Session Passed" : "+ Sign Up"}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
+      <ConfirmDialog
+        isOpen={isOpen}
+        onClose={close}
+        onConfirm={handleUnsubscribeConfirm}
+        title="Cancel Sign-Up"
+        description="Are you sure you want to cancel your sign-up for this session?"
+        type="danger"
+        confirmLabel="Cancel Sign-Up"
+        isLoading={deletingSessionId !== null}
+      />
     </div>
   );
 }

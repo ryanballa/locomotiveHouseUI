@@ -1,33 +1,50 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
 import { useClub } from "@/hooks/useClub";
 import { useClubIssuesGrouped } from "@/hooks/useClubIssuesGrouped";
 import { useClubAddresses } from "@/hooks/useClubAddresses";
-import { useClubMembers } from "@/hooks/useClubMembers";
 import { TowerIssuesCard } from "@/components/TowerIssuesCard";
 import { RecentAddressesCard } from "@/components/RecentAddressesCard";
-import { ClubMembersCard } from "@/components/ClubMembersCard";
+import { ClubNoticesCard } from "@/components/ClubNoticesCard";
 import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
 
 /**
  * Homepage for Locomotive House application
  *
  * Features:
- * - Club landing page
+ * - Club landing page (password protected)
  * - Shows error if a user is not assigned to a club
- * - Sign in prompt for unauthenticated users
+ * - Redirects unauthenticated users to /club/:id/public
  *
  * @returns {JSX.Element} Rendered homepage
  */
 export default function ClubHome() {
   const params = useParams();
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
   const clubId = params.id as string;
   const { club, loading, error } = useClub(clubId);
-  const { issuesByTower, loading: issuesLoading, error: issuesError } = useClubIssuesGrouped(clubId);
-  const { addresses, loading: addressesLoading, error: addressesError } = useClubAddresses(clubId);
-  const { memberCount, loading: membersLoading, error: membersError } = useClubMembers(clubId);
+  const {
+    issuesByTower,
+    loading: issuesLoading,
+    error: issuesError,
+  } = useClubIssuesGrouped(clubId);
+  const {
+    addresses,
+    loading: addressesLoading,
+    error: addressesError,
+  } = useClubAddresses(clubId);
+
+  // Redirect unauthenticated users to public page
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push(`/club/${clubId}/public`);
+    }
+  }, [isLoaded, isSignedIn, clubId, router]);
 
   return (
     <ClubGuard isContentLoading={loading || !club}>
@@ -42,28 +59,27 @@ export default function ClubHome() {
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-bold text-gray-900 mb-8">{club.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-8">
+                {club.name}
+              </h1>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <ClubMembersCard
-              memberCount={memberCount}
-              loading={membersLoading}
-              error={membersError}
-            />
-            <ScheduledVisitsCard
-              clubId={clubId}
-            />
-            <TowerIssuesCard
-              issuesByTower={issuesByTower}
-              loading={issuesLoading}
-              error={issuesError}
-            />
-            <RecentAddressesCard
-              addresses={addresses}
-              loading={addressesLoading}
-              error={addressesError}
-            />
-          </div>
+                <ClubNoticesCard clubId={clubId} />
+                <ScheduledVisitsCard
+                  clubId={clubId}
+                  shouldShowViewLink={true}
+                />
+                <TowerIssuesCard
+                  issuesByTower={issuesByTower}
+                  loading={issuesLoading}
+                  error={issuesError}
+                />
+                <RecentAddressesCard
+                  addresses={addresses}
+                  loading={addressesLoading}
+                  error={addressesError}
+                />
+              </div>
             </>
           )}
         </main>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -6,6 +6,7 @@ import { useScheduledSessions } from "@/hooks/useScheduledSessions";
 
 interface ScheduledVisitsCardProps {
   clubId: string;
+  shouldShowViewLink: boolean;
 }
 
 function formatDate(dateStr: string): string {
@@ -32,6 +33,7 @@ function formatDate(dateStr: string): string {
 
 export function ScheduledVisitsCard({
   clubId,
+  shouldShowViewLink,
 }: ScheduledVisitsCardProps) {
   const { sessions, loading, error } = useScheduledSessions(Number(clubId));
 
@@ -96,7 +98,9 @@ export function ScheduledVisitsCard({
 
       {totalSessions === 0 ? (
         <div className="text-center py-8">
-          <p className="text-gray-500">No sessions scheduled for the next 7 days.</p>
+          <p className="text-gray-500">
+            No sessions scheduled for the next 7 days.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -120,10 +124,13 @@ export function ScheduledVisitsCard({
                   {sessionsByDate[date].map((session) => (
                     <div key={session.id} className="text-xs text-gray-600">
                       <span className="font-medium">
-                        {new Date(session.schedule).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(session.schedule).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </span>
                       {session.description && (
                         <span> - {session.description}</span>
@@ -137,7 +144,7 @@ export function ScheduledVisitsCard({
         </div>
       )}
 
-      {totalSessions > 0 && (
+      {shouldShowViewLink && totalSessions > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <Link href={`/club/${clubId}/appointments`}>
             <p className="text-sm text-blue-600 hover:text-blue-800 font-medium cursor-pointer">
