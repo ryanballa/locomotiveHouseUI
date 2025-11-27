@@ -179,7 +179,7 @@ function AppointmentDetailContent() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                Appointments
+                Sessions
               </h1>
               <p className="text-lg text-gray-600">
                 {formatDate(dateParam)}

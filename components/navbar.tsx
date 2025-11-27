@@ -120,7 +120,7 @@ export function Navbar() {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-4">
             <SignedIn>
-              {/* Appointments Dropdown */}
+              {/* Sessions Dropdown */}
               <div className="relative">
                 <button
                   onClick={() =>
@@ -128,7 +128,7 @@ export function Navbar() {
                   }
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
                 >
-                  Appointments
+                  Sessions
                   <svg
                     className={`w-4 h-4 transition-transform ${
                       isAppointmentsDropdownOpen ? "rotate-180" : ""
@@ -146,7 +146,7 @@ export function Navbar() {
                   </svg>
                 </button>
 
-                {/* Appointments Dropdown Menu */}
+                {/* Sessions Dropdown Menu */}
                 {isAppointmentsDropdownOpen && (
                   <div className="absolute left-0 mt-0 w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
                     {clubsLoading ? (
@@ -160,14 +160,14 @@ export function Navbar() {
                           className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => setIsAppointmentsDropdownOpen(false)}
                         >
-                          View Appointments
+                          View Sessions
                         </Link>
                         <Link
                           href={`/club/${currentClubId}/appointments/create`}
                           className="block px-4 py-2 text-sm hover:bg-gray-600 transition"
                           onClick={() => setIsAppointmentsDropdownOpen(false)}
                         >
-                          Create Appointment
+                          Create Session
                         </Link>
                       </>
                     ) : (
@@ -211,6 +211,20 @@ export function Navbar() {
                   className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
                 >
                   Issues
+                </Link>
+              ) : null}
+
+              {/* Reports Link */}
+              {clubsLoading ? (
+                <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Reports
+                </div>
+              ) : currentClubId ? (
+                <Link
+                  href={`/club/${currentClubId}/reports`}
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                >
+                  Reports
                 </Link>
               ) : null}
 
@@ -383,7 +397,7 @@ export function Navbar() {
         {isMobileMenuOpen && (
           <div className="md:hidden pb-4 border-t border-gray-700">
             <SignedIn>
-              {/* Mobile Appointments Section */}
+              {/* Mobile Sessions Section */}
               <div className="pt-2">
                 <button
                   onClick={() =>
@@ -391,7 +405,7 @@ export function Navbar() {
                   }
                   className="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition flex items-center gap-1"
                 >
-                  Appointments
+                  Sessions
                   <svg
                     className={`w-4 h-4 transition-transform ml-auto ${
                       isAppointmentsDropdownOpen ? "rotate-180" : ""
@@ -409,7 +423,7 @@ export function Navbar() {
                   </svg>
                 </button>
 
-                {/* Mobile Appointments Dropdown */}
+                {/* Mobile Sessions Dropdown */}
                 {isAppointmentsDropdownOpen && (
                   <div className="bg-gray-700 rounded-md py-1">
                     {clubsLoading ? (
@@ -426,7 +440,7 @@ export function Navbar() {
                             setIsMobileMenuOpen(false);
                           }}
                         >
-                          View Appointments
+                          View Sessions
                         </Link>
                         <Link
                           href={`/club/${currentClubId}/appointments/create`}
@@ -436,7 +450,7 @@ export function Navbar() {
                             setIsMobileMenuOpen(false);
                           }}
                         >
-                          Create Appointment
+                          Create Session
                         </Link>
                       </>
                     ) : (
@@ -516,6 +530,21 @@ export function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Addresses
+                </Link>
+              ) : null}
+
+              {/* Mobile Reports Link */}
+              {clubsLoading ? (
+                <div className="block px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
+                  Reports
+                </div>
+              ) : currentClubId ? (
+                <Link
+                  href={`/club/${currentClubId}/reports`}
+                  className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Reports
                 </Link>
               ) : null}
 

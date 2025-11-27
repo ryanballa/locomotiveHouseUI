@@ -84,10 +84,19 @@ function ClubAddressesContent() {
         return;
       }
 
-      const [addressesData, usersData] = await Promise.all([
+      const [addressesData, clubUsersData] = await Promise.all([
         apiClient.getClubAddresses(clubId, token),
-        apiClient.getUsers(token),
+        apiClient.getClubUsers(clubId, token),
       ]);
+
+      // Extract user objects from the API response
+      const usersData: User[] = [];
+      for (const item of clubUsersData) {
+        const userItem = (item as any).user;
+        if (userItem) {
+          usersData.push(userItem);
+        }
+      }
 
       // Enrich users with Clerk data (email)
       const enrichedUsers = await Promise.all(

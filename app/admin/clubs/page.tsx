@@ -188,7 +188,9 @@ function AdminClubsPageContent() {
             />
             <button
               onClick={handleCreate}
-              disabled={isCreating || editingId !== null || !formData.name.trim()}
+              disabled={
+                isCreating || editingId !== null || !formData.name.trim()
+              }
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreating ? "Creating..." : "Create Club"}
@@ -235,7 +237,9 @@ function AdminClubsPageContent() {
                         <input
                           type="text"
                           value={formData.name}
-                          onChange={(e) => setFormData({ name: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ name: e.target.value })
+                          }
                           className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           autoFocus
                         />
@@ -251,7 +255,7 @@ function AdminClubsPageContent() {
                         disabled={editingId !== null}
                         className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        View Users
+                        View Club
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -281,7 +285,9 @@ function AdminClubsPageContent() {
                           </button>
                           <button
                             onClick={() => handleDelete(club.id)}
-                            disabled={deletingId === club.id || editingId !== null}
+                            disabled={
+                              deletingId === club.id || editingId !== null
+                            }
                             className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {deletingId === club.id ? "Deleting..." : "Delete"}

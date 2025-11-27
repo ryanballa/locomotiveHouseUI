@@ -7,6 +7,7 @@ import { apiClient, type Appointment, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
 import { FridayEveningCard } from "@/components/FridayEveningCard";
+import { ScheduledSessionsCard } from "@/components/ScheduledSessionsCard";
 import { useClubCheck } from "@/hooks/useClubCheck";
 import { shouldShowFridayEvening } from "@/lib/fridayEveningConfig";
 import { filterFutureAppointments } from "@/lib/appointmentUtils";
@@ -259,9 +260,9 @@ function ClubAppointmentsContent() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Appointments
+              Sessions
             </h1>
-            <p className="text-gray-600">View all scheduled appointments</p>
+            <p className="text-gray-600">View all scheduled sessions</p>
           </div>
           <button
             onClick={() => router.back()}
@@ -273,7 +274,7 @@ function ClubAppointmentsContent() {
 
         {loading && (
           <div className="flex justify-center py-12">
-            <div className="text-gray-500">Loading appointments...</div>
+            <div className="text-gray-500">Loading sessions...</div>
           </div>
         )}
 
@@ -287,16 +288,21 @@ function ClubAppointmentsContent() {
           <FridayEveningCard clubId={clubId} />
         )}
 
+        <ScheduledSessionsCard clubId={clubId} />
+
         <header className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Appointments
+            Visit Another Time
           </h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Visit the club at another time and let others know you are visiting
+          </p>
           <Link href={`/club/${clubId}/appointments/create`}>
             <button
               onClick={handleAddSchedule}
               className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition flex items-center justify-center gap-2"
             >
-              Add Appointment
+              Add Session
             </button>
           </Link>
         </header>
@@ -316,7 +322,7 @@ function ClubAppointmentsContent() {
                     {formatDayHeader(dateKey)}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    {groupedAppointments[dateKey].length} appointment
+                    {groupedAppointments[dateKey].length} session
                     {groupedAppointments[dateKey].length !== 1 ? "s" : ""}
                   </p>
                 </div>

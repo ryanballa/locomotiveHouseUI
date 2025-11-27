@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, type Club, type User, type Tower, type Issue, type IssueStatus } from "@/lib/api";
+import { apiClient, type Club, type User, type Tower, type Issue, type IssueStatus, type ScheduledSession } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { IssueTable } from "@/components/IssueTable";
+import { TowerReportsSection } from "@/components/TowerReportsSection";
 
 interface EnrichedUser extends User {
   clerkName?: string;
@@ -55,6 +56,14 @@ function ClubDetailPageContent() {
   const [creatingIssue, setCreatingIssue] = useState(false);
   const [deletingIssueId, setDeletingIssueId] = useState<number | null>(null);
   const [editingIssueId, setEditingIssueId] = useState<number | null>(null);
+  const [scheduledSessions, setScheduledSessions] = useState<ScheduledSession[]>([]);
+  const [sessionFormData, setSessionFormData] = useState({
+    schedule: "",
+    description: "",
+  });
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<number | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
 
   const { isAdmin } = useAdminCheck();
 
@@ -515,6 +524,142 @@ function ClubDetailPageContent() {
     });
   };
 
+  /**
+   * Creates a new scheduled session for the club
+   */
+  const handleCreateScheduledSession = async () => {
+    try {
+      if (!sessionFormData.schedule.trim()) {
+        setError("Session date/time is required");
+        return;
+      }
+
+      setCreatingSession(true);
+      setError(null);
+      const token = await getToken();
+      if (!token) {
+        setError("Authentication required");
+        return;
+      }
+
+      const result = await apiClient.createScheduledSession(
+        clubId,
+        {
+          schedule: new Date(sessionFormData.schedule),
+          club_id: clubId,
+          description: sessionFormData.description,
+        },
+        token
+      );
+
+      if (result.created) {
+        setSessionFormData({ schedule: "", description: "" });
+        await fetchClubDetails();
+      } else {
+        setError("Failed to create scheduled session");
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to create scheduled session";
+      console.error("Error creating scheduled session:", err);
+      setError(errorMsg);
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
+  /**
+   * Deletes a scheduled session from the club
+   */
+  const handleDeleteScheduledSession = async (sessionId: number) => {
+    if (!confirm("Are you sure you want to delete this scheduled session?")) {
+      return;
+    }
+
+    try {
+      setDeletingSessionId(sessionId);
+      setError(null);
+      const token = await getToken();
+      if (!token) {
+        setError("Authentication required");
+        return;
+      }
+
+      const result = await apiClient.deleteScheduledSession(clubId, sessionId, token);
+
+      if (result.deleted) {
+        await fetchClubDetails();
+      } else {
+        setError("Failed to delete scheduled session");
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to delete scheduled session";
+      console.error("Error deleting scheduled session:", err);
+      setError(errorMsg);
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
+  /**
+   * Updates an existing scheduled session
+   * @param sessionId The session ID to update
+   */
+  const handleUpdateScheduledSession = async (sessionId: number) => {
+    try {
+      if (!sessionFormData.schedule.trim()) {
+        setError("Session date/time is required");
+        return;
+      }
+
+      setEditingSessionId(sessionId);
+      setError(null);
+      const token = await getToken();
+      if (!token) {
+        setError("Authentication required");
+        return;
+      }
+
+      const result = await apiClient.updateScheduledSession(
+        clubId,
+        sessionId,
+        {
+          schedule: new Date(sessionFormData.schedule),
+          description: sessionFormData.description,
+        },
+        token
+      );
+
+      if (result.updated) {
+        setSessionFormData({ schedule: "", description: "" });
+        setEditingSessionId(null);
+        await fetchClubDetails();
+      } else {
+        setError("Failed to update scheduled session");
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to update scheduled session";
+      console.error("Error updating scheduled session:", err);
+      setError(errorMsg);
+    } finally {
+      setEditingSessionId(null);
+    }
+  };
+
+  /**
+   * Starts editing a scheduled session by populating the form with its data
+   * @param session The session to edit
+   */
+  const startEditingScheduledSession = (session: ScheduledSession) => {
+    // Format the date for datetime-local input (YYYY-MM-DDTHH:mm)
+    const date = new Date(session.schedule);
+    const formattedDate = date.toISOString().slice(0, 16);
+    setSessionFormData({
+      schedule: formattedDate,
+      description: session.description || "",
+    });
+    setEditingSessionId(session.id);
+  };
+
   const fetchClubDetails = async () => {
     try {
       setLoading(true);
@@ -525,50 +670,48 @@ function ClubDetailPageContent() {
         return;
       }
 
-      // Fetch club details, users, and towers in parallel
-      const [clubData, allUsers, towersData] = await Promise.all([
+      // Fetch club details, users, towers, and scheduled sessions in parallel
+      const [clubData, allUsers, towersData, sessionsData] = await Promise.all([
         apiClient.getClubById(clubId, token),
-        apiClient.getUsers(token),
+        apiClient.getClubUsers(clubId, token),
         apiClient.getTowersByClubId(clubId, token),
+        apiClient.getScheduledSessionsByClubId(clubId, token),
       ]);
 
       setClub(clubData);
       setTowers(towersData);
+      setScheduledSessions(sessionsData);
 
-      // Extract club IDs from clubs array for each user
-      const usersWithClubIds = allUsers.map((user) => {
-        const clubIds = user.clubs && Array.isArray(user.clubs)
-          ? user.clubs.map((c) => c.club_id).filter((id): id is number => id !== undefined)
-          : [];
-        return {
-          ...user,
-          clubIds,
-        };
-      });
-
-      // Filter users by club - check if the club is in their clubs array
-      const clubUsers = usersWithClubIds.filter((user) => {
-        const userClubIds = user.clubIds || [];
-        return userClubIds.includes(clubId);
-      });
-      const usersWithoutClub = usersWithClubIds.filter((user) => {
-        const userClubIds = user.clubIds || [];
-        // Show users NOT assigned to this specific club (they may be in other clubs)
-        return !userClubIds.includes(clubId);
-      });
+      // Extract user objects from the API response
+      // The response is an array of objects with structure: { user: {...}, clubs: {...} }
+      const clubUsers: User[] = [];
+      for (const item of allUsers) {
+        const userItem = (item as any).user;
+        if (userItem) {
+          clubUsers.push(userItem);
+        }
+      }
 
       // Enrich users with Clerk data
-      const [enrichedClubUsers, enrichedUnassignedUsers] = await Promise.all([
-        enrichUsersWithClerkData(clubUsers),
-        enrichUsersWithClerkData(usersWithoutClub),
-      ]);
-
+      const enrichedClubUsers = await enrichUsersWithClerkData(clubUsers);
       setUsers(enrichedClubUsers);
-      setUnassignedUsers(enrichedUnassignedUsers);
+
+      // For unassigned users, we need to get all users and filter out the ones already assigned
+      try {
+        const allUsersInSystem = await apiClient.getUsers(token);
+        const clubUserIds = new Set(clubUsers.map((u) => u.id));
+        const unassignedUsers = allUsersInSystem.filter((u) => !clubUserIds.has(u.id));
+        const enrichedUnassignedUsers = await enrichUsersWithClerkData(unassignedUsers);
+        setUnassignedUsers(enrichedUnassignedUsers);
+      } catch (err) {
+        console.error("Failed to fetch unassigned users:", err);
+        // If we can't get unassigned users, that's ok - admins can still manage assigned users
+        setUnassignedUsers([]);
+      }
 
       // Find current user by matching Clerk ID
       if (clerkUser?.id) {
-        const matchedUser = usersWithClubIds.find((u) => u.token === clerkUser.id);
+        const matchedUser = clubUsers.find((u) => u.token === clerkUser.id);
         if (matchedUser) {
           setCurrentUser(matchedUser);
           // Update issue form with current user ID
@@ -1103,6 +1246,146 @@ function ClubDetailPageContent() {
             />
           </div>
         )}
+
+        {/* Scheduled Sessions Section */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mt-8">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Scheduled Sessions ({scheduledSessions.length})
+            </h2>
+          </div>
+
+          {/* Create/Edit Scheduled Session Form */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Session Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={sessionFormData.schedule}
+                  onChange={(e) =>
+                    setSessionFormData({ ...sessionFormData, schedule: e.target.value })
+                  }
+                  placeholder="Select date and time"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={sessionFormData.description}
+                  onChange={(e) =>
+                    setSessionFormData({ ...sessionFormData, description: e.target.value })
+                  }
+                  placeholder="Add a description for this session"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-2">
+                {editingSessionId ? (
+                  <>
+                    <button
+                      onClick={() => handleUpdateScheduledSession(editingSessionId)}
+                      disabled={creatingSession}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Update Session
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSessionFormData({ schedule: "", description: "" });
+                        setEditingSessionId(null);
+                      }}
+                      className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleCreateScheduledSession}
+                    disabled={creatingSession}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creatingSession ? "Creating..." : "Create Scheduled Session"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Scheduled Sessions List */}
+          {scheduledSessions.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-500 text-lg">
+                No scheduled sessions created yet.
+              </p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Session Date & Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {scheduledSessions.map((session) => (
+                  <tr key={session.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(session.schedule).toLocaleString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
+                      {session.description || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => startEditingScheduledSession(session)}
+                        disabled={editingSessionId !== null}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteScheduledSession(session.id)}
+                        disabled={deletingSessionId === session.id}
+                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingSessionId === session.id
+                          ? "Deleting..."
+                          : "Delete"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Tower Reports Section */}
+        <div className="mt-8">
+          <TowerReportsSection clubId={clubId} towers={towers} />
+        </div>
       </main>
     </div>
   );

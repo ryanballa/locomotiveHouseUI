@@ -183,9 +183,9 @@ export default function EditAppointment() {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Edit Appointment
+            Edit Session
           </h1>
-          <p className="text-gray-600">Update your appointment details</p>
+          <p className="text-gray-600">Update your session details</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -316,7 +316,7 @@ export default function EditAppointment() {
                 disabled={saving}
                 className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {saving ? "Updating..." : "Update Appointment"}
+                {saving ? "Updating..." : "Update Session"}
               </button>
               <button
                 type="button"

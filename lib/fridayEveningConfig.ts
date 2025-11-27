@@ -58,6 +58,18 @@ export const FRIDAY_EVENING_CONFIG = {
    * Number of Fridays to display
    */
   numFridaysToShow: 4,
+
+  /**
+   * Excluded dates that should NOT show the Friday evening signup option
+   * Format: Array of date strings in 'YYYY-MM-DD' format
+   *
+   * @example
+   * excludedDates: [
+   *   '2025-01-03',  // Exclude January 3, 2025
+   *   '2025-12-19',  // Exclude December 19, 2025 (holiday)
+   * ]
+   */
+  excludedDates: ['2025-11-28'] as string[],
 };
 
 /**
@@ -76,4 +88,20 @@ export function shouldShowFridayEvening(clubId: number | null | undefined): bool
     return false;
   }
   return clubId === FRIDAY_EVENING_CLUB_ID;
+}
+
+/**
+ * Helper function to check if a specific Friday is excluded
+ *
+ * @param date - The date to check
+ * @returns true if this date is in the exclusion list
+ *
+ * @example
+ * if (isFridayExcluded(new Date('2025-01-03'))) {
+ *   // Don't show signup option for this Friday
+ * }
+ */
+export function isFridayExcluded(date: Date): boolean {
+  const dateStr = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  return FRIDAY_EVENING_CONFIG.excludedDates.includes(dateStr);
 }
