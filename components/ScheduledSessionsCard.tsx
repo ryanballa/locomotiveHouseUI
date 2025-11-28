@@ -12,8 +12,14 @@ interface ScheduledSessionsCardProps {
   clubId: number;
 }
 
+interface SessionAttendee {
+  id: number;
+  name?: string;
+  email?: string;
+}
+
 /**
- * Displays scheduled sessions for a club with sign-up buttons
+ * Displays scheduled sessions for a club with sign-up buttons and attendee list
  */
 export function ScheduledSessionsCard({ clubId }: ScheduledSessionsCardProps) {
   const router = useRouter();
@@ -28,6 +34,98 @@ export function ScheduledSessionsCard({ clubId }: ScheduledSessionsCardProps) {
   );
   const { isOpen, open, close } = useDialog();
   const [pendingSessionId, setPendingSessionId] = useState<number | null>(null);
+  const [sessionAttendees, setSessionAttendees] = useState<
+    Map<number, SessionAttendee[]>
+  >(new Map());
+  const [loadingAttendees, setLoadingAttendees] = useState<Set<number>>(
+    new Set()
+  );
+
+  // Toggle attendees visibility - fetch if not loaded, hide if already shown
+  const toggleSessionAttendees = async (session: ScheduledSession) => {
+    // If already showing, hide it
+    if (sessionAttendees.has(session.id)) {
+      setSessionAttendees((prev) => {
+        const next = new Map(prev);
+        next.delete(session.id);
+        return next;
+      });
+      return;
+    }
+
+    // Otherwise fetch and show
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      setLoadingAttendees((prev) => new Set(prev).add(session.id));
+
+      const appointments = await apiClient.getScheduledSessionAppointments(
+        clubId,
+        session.id,
+        token
+      );
+
+      // If no appointments, show empty list
+      if (appointments.length === 0) {
+        setSessionAttendees((prev) =>
+          new Map(prev).set(session.id, [])
+        );
+        return;
+      }
+
+      // Fetch club users to get their names
+      const clubUsers = await apiClient.getClubUsers(clubId, token);
+
+      // Extract user objects from the API response (might be nested)
+      const usersData: Array<any> = [];
+      for (const item of clubUsers) {
+        const userItem = (item as any).user;
+        if (userItem) {
+          usersData.push(userItem);
+        } else if (item && typeof item === "object" && "id" in item) {
+          usersData.push(item);
+        }
+      }
+
+      const userMap = new Map(usersData.map((u) => [u.id, u]));
+
+      // Build attendee list from appointments
+      const attendees: SessionAttendee[] = appointments.map((apt) => {
+        const user = userMap.get(apt.user_id);
+        return {
+          id: apt.user_id,
+          name:
+            user && user.first_name && user.last_name
+              ? `${user.first_name} ${user.last_name}`
+              : user?.name,
+          email: user?.email,
+        };
+      });
+
+      // Sort by name
+      attendees.sort((a, b) => {
+        const aDisplay = a.name || a.email || `User ${a.id}`;
+        const bDisplay = b.name || b.email || `User ${b.id}`;
+        return aDisplay.localeCompare(bDisplay);
+      });
+
+      setSessionAttendees((prev) =>
+        new Map(prev).set(session.id, attendees)
+      );
+    } catch (err) {
+      console.error(
+        `Failed to fetch attendees for session ${session.id}:`,
+        err
+      );
+    } finally {
+      setLoadingAttendees((prev) => {
+        const next = new Set(prev);
+        next.delete(session.id);
+        return next;
+      });
+    }
+  };
 
   // Fetch current user ID and their appointments to check for signed up sessions
   useEffect(() => {
@@ -191,6 +289,50 @@ export function ScheduledSessionsCard({ clubId }: ScheduledSessionsCardProps) {
                   {session.description}
                 </p>
               )}
+
+              {/* Attendees section */}
+              <div className="mb-3">
+                <button
+                  onClick={() => toggleSessionAttendees(session)}
+                  disabled={loadingAttendees.has(session.id)}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingAttendees.has(session.id)
+                    ? "Loading attendees..."
+                    : sessionAttendees.has(session.id)
+                    ? `Hide attendees`
+                    : `Show attendees`}
+                </button>
+                {sessionAttendees.has(session.id) && (
+                  <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-200">
+                    {sessionAttendees.get(session.id)?.length === 0 ? (
+                      <p className="text-sm text-gray-600">
+                        No one has signed up yet
+                      </p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {sessionAttendees.get(session.id)?.map((attendee) => (
+                          <li
+                            key={attendee.id}
+                            className="text-sm text-gray-700"
+                          >
+                            <span className="font-medium">
+                              {attendee.name ||
+                                attendee.email ||
+                                `User ${attendee.id}`}
+                            </span>
+                            {attendee.email && attendee.name && (
+                              <span className="text-gray-500 text-xs ml-2">
+                                ({attendee.email})
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {userSignedUpSessions.has(session.id) ? (
                 <button

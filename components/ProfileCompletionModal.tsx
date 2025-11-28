@@ -173,14 +173,14 @@ export function ProfileCompletionModal({
       }
 
       // Prepare update data
-      const updateData: { firstName?: string; lastName?: string } = {};
+      const updateData: { first_name?: string; last_name?: string } = {};
 
       if (missingFields.includes("firstName")) {
-        updateData.firstName = formData.firstName.trim();
+        updateData.first_name = formData.firstName.trim();
       }
 
       if (missingFields.includes("lastName")) {
-        updateData.lastName = formData.lastName.trim();
+        updateData.last_name = formData.lastName.trim();
       }
 
       // Ensure we have data to update

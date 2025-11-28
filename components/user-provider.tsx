@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { apiClient, type User } from '@/lib/api';
-import { useDialog } from '@/hooks/useDialog';
-import { ProfileCompletionModal } from './ProfileCompletionModal';
+import { useEffect, useState } from "react";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { apiClient, type User } from "@/lib/api";
+import { useDialog } from "@/hooks/useDialog";
+import { ProfileCompletionModal } from "./ProfileCompletionModal";
 
 /**
  * Provider component that wraps the entire application
@@ -19,7 +19,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded: authIsLoaded, getToken } = useAuth();
   const { user, isLoaded: userIsLoaded } = useUser();
   const { isOpen, open, close } = useDialog();
-  const [missingFields, setMissingFields] = useState<('firstName' | 'lastName')[]>([]);
+  const [missingFields, setMissingFields] = useState<
+    ("firstName" | "lastName")[]
+  >([]);
   const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
   const [backendUser, setBackendUser] = useState<User | null>(null);
   const [isUserRegistered, setIsUserRegistered] = useState(false);
@@ -45,11 +47,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       try {
         // Trigger auto-registration - this creates the user in the database
-        const response = await fetch('/api/user-id');
+        const response = await fetch("/api/user-id");
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('Auto-registration failed:', errorData.error || response.statusText);
+          console.error(
+            "Auto-registration failed:",
+            errorData.error || response.statusText
+          );
           setIsUserRegistered(true);
           return;
         }
@@ -60,10 +65,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           // Force refresh user metadata to get the updated lhUserId
           await user.reload();
         } else {
-          console.warn('Auto-registration did not return lhUserId:', data);
+          console.warn("Auto-registration did not return lhUserId:", data);
         }
       } catch (error) {
-        console.error('Failed to auto-register user:', error);
+        console.error("Failed to auto-register user:", error);
       } finally {
         setIsUserRegistered(true);
       }
@@ -91,7 +96,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Get the token to fetch backend user data
         const token = await getToken();
         if (!token) {
-          console.warn('No token available for fetching backend user data');
+          console.warn("No token available for fetching backend user data");
           setHasCheckedProfile(true);
           return;
         }
@@ -100,7 +105,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const dbUser = await apiClient.getCurrentUser(token);
 
         if (!dbUser) {
-          console.warn('Could not fetch backend user data');
+          console.warn("Could not fetch backend user data");
           setHasCheckedProfile(true);
           return;
         }
@@ -108,14 +113,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setBackendUser(dbUser);
 
         // Check for missing first name or last name in the BACKEND database
-        const missing: ('firstName' | 'lastName')[] = [];
+        const missing: ("firstName" | "lastName")[] = [];
 
-        if (!dbUser.firstName || dbUser.firstName.trim() === '') {
-          missing.push('firstName');
+        if (!dbUser.first_name || dbUser.first_name.trim() === "") {
+          missing.push("firstName");
         }
 
-        if (!dbUser.lastName || dbUser.lastName.trim() === '') {
-          missing.push('lastName');
+        if (!dbUser.last_name || dbUser.last_name.trim() === "") {
+          missing.push("lastName");
         }
 
         // If profile is incomplete, show modal
@@ -124,14 +129,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           open();
         }
       } catch (error) {
-        console.error('Error checking profile completion:', error);
+        console.error("Error checking profile completion:", error);
       } finally {
         setHasCheckedProfile(true);
       }
     };
 
     checkAndPromptProfileCompletion();
-  }, [authIsLoaded, userIsLoaded, isUserRegistered, isSignedIn, user, getToken, open]);
+  }, [
+    authIsLoaded,
+    userIsLoaded,
+    isUserRegistered,
+    isSignedIn,
+    user,
+    getToken,
+    open,
+  ]);
 
   return (
     <>
