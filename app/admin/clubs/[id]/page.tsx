@@ -161,16 +161,16 @@ function ClubDetailPageContent() {
 
   /**
    * Enrich users with name and email from backend data (no longer fetching from Clerk)
-   * firstName, lastName, and email are now stored in the database after profile completion
+   * first_name, last_name, and email are now stored in the database after profile completion
    */
   const enrichUsersWithClerkData = async (
     users: User[]
   ): Promise<EnrichedUser[]> => {
-    // Use firstName, lastName, and email from backend instead of making Clerk API calls
+    // Use first_name, last_name, and email from backend instead of making Clerk API calls
     const enrichedUsers = users.map((user) => {
-      // Build display name from firstName and lastName if available
-      const clerkName = user.firstName && user.lastName
-        ? `${user.firstName} ${user.lastName}`
+      // Build display name from first_name and last_name if available
+      const clerkName = user.first_name && user.last_name
+        ? `${user.first_name} ${user.last_name}`
         : user.name || user.token;
 
       return {

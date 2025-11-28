@@ -33,7 +33,7 @@ export async function GET() {
         }
 
         // Create user in the database using the auto-register endpoint
-        // Include firstName, lastName, and email so they're stored in the database
+        // Include first_name, last_name, and email so they're stored in the database
         const authPayload = JSON.stringify({ jwt: token });
         const response = await fetch(`${API_URL}/users/register`, {
           method: 'POST',
@@ -72,8 +72,8 @@ export async function GET() {
       clerkUserId: userId,
       lhUserId: lhUserId,
       email: user.emailAddresses[0]?.emailAddress,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      first_name: user.firstName,
+      last_name: user.lastName,
     });
   } catch (error) {
     console.error('Error fetching user ID:', error);

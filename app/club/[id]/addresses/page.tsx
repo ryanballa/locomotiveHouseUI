@@ -98,13 +98,13 @@ function ClubAddressesContent() {
         }
       }
 
-      // Use firstName, lastName, and email from backend (synced from Clerk during profile completion)
+      // Use first_name, last_name, and email from backend (synced from Clerk during profile completion)
       const enrichedUsers = usersData.map((user) => ({
         ...user,
         clubs: user.clubs,
-        // firstName and lastName are now stored in backend after profile completion
+        // first_name and last_name are now stored in backend after profile completion
         // email is also stored in backend
-        name: user.name || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : undefined),
+        name: user.name || (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : undefined),
       }));
 
       setAddresses(addressesData);

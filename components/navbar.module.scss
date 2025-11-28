@@ -1,0 +1,9 @@
+@use "@/styles/variables" as vars;
+@use "@/styles/mixins" as mx;
+
+.navBar {
+  height: 117px;
+  @include mx.breakpoint("small") {
+    height: 64px;
+  }
+}

@@ -32,13 +32,13 @@ interface ClubUser {
 
 /**
  * User info for displaying in reports
- * Using backend-stored data (firstName, lastName, email) instead of Clerk API calls
+ * Using backend-stored data (first_name, last_name, email) instead of Clerk API calls
  */
 interface UserEmailInfo {
   name?: string;
   email?: string;
-  firstName?: string;
-  lastName?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 export default function ClubReportsPage() {
@@ -104,7 +104,7 @@ export default function ClubReportsPage() {
           token || ""
         );
 
-        // Extract user info from backend response (firstName, lastName, email are stored in DB)
+        // Extract user info from backend response (first_name, last_name, email are stored in DB)
         const emailsMap = new Map<number, UserEmailInfo>();
 
         for (const userItem of clubUsersResponse) {
@@ -112,16 +112,16 @@ export default function ClubReportsPage() {
           const userId = user?.id;
 
           if (userId && user) {
-            // Use firstName and lastName from backend instead of Clerk
-            const name = user.firstName && user.lastName
-              ? `${user.firstName} ${user.lastName}`
+            // Use first_name and last_name from backend instead of Clerk
+            const name = user.first_name && user.last_name
+              ? `${user.first_name} ${user.last_name}`
               : user.name;
 
             emailsMap.set(userId, {
               name,
               email: user.email,
-              firstName: user.firstName,
-              lastName: user.lastName,
+              first_name: user.first_name,
+              last_name: user.last_name,
             });
           }
         }

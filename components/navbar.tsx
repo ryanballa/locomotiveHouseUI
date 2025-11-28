@@ -8,6 +8,7 @@ import { useClubCheck } from "@/hooks/useClubCheck";
 import { useUserClubs } from "@/hooks/useUserClubs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCookie } from "@/lib/cookieUtils";
+import styles from "./navbar.module.scss";
 
 /**
  * Main navigation bar component for the application.
@@ -104,12 +105,10 @@ export function Navbar() {
 
   // Determine if we're in development mode and get appropriate navbar color
   const isDevelopment = process.env.NODE_ENV === "development";
-  const navbarBgColor = isDevelopment
-    ? "bg-[var(--navbar-bg)]"
-    : "bg-gray-800";
+  const navbarBgColor = isDevelopment ? "bg-[var(--navbar-bg)]" : "bg-gray-800";
 
   return (
-    <nav className={`${navbarBgColor} text-white shadow-lg`}>
+    <nav className={`${styles.navBar} ${navbarBgColor} text-white shadow-lg`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -229,11 +228,7 @@ export function Navbar() {
               ) : null}
 
               {/* Admin Dropdown */}
-              {loading ? (
-                <div className="px-3 py-2 rounded-md text-sm font-medium text-gray-400 opacity-50 cursor-wait">
-                  Admin
-                </div>
-              ) : isAdmin ? (
+              {isAdmin ? (
                 <div className="relative">
                   <button
                     onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}

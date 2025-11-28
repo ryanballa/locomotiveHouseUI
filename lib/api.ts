@@ -9,16 +9,16 @@ export interface Appointment {
 /**
  * Represents a user in the Locomotive House system
  *
- * User data is primarily stored in the backend database with firstName/lastName
+ * User data is primarily stored in the backend database with first_name/last_name
  * being synced from Clerk during profile completion. The 'name' field is kept
  * for backwards compatibility.
  *
  * @property id - Database user ID
  * @property token - Clerk user ID (used as the token/identifier)
- * @property firstName - User's first name (from Clerk profile, synced to DB)
- * @property lastName - User's last name (from Clerk profile, synced to DB)
+ * @property first_name - User's first name (from Clerk profile, synced to DB)
+ * @property last_name - User's last name (from Clerk profile, synced to DB)
  * @property email - User's email address (from Clerk, stored in DB)
- * @property name - Full name or display name (deprecated, use firstName/lastName instead)
+ * @property name - Full name or display name (deprecated, use first_name/last_name instead)
  * @property permission - Permission level: 1 = Admin, 2 = Regular, 3 = Super Admin
  * @property clubs - Array of club assignments for this user
  */
@@ -30,10 +30,10 @@ export interface User {
   token: string;
 
   /** User's first name (from Clerk profile, synced after profile completion) */
-  firstName?: string;
+  first_name?: string;
 
   /** User's last name (from Clerk profile, synced after profile completion) */
-  lastName?: string;
+  last_name?: string;
 
   /** User's email address */
   email?: string;
@@ -267,6 +267,28 @@ class ApiClient {
     };
   }
 
+  async getScheduledSessionAppointments(
+    clubId: number,
+    sessionId: number,
+    token?: string
+  ): Promise<Appointment[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Appointment>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}/appointments`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    // Backend returns { appointments: [...] } for this endpoint
+    return (response as any).appointments || response.result || [];
+  }
+
   // Users API
   async getUsers(token: string): Promise<User[]> {
     const response = await this.fetch<User>("/users", {
@@ -301,12 +323,12 @@ class ApiClient {
         return null;
       }
 
-      // Convert snake_case fields from backend to camelCase
+      // Use the snake_case fields from backend
       const convertedUser: User = {
         id: user.id,
         token: user.token,
-        firstName: user.firstName || user.first_name,
-        lastName: user.lastName || user.last_name,
+        first_name: user.first_name,
+        last_name: user.last_name,
         email: user.email,
         name: user.name,
         permission: user.permission,
@@ -1160,13 +1182,10 @@ class ApiClient {
       headers["authorization"] = `Bearer ${token}`;
     }
 
-    const response = await this.fetch<TowerReport>(
-      `/clubs/${clubId}/reports`,
-      {
-        method: "GET",
-        headers,
-      }
-    );
+    const response = await this.fetch<TowerReport>(`/clubs/${clubId}/reports`, {
+      method: "GET",
+      headers,
+    });
 
     // Backend returns { result: [...] } for club-scoped reports
     return response.result || [];
@@ -1225,7 +1244,9 @@ class ApiClient {
   async createTowerReport(
     clubId: number,
     towerId: number,
-    data: Omit<TowerReport, "id" | "club_id" | "created_at" | "updated_at"> & { user_id: number },
+    data: Omit<TowerReport, "id" | "club_id" | "created_at" | "updated_at"> & {
+      user_id: number;
+    },
     token: string
   ): Promise<{ created: boolean; id?: number }> {
     // Send description, report_at, tower_id, and user_id to backend
@@ -1282,7 +1303,12 @@ class ApiClient {
     clubId: number,
     towerId: number,
     reportId: number,
-    data: Partial<Omit<TowerReport, "id" | "tower_id" | "club_id" | "created_at" | "updated_at">>,
+    data: Partial<
+      Omit<
+        TowerReport,
+        "id" | "tower_id" | "club_id" | "created_at" | "updated_at"
+      >
+    >,
     token: string
   ): Promise<{ updated: boolean }> {
     const response = await this.fetch<TowerReport>(
@@ -1764,10 +1790,7 @@ class ApiClient {
     };
   }
 
-  async getNoticesByClubId(
-    clubId: number,
-    token?: string
-  ): Promise<Notice[]> {
+  async getNoticesByClubId(clubId: number, token?: string): Promise<Notice[]> {
     const response = await this.fetch<Notice>(`/clubs/${clubId}/notices`, {
       method: "GET",
       headers: token
