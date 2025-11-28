@@ -88,27 +88,19 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
         // Get all users to map attendee names
         const allUsers = await apiClient.getUsers(userToken);
 
-        // Enhance users with Clerk info if they don't have names
-        const enhancedUsers = await Promise.all(
-          allUsers.map(async (user) => {
-            // If user already has a name and email, return as-is
-            if (user.name && user.email) {
-              return user;
-            }
+        // Use firstName, lastName, and email from backend (synced from Clerk during profile completion)
+        const enhancedUsers = allUsers.map((user) => {
+          // Build name from firstName and lastName if available
+          const name = user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.name;
 
-            // Try to get Clerk info for users missing data
-            if (user.token) {
-              const clerkInfo = await apiClient.getClerkUserInfo(user.token);
-              return {
-                ...user,
-                name: user.name || clerkInfo.name,
-                email: user.email || clerkInfo.email,
-              };
-            }
-
-            return user;
-          })
-        );
+          return {
+            ...user,
+            name,
+            email: user.email, // Already from backend
+          };
+        });
 
         const userMap = new Map(enhancedUsers.map((user) => [user.id, user]));
 

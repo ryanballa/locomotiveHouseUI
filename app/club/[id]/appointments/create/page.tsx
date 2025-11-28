@@ -41,9 +41,12 @@ function CreateClubAppointmentContent() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
 
   // Initialize form data from query parameters if provided
+  const [scheduledSessionId, setScheduledSessionId] = useState<number | null>(null);
+
   useEffect(() => {
     const queryDate = searchParams.get("date");
     const queryTime = searchParams.get("time");
+    const queryScheduledSessionId = searchParams.get("scheduledSessionId");
 
     if (queryDate || queryTime) {
       setFormData((prev) => ({
@@ -51,6 +54,10 @@ function CreateClubAppointmentContent() {
         date: queryDate || prev.date,
         time: queryTime || prev.time,
       }));
+    }
+
+    if (queryScheduledSessionId) {
+      setScheduledSessionId(parseInt(queryScheduledSessionId, 10));
     }
   }, [searchParams]);
 
@@ -140,11 +147,16 @@ function CreateClubAppointmentContent() {
         Date.UTC(year, month - 1, day, hour, minute)
       );
 
-      const appointmentData = {
+      const appointmentData: any = {
         schedule: scheduleDateTime.toISOString(),
         duration: formData.duration,
         user_id: lhUserId,
       };
+
+      // Include scheduled_session_id if this appointment was created from a scheduled session
+      if (scheduledSessionId) {
+        appointmentData.scheduled_session_id = scheduledSessionId;
+      }
 
       const result = await apiClient.createAppointment(appointmentData, token);
 

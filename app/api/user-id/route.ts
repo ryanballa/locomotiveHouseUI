@@ -33,6 +33,7 @@ export async function GET() {
         }
 
         // Create user in the database using the auto-register endpoint
+        // Include firstName, lastName, and email so they're stored in the database
         const authPayload = JSON.stringify({ jwt: token });
         const response = await fetch(`${API_URL}/users/register`, {
           method: 'POST',
@@ -42,6 +43,9 @@ export async function GET() {
           },
           body: JSON.stringify({
             token: userId,
+            first_name: user.firstName || '',
+            last_name: user.lastName || '',
+            email: user.emailAddresses[0]?.emailAddress || '',
             permission: null,
           }),
         });

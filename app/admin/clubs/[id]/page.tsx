@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, type Club, type User, type Tower, type Issue, type IssueStatus, type ScheduledSession } from "@/lib/api";
+import { apiClient, type Club, type User, type Tower, type Issue, type IssueStatus, type ScheduledSession, type Notice } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { IssueTable } from "@/components/IssueTable";
 import { TowerReportsSection } from "@/components/TowerReportsSection";
+import { NoticesSection } from "@/components/NoticesSection";
 
 interface EnrichedUser extends User {
   clerkName?: string;
@@ -64,6 +65,8 @@ function ClubDetailPageContent() {
   const [creatingSession, setCreatingSession] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<number | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [token, setToken] = useState<string>("");
 
   const { isAdmin } = useAdminCheck();
 
@@ -156,29 +159,26 @@ function ClubDetailPageContent() {
     }
   };
 
+  /**
+   * Enrich users with name and email from backend data (no longer fetching from Clerk)
+   * firstName, lastName, and email are now stored in the database after profile completion
+   */
   const enrichUsersWithClerkData = async (
     users: User[]
   ): Promise<EnrichedUser[]> => {
-    const enrichedUsers = await Promise.all(
-      users.map(async (user) => {
-        try {
-          // Fetch Clerk user data from our API route
-          const response = await fetch(`/api/clerk-user/${encodeURIComponent(user.token)}`);
+    // Use firstName, lastName, and email from backend instead of making Clerk API calls
+    const enrichedUsers = users.map((user) => {
+      // Build display name from firstName and lastName if available
+      const clerkName = user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user.name || user.token;
 
-          if (response.ok) {
-            const data = await response.json();
-            return { ...user, clerkName: data.name, clerkEmail: data.email };
-          }
-        } catch (error) {
-          console.error(
-            `Failed to fetch Clerk data for user ${user.id}:`,
-            error
-          );
-        }
-
-        return { ...user, clerkName: user.token };
-      })
-    );
+      return {
+        ...user,
+        clerkName,
+        clerkEmail: user.email,
+      };
+    });
 
     return enrichedUsers;
   };
@@ -664,23 +664,26 @@ function ClubDetailPageContent() {
     try {
       setLoading(true);
       setError(null);
-      const token = await getToken();
-      if (!token) {
+      const authToken = await getToken();
+      if (!authToken) {
         setError("Authentication required");
         return;
       }
+      setToken(authToken);
 
-      // Fetch club details, users, towers, and scheduled sessions in parallel
-      const [clubData, allUsers, towersData, sessionsData] = await Promise.all([
-        apiClient.getClubById(clubId, token),
-        apiClient.getClubUsers(clubId, token),
-        apiClient.getTowersByClubId(clubId, token),
-        apiClient.getScheduledSessionsByClubId(clubId, token),
+      // Fetch club details, users, towers, scheduled sessions, and notices in parallel
+      const [clubData, allUsers, towersData, sessionsData, noticesData] = await Promise.all([
+        apiClient.getClubById(clubId, authToken),
+        apiClient.getClubUsers(clubId, authToken),
+        apiClient.getTowersByClubId(clubId, authToken),
+        apiClient.getScheduledSessionsByClubId(clubId, authToken),
+        apiClient.getNoticesByClubId(clubId, authToken),
       ]);
 
       setClub(clubData);
       setTowers(towersData);
       setScheduledSessions(sessionsData);
+      setNotices(noticesData);
 
       // Extract user objects from the API response
       // The response is an array of objects with structure: { user: {...}, clubs: {...} }
@@ -698,7 +701,7 @@ function ClubDetailPageContent() {
 
       // For unassigned users, we need to get all users and filter out the ones already assigned
       try {
-        const allUsersInSystem = await apiClient.getUsers(token);
+        const allUsersInSystem = await apiClient.getUsers(authToken);
         const clubUserIds = new Set(clubUsers.map((u) => u.id));
         const unassignedUsers = allUsersInSystem.filter((u) => !clubUserIds.has(u.id));
         const enrichedUnassignedUsers = await enrichUsersWithClerkData(unassignedUsers);
@@ -1386,6 +1389,18 @@ function ClubDetailPageContent() {
         <div className="mt-8">
           <TowerReportsSection clubId={clubId} towers={towers} />
         </div>
+
+        {/* Notices Section */}
+        {token && (
+          <div className="mt-8">
+            <NoticesSection
+              clubId={clubId}
+              notices={notices}
+              token={token}
+              onNoticesUpdate={setNotices}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

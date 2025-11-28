@@ -167,8 +167,10 @@ function ClubAppointmentsContent() {
   const groupedAppointments = useMemo(() => {
     const grouped: GroupedAppointments = {};
 
-    // Filter out old appointments (before today)
-    const futureAppointments = filterFutureAppointments(appointments);
+    // Filter out old appointments (before today) and appointments from scheduled sessions
+    const futureAppointments = filterFutureAppointments(appointments).filter(
+      (appointment) => !appointment.scheduled_session_id
+    );
 
     futureAppointments.forEach((appointment) => {
       const date = new Date(appointment.schedule);

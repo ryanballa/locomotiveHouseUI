@@ -3,14 +3,48 @@ export interface Appointment {
   schedule: string;
   duration: number;
   user_id: number;
+  scheduled_session_id?: number;
 }
 
+/**
+ * Represents a user in the Locomotive House system
+ *
+ * User data is primarily stored in the backend database with firstName/lastName
+ * being synced from Clerk during profile completion. The 'name' field is kept
+ * for backwards compatibility.
+ *
+ * @property id - Database user ID
+ * @property token - Clerk user ID (used as the token/identifier)
+ * @property firstName - User's first name (from Clerk profile, synced to DB)
+ * @property lastName - User's last name (from Clerk profile, synced to DB)
+ * @property email - User's email address (from Clerk, stored in DB)
+ * @property name - Full name or display name (deprecated, use firstName/lastName instead)
+ * @property permission - Permission level: 1 = Admin, 2 = Regular, 3 = Super Admin
+ * @property clubs - Array of club assignments for this user
+ */
 export interface User {
+  /** Database user ID */
   id: number;
+
+  /** Clerk user ID (used as token for authentication) */
   token: string;
-  name?: string;
+
+  /** User's first name (from Clerk profile, synced after profile completion) */
+  firstName?: string;
+
+  /** User's last name (from Clerk profile, synced after profile completion) */
+  lastName?: string;
+
+  /** User's email address */
   email?: string;
+
+  /** Full name or display name (deprecated - use firstName + lastName instead) */
+  name?: string;
+
+  /** Permission level (null, 1=Admin, 2=Regular, 3=Super Admin) */
   permission: number | null;
+
+  /** Array of clubs this user is assigned to */
   clubs: UserClubRelation[] | null;
 }
 
@@ -46,6 +80,16 @@ export interface ScheduledSession {
   schedule: string | Date;
   club_id: number;
   description?: string;
+}
+
+export interface Notice {
+  id: number;
+  club_id: number;
+  description: string;
+  type?: string;
+  expires_at?: string | Date;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface TowerReport {
@@ -245,13 +289,31 @@ class ApiClient {
       });
 
       // Handle different response formats
+      let user: any = null;
+
       if ((response as any).user) {
-        return (response as any).user as User;
+        user = (response as any).user;
+      } else if (response.result && response.result.length > 0) {
+        user = response.result[0];
       }
-      if (response.result && response.result.length > 0) {
-        return response.result[0];
+
+      if (!user) {
+        return null;
       }
-      return null;
+
+      // Convert snake_case fields from backend to camelCase
+      const convertedUser: User = {
+        id: user.id,
+        token: user.token,
+        firstName: user.firstName || user.first_name,
+        lastName: user.lastName || user.last_name,
+        email: user.email,
+        name: user.name,
+        permission: user.permission,
+        clubs: user.clubs,
+      };
+
+      return convertedUser;
     } catch (error) {
       console.error("Error fetching current user:", error);
       return null;
@@ -298,7 +360,7 @@ class ApiClient {
     data: Partial<Omit<User, "id">>,
     token: string
   ): Promise<{ updated: boolean; clubId?: number | null }> {
-    const response = await this.fetch<User>(`/users/${id}/`, {
+    const response = await this.fetch<User>(`/users/${id}`, {
       method: "PUT",
       headers: {
         authorization: `Bearer ${token}`,
@@ -1689,6 +1751,86 @@ class ApiClient {
   ): Promise<{ deleted: boolean }> {
     const response = await this.fetch<ScheduledSession>(
       `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      deleted: response.deleted || false,
+    };
+  }
+
+  async getNoticesByClubId(
+    clubId: number,
+    token?: string
+  ): Promise<Notice[]> {
+    const response = await this.fetch<Notice>(`/clubs/${clubId}/notices`, {
+      method: "GET",
+      headers: token
+        ? {
+            authorization: `Bearer ${token}`,
+          }
+        : {},
+    });
+
+    return response.result || [];
+  }
+
+  async createNotice(
+    clubId: number,
+    data: Omit<Notice, "id" | "club_id" | "created_at" | "updated_at">,
+    token: string
+  ): Promise<{ created: boolean; id?: number; notice?: Notice }> {
+    const response = await this.fetch<Notice>(`/clubs/${clubId}/notices`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    return {
+      created: response.created || false,
+      id: response.id,
+      notice: response.result?.[0],
+    };
+  }
+
+  async updateNotice(
+    clubId: number,
+    noticeId: number,
+    data: Partial<Omit<Notice, "id" | "club_id" | "created_at" | "updated_at">>,
+    token: string
+  ): Promise<{ updated: boolean; notice?: Notice }> {
+    // Backend should automatically update the updated_at timestamp when a notice is modified
+    const response = await this.fetch<Notice>(
+      `/clubs/${clubId}/notices/${noticeId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      updated: response.updated || false,
+      notice: response.result?.[0],
+    };
+  }
+
+  async deleteNotice(
+    clubId: number,
+    noticeId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Notice>(
+      `/clubs/${clubId}/notices/${noticeId}`,
       {
         method: "DELETE",
         headers: {

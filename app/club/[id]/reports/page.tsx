@@ -30,9 +30,15 @@ interface ClubUser {
   permission: number;
 }
 
+/**
+ * User info for displaying in reports
+ * Using backend-stored data (firstName, lastName, email) instead of Clerk API calls
+ */
 interface UserEmailInfo {
   name?: string;
   email?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export default function ClubReportsPage() {
@@ -98,20 +104,25 @@ export default function ClubReportsPage() {
           token || ""
         );
 
-        // Extract Clerk user IDs from the response and fetch their emails from Clerk
+        // Extract user info from backend response (firstName, lastName, email are stored in DB)
         const emailsMap = new Map<number, UserEmailInfo>();
 
         for (const userItem of clubUsersResponse) {
-          const clerkUserId = (userItem as any).user?.token;
-          const userId = (userItem as any).user?.id;
+          const user = (userItem as any).user;
+          const userId = user?.id;
 
-          if (clerkUserId && userId) {
-            try {
-              const clerkUserInfo = await apiClient.getClerkUserInfo(clerkUserId);
-              emailsMap.set(userId, clerkUserInfo);
-            } catch (err) {
-              console.error(`Failed to fetch Clerk info for user ${userId}:`, err);
-            }
+          if (userId && user) {
+            // Use firstName and lastName from backend instead of Clerk
+            const name = user.firstName && user.lastName
+              ? `${user.firstName} ${user.lastName}`
+              : user.name;
+
+            emailsMap.set(userId, {
+              name,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            });
           }
         }
 

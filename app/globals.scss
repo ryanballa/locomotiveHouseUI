@@ -1,5 +1,5 @@
-@import "../styles/variables";
-@import "../styles/global.scss";
+@use "../styles/variables";
+@use "../styles/global.scss" as global;
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,7 +7,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --navbar-bg: #{$navbar-dev-bg};
+  --navbar-bg: #{variables.$navbar-dev-bg};
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,7 +25,7 @@ body {
 
 /* Production mode override (devMode=off) */
 body.dev-mode-off {
-  --navbar-bg: #{$navbar-prod-bg} !important;
+  --navbar-bg: #{variables.$navbar-prod-bg} !important;
 }
 
 @layer utilities {
