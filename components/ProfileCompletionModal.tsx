@@ -65,7 +65,7 @@ interface ProfileCompletionModalProps {
  * - **Loading state**: Shows loading indicator during update
  * - **Error handling**: Displays error messages to user
  * - **Prevents closing**: User must complete profile to continue
- * - **Backend integration**: Updates backend database and syncs with Clerk
+ * - **Backend integration**: Updates backend user database only
  *
  * ## Usage
  *
@@ -190,11 +190,8 @@ export function ProfileCompletionModal({
         return;
       }
 
-      // Update backend user database first
+      // Update backend user database only
       await apiClient.updateUser(userId, updateData, token);
-
-      // Update Clerk user profile to keep it in sync
-      await user.update(updateData);
 
       // Close modal on success
       onClose();
