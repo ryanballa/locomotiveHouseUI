@@ -16,6 +16,7 @@ interface UseClubReturn {
 /**
  * Hook to fetch a specific club by ID
  * Handles authentication, loading states, and error handling
+ * Supports both authenticated and unauthenticated requests for public club pages
  *
  * @param clubId - The ID of the club to fetch
  * @returns Object containing club data, loading state, and error state
@@ -27,11 +28,6 @@ export function useClub(clubId: number | string): UseClubReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSignedIn) {
-      setLoading(false);
-      return;
-    }
-
     let isActive = true;
 
     const fetchClub = async () => {
@@ -39,20 +35,16 @@ export function useClub(clubId: number | string): UseClubReturn {
         setLoading(true);
         setError(null);
 
-        const token = await getToken();
-        if (!token) {
-          if (isActive) {
-            setError("Authentication required");
-          }
-          return;
+        let token: string | undefined = undefined;
+        if (isSignedIn) {
+          const authToken = await getToken();
+          token = authToken || undefined;
         }
 
-        const clubs = await apiClient.getClubs(token);
-        if (!isActive) return;
+        // Try to fetch the club by ID directly (works for both authenticated and unauthenticated users)
+        const foundClub = await apiClient.getClubById(Number(clubId), token);
 
-        const foundClub = clubs.find(
-          (c) => c.id === Number(clubId)
-        );
+        if (!isActive) return;
 
         if (foundClub) {
           setClub(foundClub);
@@ -65,14 +57,7 @@ export function useClub(clubId: number | string): UseClubReturn {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to load club";
 
-        if (
-          errorMessage.includes("Unauthenticated") ||
-          errorMessage.includes("401")
-        ) {
-          setError("Please sign in to access this club");
-        } else {
-          setError(errorMessage);
-        }
+        setError(errorMessage);
       } finally {
         if (isActive) {
           setLoading(false);
@@ -85,7 +70,7 @@ export function useClub(clubId: number | string): UseClubReturn {
     return () => {
       isActive = false;
     };
-  }, [clubId, isSignedIn]);
+  }, [clubId, isSignedIn, getToken]);
 
   return { club, loading, error };
 }

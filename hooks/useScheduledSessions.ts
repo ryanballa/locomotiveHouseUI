@@ -10,6 +10,7 @@ interface UseScheduledSessionsReturn {
 
 /**
  * Hook to fetch scheduled sessions for a club
+ * Supports both authenticated and unauthenticated requests for public club pages
  */
 export function useScheduledSessions(
   clubId: number | null
@@ -20,7 +21,7 @@ export function useScheduledSessions(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clubId || !isSignedIn) {
+    if (!clubId) {
       setSessions([]);
       setLoading(false);
       return;
@@ -33,10 +34,10 @@ export function useScheduledSessions(
         setLoading(true);
         setError(null);
 
-        const token = await getToken();
-        if (!isActive || !token) {
-          setSessions([]);
-          return;
+        let token: string | undefined = undefined;
+        if (isSignedIn) {
+          const authToken = await getToken();
+          token = authToken || undefined;
         }
 
         const sessionsData = await apiClient.getScheduledSessionsByClubId(

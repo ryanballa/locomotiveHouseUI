@@ -511,12 +511,15 @@ class ApiClient {
     };
   }
 
-  async getClubById(id: number, token: string): Promise<Club | null> {
+  async getClubById(id: number, token?: string): Promise<Club | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
     const response = await this.fetch<Club>(`/clubs/${id}`, {
       method: "GET",
-      headers: {
-        authorization: `Bearer ${token}`,
-      },
+      headers,
     });
 
     // Handle different response formats
@@ -1685,15 +1688,18 @@ class ApiClient {
   // Scheduled Sessions API
   async getScheduledSessionsByClubId(
     clubId: number,
-    token: string
+    token?: string
   ): Promise<ScheduledSession[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
     const response = await this.fetch<ScheduledSession>(
       `/clubs/${clubId}/scheduled-sessions`,
       {
         method: "GET",
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
+        headers,
       }
     );
 
