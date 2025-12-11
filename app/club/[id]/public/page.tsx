@@ -1,8 +1,9 @@
 "use client";
 import { useParams } from "next/navigation";
 import { Navbar } from "@/components/navbar";
-import { useClub } from "@/hooks/useClub";
+import { usePublicClub } from "@/hooks/usePublicClub";
 import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
+import { PublicClubNoticesCard } from "@/components/PublicClubNoticesCard";
 
 /**
  * Public club page for Locomotive House application
@@ -17,7 +18,7 @@ import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
 export default function PublicClubPage() {
   const params = useParams();
   const clubId = params.id as string;
-  const { club, loading, error } = useClub(clubId);
+  const { club, loading, error } = usePublicClub(clubId);
 
   if (loading) {
     return (
@@ -53,7 +54,8 @@ export default function PublicClubPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">{club.name}</h1>
 
-        <div className="max-w-2xl">
+        <div className="max-w-2xl space-y-6">
+          <PublicClubNoticesCard clubId={clubId} />
           <ScheduledVisitsCard clubId={clubId} shouldShowViewLink={false} />
         </div>
       </main>
