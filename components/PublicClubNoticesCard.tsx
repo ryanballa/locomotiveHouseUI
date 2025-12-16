@@ -27,8 +27,6 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
           true
         );
 
-        console.log("Public notices API response:", noticesData);
-
         // Filter out expired notices and sort by updated_at descending
         const activeNotices = noticesData
           .filter((notice) => {
@@ -58,7 +56,9 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Club Notices</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Club Notices
+        </h2>
         <div className="space-y-3">
           {[1, 2].map((i) => (
             <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
@@ -71,7 +71,9 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Club Notices</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Club Notices
+        </h2>
         <div className="rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-700">{error}</p>
         </div>
