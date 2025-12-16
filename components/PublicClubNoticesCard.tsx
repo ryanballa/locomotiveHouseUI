@@ -22,8 +22,12 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
         setLoading(true);
         setError(null);
         const noticesData = await apiClient.getNoticesByClubId(
-          parseInt(clubId)
+          parseInt(clubId),
+          undefined,
+          true
         );
+
+        console.log("Public notices API response:", noticesData);
 
         // Filter out expired notices and sort by updated_at descending
         const activeNotices = noticesData
@@ -38,6 +42,7 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
             return dateB - dateA; // Newest first
           });
 
+        console.log("Active notices after filtering:", activeNotices);
         setNotices(activeNotices);
       } catch (err) {
         console.error("Failed to fetch notices:", err);
@@ -74,44 +79,44 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
     );
   }
 
-  if (notices.length === 0) {
-    return null;
-  }
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Club Notices</h2>
-      <div className="space-y-4">
-        {notices.map((notice) => (
-          <div
-            key={notice.id}
-            className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                {notice.type && (
-                  <span className="inline-block px-2 py-1 bg-blue-200 text-blue-800 text-xs font-medium rounded mb-2">
-                    {notice.type}
-                  </span>
+      {notices.length === 0 ? (
+        <p className="text-sm text-gray-600">No notices at this time</p>
+      ) : (
+        <div className="space-y-4">
+          {notices.map((notice) => (
+            <div
+              key={notice.id}
+              className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  {notice.type && (
+                    <span className="inline-block px-2 py-1 bg-blue-200 text-blue-800 text-xs font-medium rounded mb-2">
+                      {notice.type}
+                    </span>
+                  )}
+                </div>
+                {notice.expires_at && (
+                  <p className="text-xs text-gray-600">
+                    Expires:{" "}
+                    {new Date(notice.expires_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
                 )}
               </div>
-              {notice.expires_at && (
-                <p className="text-xs text-gray-600">
-                  Expires:{" "}
-                  {new Date(notice.expires_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </p>
-              )}
+              <div
+                className="text-sm text-gray-800 prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: notice.description }}
+              />
             </div>
-            <div
-              className="text-sm text-gray-800 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: notice.description }}
-            />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

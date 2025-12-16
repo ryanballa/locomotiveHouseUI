@@ -62,7 +62,7 @@ export function usePublicClub(clubId: number | string): UsePublicClubReturn {
         // by fetching notices (this works without auth)
         if (!foundClub) {
           try {
-            await apiClient.getNoticesByClubId(Number(clubId));
+            await apiClient.getNoticesByClubId(Number(clubId), undefined, true);
             // If notices endpoint works, the club exists
             foundClub = { id: Number(clubId), name: `Club ${clubId}` };
           } catch (err) {
