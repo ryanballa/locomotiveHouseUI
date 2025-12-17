@@ -7,7 +7,6 @@ import { apiClient, type Club, type User, type Notice } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { AdminGuard } from "@/components/AdminGuard";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
-import { TowerReportsSection } from "@/components/TowerReportsSection";
 import { NoticesSection } from "@/components/NoticesSection";
 
 function ClubDetailPageContent() {
@@ -154,6 +153,12 @@ function ClubDetailPageContent() {
               <span>🏗️</span> Manage Towers
             </button>
             <button
+              onClick={() => router.push(`/admin/clubs/${club.id}/reports`)}
+              className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition focus:outline-none focus:ring-2 focus:ring-teal-500 inline-flex items-center gap-2"
+            >
+              <span>📊</span> Manage Reports
+            </button>
+            <button
               onClick={() => router.push(`/admin/clubs/${club.id}/sessions`)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 inline-flex items-center gap-2"
             >
@@ -172,11 +177,6 @@ function ClubDetailPageContent() {
               <span>📝</span> View Applications
             </button>
           </div>
-        </div>
-
-        {/* Tower Reports Section */}
-        <div className="mt-8">
-          <TowerReportsSection clubId={clubId} />
         </div>
 
         {/* Notices Section */}

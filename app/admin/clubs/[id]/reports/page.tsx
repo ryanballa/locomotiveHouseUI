@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Club, type TowerReport, type Tower, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
-import { ClubGuard } from "@/components/ClubGuard";
+import { AdminGuard } from "@/components/AdminGuard";
 import { useClubTowerReports } from "@/hooks/useTowerReports";
 
 interface ReportModalData {
@@ -13,7 +13,7 @@ interface ReportModalData {
   tower_id: number;
 }
 
-function ClubReportsPageContent() {
+function ReportsPageContent() {
   const { getToken } = useAuth();
   const params = useParams();
   const router = useRouter();
@@ -343,10 +343,10 @@ function ClubReportsPageContent() {
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <button
-            onClick={() => router.push(`/club/${clubId}`)}
+            onClick={() => router.push(`/admin/clubs/${clubId}`)}
             className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
           >
-            <span>&larr;</span> Back to Club
+            <span>&larr;</span> Back to Club Details
           </button>
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error || "Club not found"}
@@ -362,10 +362,10 @@ function ClubReportsPageContent() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
-          onClick={() => router.push(`/club/${clubId}`)}
+          onClick={() => router.push(`/admin/clubs/${clubId}`)}
           className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
         >
-          <span>&larr;</span> Back to Club
+          <span>&larr;</span> Back to Club Details
         </button>
 
         <div className="mb-8">
@@ -642,10 +642,10 @@ function ClubReportsPageContent() {
   );
 }
 
-export default function ClubReportsPage() {
+export default function ReportsPage() {
   return (
-    <ClubGuard>
-      <ClubReportsPageContent />
-    </ClubGuard>
+    <AdminGuard>
+      <ReportsPageContent />
+    </AdminGuard>
   );
 }

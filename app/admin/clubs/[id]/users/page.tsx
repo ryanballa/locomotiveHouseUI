@@ -48,24 +48,32 @@ function ClubUsersPageContent() {
       const token = await getToken();
       if (!token) {
         setError("Authentication required");
+        setAssigningUserId(null);
         return;
       }
 
-      const updateData: any = { club_id: clubId };
-
       // Use selected permission if available, otherwise use user's existing permission
       const selectedPermission = selectedPermissions[userId];
+      let permission: number;
+
       if (selectedPermission !== undefined) {
-        updateData.permission = selectedPermission;
+        permission = selectedPermission;
       } else {
         // Fallback to user's existing permission level
         const userToAssign = unassignedUsers.find((u) => u.id === userId);
-        if (userToAssign?.permission !== undefined) {
-          updateData.permission = userToAssign.permission;
+        if (userToAssign?.permission !== undefined && userToAssign.permission !== null) {
+          permission = userToAssign.permission;
+        } else {
+          // Default to Regular permission if none is selected
+          permission = 2;
         }
       }
 
-      const result = await apiClient.updateUser(userId, updateData, token);
+      console.log("Assigning user to club with data:", { userId, clubId, permission });
+
+      const result = await apiClient.assignUserToClub(userId, clubId, permission, token);
+
+      console.log("Assignment result:", result);
 
       if (result.updated) {
         // Clear the selected permission for this user
@@ -77,12 +85,17 @@ function ClubUsersPageContent() {
         // Refetch to ensure data is in sync
         await fetchUsers();
       } else {
-        setError("Failed to assign user to club - API returned false");
+        const errorMessage = `Failed to assign user to club. API response: ${JSON.stringify(result)}`;
+        console.error(errorMessage);
+        setError(errorMessage);
+        setAssigningUserId(null);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to assign user";
       console.error("Error assigning user:", err);
-      setError(errorMsg);
+      console.error("Full error object:", JSON.stringify(err, null, 2));
+      setError(`Error: ${errorMsg}`);
+      setAssigningUserId(null);
     } finally {
       setAssigningUserId(null);
     }
@@ -153,8 +166,11 @@ function ClubUsersPageContent() {
         return;
       }
 
+      console.log("Fetching users for club:", clubId);
+
       // Fetch club users
       const allUsers = await apiClient.getClubUsers(clubId, authToken);
+      console.log("Raw club users response:", allUsers);
 
       // Extract user objects from the API response
       const clubUsers: User[] = [];
@@ -165,17 +181,27 @@ function ClubUsersPageContent() {
         }
       }
 
+      console.log("Extracted club users:", clubUsers.length, clubUsers.map(u => ({ id: u.id, name: u.name })));
+
       // Enrich users with Clerk data
       const enrichedClubUsers = await enrichUsersWithClerkData(clubUsers);
       setUsers(enrichedClubUsers);
+      console.log("Set assigned users:", enrichedClubUsers.length);
 
       // For unassigned users, we need to get all users and filter out the ones already assigned
       try {
         const allUsersInSystem = await apiClient.getUsers(authToken);
+        console.log("All users in system:", allUsersInSystem.length);
+
         const clubUserIds = new Set(clubUsers.map((u) => u.id));
+        console.log("Club user IDs:", Array.from(clubUserIds));
+
         const unassignedUsersList = allUsersInSystem.filter((u) => !clubUserIds.has(u.id));
+        console.log("Unassigned users:", unassignedUsersList.length, unassignedUsersList.map(u => ({ id: u.id, name: u.name })));
+
         const enrichedUnassignedUsers = await enrichUsersWithClerkData(unassignedUsersList);
         setUnassignedUsers(enrichedUnassignedUsers);
+        console.log("Set unassigned users:", enrichedUnassignedUsers.length);
       } catch (err) {
         console.error("Failed to fetch unassigned users:", err);
         setUnassignedUsers([]);
@@ -183,6 +209,7 @@ function ClubUsersPageContent() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load users";
       console.error("Error fetching users:", err);
+      console.error("Full error:", JSON.stringify(err, null, 2));
       setError(errorMessage);
     } finally {
       setLoading(false);
