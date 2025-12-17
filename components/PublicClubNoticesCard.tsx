@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 import { apiClient, type Notice } from "@/lib/api";
 
 interface PublicClubNoticesCardProps {
@@ -113,7 +114,9 @@ export function PublicClubNoticesCard({ clubId }: PublicClubNoticesCardProps) {
               </div>
               <div
                 className="text-sm text-gray-800 prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: notice.description }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(notice.description),
+                }}
               />
             </div>
           ))}
