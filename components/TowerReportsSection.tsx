@@ -11,12 +11,13 @@ interface TowerWithReports extends Tower {
 
 interface TowerReportsSectionProps {
   clubId: number;
-  towers: Tower[];
 }
 
-export function TowerReportsSection({ clubId, towers }: TowerReportsSectionProps) {
+export function TowerReportsSection({ clubId }: TowerReportsSectionProps) {
   const { getToken } = useAuth();
   const { reports: allReports, loading, error, refetch } = useClubTowerReports(clubId);
+  const [towers, setTowers] = useState<Tower[]>([]);
+  const [towersLoading, setTowersLoading] = useState(true);
   const [expandedTowers, setExpandedTowers] = useState<Set<number>>(new Set());
   const [towerReports, setTowerReports] = useState<Record<number, TowerReport[]>>({});
   const [creatingReport, setCreatingReport] = useState(false);
@@ -24,6 +25,24 @@ export function TowerReportsSection({ clubId, towers }: TowerReportsSectionProps
   const [newReportData, setNewReportData] = useState<Record<number, string>>({});
   const [reportError, setReportError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  // Fetch towers
+  useEffect(() => {
+    const fetchTowers = async () => {
+      try {
+        setTowersLoading(true);
+        const token = await getToken();
+        if (!token) return;
+        const towersData = await apiClient.getTowersByClubId(clubId, token);
+        setTowers(towersData);
+      } catch (err) {
+        console.error("Failed to fetch towers:", err);
+      } finally {
+        setTowersLoading(false);
+      }
+    };
+    fetchTowers();
+  }, [clubId, getToken]);
 
   // Organize reports by tower
   useEffect(() => {
