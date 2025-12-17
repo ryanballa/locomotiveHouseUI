@@ -1,8 +1,10 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
-import { useClub } from "@/hooks/useClub";
+import { usePublicClub } from "@/hooks/usePublicClub";
 import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
+import { PublicClubNoticesCard } from "@/components/PublicClubNoticesCard";
+import { ClubHeader } from "@/components/ClubHeader";
 
 /**
  * Public club page for Locomotive House application
@@ -16,8 +18,9 @@ import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
  */
 export default function PublicClubPage() {
   const params = useParams();
+  const router = useRouter();
   const clubId = params.id as string;
-  const { club, loading, error } = useClub(clubId);
+  const { club, loading, error } = usePublicClub(clubId);
 
   if (loading) {
     return (
@@ -51,9 +54,22 @@ export default function PublicClubPage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">{club.name}</h1>
+        {/* Apply Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => router.push(`/club/${clubId}/apply`)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Apply for Membership
+          </button>
+        </div>
 
-        <div className="max-w-2xl">
+        {/* Club Header */}
+        <ClubHeader club={club} />
+
+        {/* Content */}
+        <div className="max-w-2xl space-y-6">
+          <PublicClubNoticesCard clubId={clubId} />
           <ScheduledVisitsCard clubId={clubId} shouldShowViewLink={false} />
         </div>
       </main>

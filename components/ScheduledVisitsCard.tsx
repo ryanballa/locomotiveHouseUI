@@ -63,32 +63,30 @@ export function ScheduledVisitsCard({
     );
   }
 
-  // Filter sessions for the next 7 days and group by date
+  // Filter and sort sessions chronologically, then take the next 5
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const nextWeek = new Date(today);
-  nextWeek.setDate(nextWeek.getDate() + 7);
 
+  const upcomingSessions = sessions
+    .filter((session) => new Date(session.schedule) >= today)
+    .sort((a, b) => new Date(a.schedule).getTime() - new Date(b.schedule).getTime())
+    .slice(0, 5);
+
+  // Group the next 5 sessions by date
   const sessionsByDate: { [date: string]: typeof sessions } = {};
-  sessions.forEach((session) => {
+  upcomingSessions.forEach((session) => {
     const sessionDate = new Date(session.schedule);
     sessionDate.setHours(0, 0, 0, 0);
 
-    if (sessionDate >= today && sessionDate < nextWeek) {
-      const dateKey = sessionDate.toISOString().split("T")[0];
-      if (!sessionsByDate[dateKey]) {
-        sessionsByDate[dateKey] = [];
-      }
-      sessionsByDate[dateKey].push(session);
+    const dateKey = sessionDate.toISOString().split("T")[0];
+    if (!sessionsByDate[dateKey]) {
+      sessionsByDate[dateKey] = [];
     }
+    sessionsByDate[dateKey].push(session);
   });
 
   const dates = Object.keys(sessionsByDate).sort();
-  const totalSessions = sessions.filter((s) => {
-    const sessionDate = new Date(s.schedule);
-    sessionDate.setHours(0, 0, 0, 0);
-    return sessionDate >= today && sessionDate < nextWeek;
-  }).length;
+  const totalSessions = upcomingSessions.length;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -99,7 +97,7 @@ export function ScheduledVisitsCard({
       {totalSessions === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">
-            No sessions scheduled for the next 7 days.
+            No sessions scheduled.
           </p>
         </div>
       ) : (

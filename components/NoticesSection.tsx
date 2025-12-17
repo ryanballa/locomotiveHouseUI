@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { apiClient, type Notice } from "@/lib/api";
 import { RichTextEditor } from "./RichTextEditor";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -290,7 +291,9 @@ export function NoticesSection({
               </div>
               <div
                 className="prose prose-sm max-w-none text-gray-700"
-                dangerouslySetInnerHTML={{ __html: notice.description }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(notice.description),
+                }}
               />
             </div>
           ))

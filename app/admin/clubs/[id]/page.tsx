@@ -790,12 +790,20 @@ function ClubDetailPageContent() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{club.name}</h1>
           <p className="text-gray-600 mb-4">Club ID: {club.id}</p>
-          <button
-            onClick={() => router.push(`/admin/clubs/${club.id}/invites`)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition focus:outline-none focus:ring-2 focus:ring-purple-500 inline-flex items-center gap-2"
-          >
-            <span>🔗</span> Manage Invites
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push(`/admin/clubs/${club.id}/invites`)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition focus:outline-none focus:ring-2 focus:ring-purple-500 inline-flex items-center gap-2"
+            >
+              <span>🔗</span> Manage Invites
+            </button>
+            <button
+              onClick={() => router.push(`/admin/clubs/${club.id}/applications`)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 inline-flex items-center gap-2"
+            >
+              <span>📝</span> View Applications
+            </button>
+          </div>
         </div>
 
         {/* Assigned Users Section */}

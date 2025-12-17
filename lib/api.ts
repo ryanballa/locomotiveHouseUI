@@ -51,6 +51,8 @@ export interface User {
 export interface Club {
   id: number;
   name: string;
+  description?: string;
+  hero_image?: string;
 }
 
 export interface UserClubRelation {
@@ -88,6 +90,44 @@ export interface Notice {
   description: string;
   type?: string;
   expires_at?: string | Date;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Represents an application in the system.
+ *
+ * Applications are membership applications submitted to a specific club.
+ * They contain applicant information and responses to club membership questions.
+ *
+ * @property id - Unique identifier for the application (auto-generated, omit when creating)
+ * @property club_id - ID of the club this application belongs to (required, immutable after creation)
+ * @property name - Applicant's name (optional)
+ * @property email - Applicant's email address (optional)
+ * @property birthday - Applicant's date of birth (optional)
+ * @property occupation - Applicant's occupation (optional)
+ * @property interested_scale - Scale of interest (optional)
+ * @property special_interests - Special interests of the applicant (optional)
+ * @property has_home_layout - Whether applicant has a home layout (optional)
+ * @property collection_size - Size of applicant's collection (optional)
+ * @property has_other_model_railroad_associations - Whether applicant is member of other associations (optional)
+ * @property will_agree_to_club_rules - Whether applicant agrees to club rules (optional)
+ * @property created_at - Timestamp when the application was created (auto-generated, omit when creating)
+ * @property updated_at - Timestamp when the application was last updated (auto-generated, omit when creating)
+ */
+export interface Application {
+  id: number;
+  club_id: number;
+  name?: string;
+  email?: string;
+  birthday?: string | Date;
+  occupation?: string;
+  interested_scale?: string;
+  special_interests?: string;
+  has_home_layout?: boolean;
+  collection_size?: string;
+  has_other_model_railroad_associations?: boolean;
+  will_agree_to_club_rules?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -1796,8 +1836,9 @@ class ApiClient {
     };
   }
 
-  async getNoticesByClubId(clubId: number, token?: string): Promise<Notice[]> {
-    const response = await this.fetch<Notice>(`/clubs/${clubId}/notices`, {
+  async getNoticesByClubId(clubId: number, token?: string, isPublic?: boolean): Promise<Notice[]> {
+    const queryParam = isPublic ? '?public=true' : '';
+    const response = await this.fetch<Notice>(`/clubs/${clubId}/notices${queryParam}`, {
       method: "GET",
       headers: token
         ? {
@@ -1860,6 +1901,113 @@ class ApiClient {
   ): Promise<{ deleted: boolean }> {
     const response = await this.fetch<Notice>(
       `/clubs/${clubId}/notices/${noticeId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      deleted: response.deleted || false,
+    };
+  }
+
+  // Applications API
+  async getApplicationsByClubId(
+    clubId: number,
+    token: string
+  ): Promise<Application[]> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.result || [];
+  }
+
+  async getApplicationById(
+    clubId: number,
+    applicationId: number,
+    token: string
+  ): Promise<Application | null> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications/${applicationId}`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if ((response as any).application) {
+      return (response as any).application;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  async createApplication(
+    clubId: number,
+    data: Omit<Application, "id" | "club_id" | "created_at" | "updated_at">
+  ): Promise<{ created: boolean; id?: number; application?: Application }> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      created: response.created || false,
+      id: response.id,
+      application: response.result?.[0],
+    };
+  }
+
+  async updateApplication(
+    clubId: number,
+    applicationId: number,
+    data: Partial<Omit<Application, "id" | "club_id" | "created_at" | "updated_at">>,
+    token: string
+  ): Promise<{ updated: boolean; application?: Application }> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications/${applicationId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      updated: response.updated || false,
+      application: response.result?.[0],
+    };
+  }
+
+  async deleteApplication(
+    clubId: number,
+    applicationId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications/${applicationId}`,
       {
         method: "DELETE",
         headers: {

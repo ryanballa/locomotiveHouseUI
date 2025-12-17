@@ -20,6 +20,7 @@
     "@tiptap/pm": "^3.11.1",
     "@tiptap/react": "^3.11.1",
     "@tiptap/starter-kit": "^3.11.1",
+    "dompurify": "^3.3.1",
     "next": "^15.5.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -30,6 +31,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.6",
     "@vitejs/plugin-react": "^5.0.4",

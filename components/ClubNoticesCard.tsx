@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import DOMPurify from "dompurify";
 import { apiClient, type Notice } from "@/lib/api";
 
 interface ClubNoticesCardProps {
@@ -116,7 +117,9 @@ export function ClubNoticesCard({ clubId }: ClubNoticesCardProps) {
             </div>
             <div
               className="text-sm text-gray-800 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: notice.description }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(notice.description),
+              }}
             />
           </div>
         ))}

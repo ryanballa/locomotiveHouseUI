@@ -11,6 +11,7 @@ import { TowerIssuesCard } from "@/components/TowerIssuesCard";
 import { RecentAddressesCard } from "@/components/RecentAddressesCard";
 import { ClubNoticesCard } from "@/components/ClubNoticesCard";
 import { ScheduledVisitsCard } from "@/components/ScheduledVisitsCard";
+import { ClubHeader } from "@/components/ClubHeader";
 
 /**
  * Homepage for Locomotive House application
@@ -59,10 +60,10 @@ export default function ClubHome() {
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-bold text-gray-900 mb-8">
-                {club.name}
-              </h1>
+              {/* Club Header */}
+              <ClubHeader club={club} />
 
+              {/* Dashboard Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <ClubNoticesCard clubId={clubId} />
                 <ScheduledVisitsCard
