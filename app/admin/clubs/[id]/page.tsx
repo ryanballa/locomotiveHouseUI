@@ -11,11 +11,6 @@ import { IssueTable } from "@/components/IssueTable";
 import { TowerReportsSection } from "@/components/TowerReportsSection";
 import { NoticesSection } from "@/components/NoticesSection";
 
-interface EnrichedUser extends User {
-  clerkName?: string;
-  clerkEmail?: string;
-}
-
 function ClubDetailPageContent() {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
@@ -24,18 +19,9 @@ function ClubDetailPageContent() {
   const clubId = Number(params.id);
 
   const [club, setClub] = useState<Club | null>(null);
-  const [users, setUsers] = useState<EnrichedUser[]>([]);
-  const [unassignedUsers, setUnassignedUsers] = useState<EnrichedUser[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
-  const [unassigningUserId, setUnassigningUserId] = useState<number | null>(
-    null
-  );
-  const [selectedPermissions, setSelectedPermissions] = useState<
-    Record<number, number>
-  >({});
   const [towers, setTowers] = useState<Tower[]>([]);
   const [towerFormData, setTowerFormData] = useState({
     name: "",
@@ -78,121 +64,6 @@ function ClubDetailPageContent() {
     }
     fetchClubDetails();
   }, [clubId]);
-
-  const handleAssignUser = async (userId: number) => {
-    try {
-      setAssigningUserId(userId);
-      setError(null);
-      const token = await getToken();
-      if (!token) {
-        setError("Authentication required");
-        return;
-      }
-
-      const updateData: any = { club_id: clubId };
-
-      // Use selected permission if available, otherwise use user's existing permission
-      const selectedPermission = selectedPermissions[userId];
-      if (selectedPermission !== undefined) {
-        updateData.permission = selectedPermission;
-      } else {
-        // Fallback to user's existing permission level
-        const userToAssign = unassignedUsers.find((u) => u.id === userId);
-        if (userToAssign?.permission !== undefined) {
-          updateData.permission = userToAssign.permission;
-        }
-      }
-
-      const result = await apiClient.updateUser(
-        userId,
-        updateData,
-        token
-      );
-
-      if (result.updated) {
-        // Clear the selected permission for this user
-        setSelectedPermissions((prev) => {
-          const updated = { ...prev };
-          delete updated[userId];
-          return updated;
-        });
-        // Refetch to ensure data is in sync
-        await fetchClubDetails();
-      } else {
-        setError("Failed to assign user to club - API returned false");
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to assign user";
-      console.error("Error assigning user:", err);
-      setError(errorMsg);
-    } finally {
-      setAssigningUserId(null);
-    }
-  };
-
-  const handleUnassignUser = async (userId: number) => {
-    try {
-      setUnassigningUserId(userId);
-      setError(null);
-      const token = await getToken();
-      if (!token) {
-        setError("Authentication required");
-        return;
-      }
-
-      // Use the new DELETE endpoint to remove user from club
-      const result = await apiClient.removeUserFromClub(
-        userId,
-        clubId,
-        token
-      );
-      if (result.removed) {
-        // Refetch to ensure data is in sync
-        await fetchClubDetails();
-      } else {
-        setError("Failed to remove user from club");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to unassign user");
-    } finally {
-      setUnassigningUserId(null);
-    }
-  };
-
-  /**
-   * Enrich users with name and email from backend data (no longer fetching from Clerk)
-   * first_name, last_name, and email are now stored in the database after profile completion
-   */
-  const enrichUsersWithClerkData = async (
-    users: User[]
-  ): Promise<EnrichedUser[]> => {
-    // Use first_name, last_name, and email from backend instead of making Clerk API calls
-    const enrichedUsers = users.map((user) => {
-      // Build display name from first_name and last_name if available
-      const clerkName = user.first_name && user.last_name
-        ? `${user.first_name} ${user.last_name}`
-        : user.name || user.token;
-
-      return {
-        ...user,
-        clerkName,
-        clerkEmail: user.email,
-      };
-    });
-
-    return enrichedUsers;
-  };
-
-  const enrichPermissions = ({ permission }: { permission: number }) => {
-    switch (permission) {
-      case 1:
-        return "Admin";
-      case 3:
-        return "Super Admin";
-      default:
-        return "Regular";
-    }
-  };
 
   /**
    * Creates a new tower for the club
@@ -671,10 +542,9 @@ function ClubDetailPageContent() {
       }
       setToken(authToken);
 
-      // Fetch club details, users, towers, scheduled sessions, and notices in parallel
-      const [clubData, allUsers, towersData, sessionsData, noticesData] = await Promise.all([
+      // Fetch club details, towers, scheduled sessions, and notices in parallel
+      const [clubData, towersData, sessionsData, noticesData] = await Promise.all([
         apiClient.getClubById(clubId, authToken),
-        apiClient.getClubUsers(clubId, authToken),
         apiClient.getTowersByClubId(clubId, authToken),
         apiClient.getScheduledSessionsByClubId(clubId, authToken),
         apiClient.getNoticesByClubId(clubId, authToken),
@@ -685,43 +555,28 @@ function ClubDetailPageContent() {
       setScheduledSessions(sessionsData);
       setNotices(noticesData);
 
-      // Extract user objects from the API response
-      // The response is an array of objects with structure: { user: {...}, clubs: {...} }
-      const clubUsers: User[] = [];
-      for (const item of allUsers) {
-        const userItem = (item as any).user;
-        if (userItem) {
-          clubUsers.push(userItem);
-        }
-      }
-
-      // Enrich users with Clerk data
-      const enrichedClubUsers = await enrichUsersWithClerkData(clubUsers);
-      setUsers(enrichedClubUsers);
-
-      // For unassigned users, we need to get all users and filter out the ones already assigned
-      try {
-        const allUsersInSystem = await apiClient.getUsers(authToken);
-        const clubUserIds = new Set(clubUsers.map((u) => u.id));
-        const unassignedUsers = allUsersInSystem.filter((u) => !clubUserIds.has(u.id));
-        const enrichedUnassignedUsers = await enrichUsersWithClerkData(unassignedUsers);
-        setUnassignedUsers(enrichedUnassignedUsers);
-      } catch (err) {
-        console.error("Failed to fetch unassigned users:", err);
-        // If we can't get unassigned users, that's ok - admins can still manage assigned users
-        setUnassignedUsers([]);
-      }
-
       // Find current user by matching Clerk ID
       if (clerkUser?.id) {
-        const matchedUser = clubUsers.find((u) => u.token === clerkUser.id);
-        if (matchedUser) {
-          setCurrentUser(matchedUser);
-          // Update issue form with current user ID
-          setIssueFormData((prev) => ({
-            ...prev,
-            user_id: matchedUser.id,
-          }));
+        try {
+          const clubUsers = await apiClient.getClubUsers(clubId, authToken);
+          const clubUsersList: User[] = [];
+          for (const item of clubUsers) {
+            const userItem = (item as any).user;
+            if (userItem) {
+              clubUsersList.push(userItem);
+            }
+          }
+          const matchedUser = clubUsersList.find((u) => u.token === clerkUser.id);
+          if (matchedUser) {
+            setCurrentUser(matchedUser);
+            // Update issue form with current user ID
+            setIssueFormData((prev) => ({
+              ...prev,
+              user_id: matchedUser.id,
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to fetch current user:", err);
         }
       }
     } catch (err) {
@@ -792,6 +647,12 @@ function ClubDetailPageContent() {
           <p className="text-gray-600 mb-4">Club ID: {club.id}</p>
           <div className="flex gap-3">
             <button
+              onClick={() => router.push(`/admin/clubs/${club.id}/users`)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500 inline-flex items-center gap-2"
+            >
+              <span>👥</span> Manage Users
+            </button>
+            <button
               onClick={() => router.push(`/admin/clubs/${club.id}/invites`)}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition focus:outline-none focus:ring-2 focus:ring-purple-500 inline-flex items-center gap-2"
             >
@@ -804,174 +665,6 @@ function ClubDetailPageContent() {
               <span>📝</span> View Applications
             </button>
           </div>
-        </div>
-
-        {/* Assigned Users Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Assigned Users ({users.length})
-            </h2>
-          </div>
-
-          {users.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg">
-                No users assigned to this club yet.
-              </p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Permission
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.clerkName || user.name || user.token}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.clerkEmail || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.permission !== null && user.permission !== undefined
-                        ? user.permission
-                        : "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleUnassignUser(user.id)}
-                        disabled={unassigningUserId === user.id}
-                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {unassigningUserId === user.id
-                          ? "Removing..."
-                          : "Remove"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Unassigned Users Section */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Available Users ({unassignedUsers.length})
-            </h2>
-          </div>
-
-          {unassignedUsers.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-500 text-lg">
-                No unassigned users available.
-              </p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Permission
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {unassignedUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.clerkName || user.name || user.token}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {user.clerkEmail || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      <select
-                        value={selectedPermissions[user.id] ?? (user.permission ?? "")}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === "") {
-                            setSelectedPermissions((prev) => {
-                              const updated = { ...prev };
-                              delete updated[user.id];
-                              return updated;
-                            });
-                          } else {
-                            setSelectedPermissions((prev) => ({
-                              ...prev,
-                              [user.id]: Number(value),
-                            }));
-                          }
-                        }}
-                        className="px-3 py-1 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                      >
-                        {user.permission !== null && user.permission !== undefined ? (
-                          <option value={user.permission}>
-                            {enrichPermissions({ permission: user.permission })}
-                          </option>
-                        ) : (
-                          <option value="">Select a permission...</option>
-                        )}
-                        <option value="1">Admin</option>
-                        <option value="2">Regular</option>
-                        <option value="3">Super Admin</option>
-                        <option value="4">Limited</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleAssignUser(user.id)}
-                        disabled={assigningUserId === user.id}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {assigningUserId === user.id
-                          ? "Assigning..."
-                          : "Assign"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
 
         {/* Towers Section */}
