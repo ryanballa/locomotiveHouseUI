@@ -1,17 +1,55 @@
 "use client";
 
+<<<<<<< Updated upstream
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Club, type TowerReport, type Tower, type User } from "@/lib/api";
+=======
+<<<<<<< Updated upstream
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+=======
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { apiClient, type Club, type TowerReport, type Tower, type User } from "@/lib/api";
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
 import { useClubTowerReports } from "@/hooks/useTowerReports";
 
+<<<<<<< Updated upstream
+interface ReportModalData {
+  description: string;
+=======
+<<<<<<< Updated upstream
+interface Tower {
+  id: number;
+  name: string;
+}
+
+interface TowerReport {
+  id: number;
+>>>>>>> Stashed changes
+  tower_id: number;
+}
+=======
 interface ReportModalData {
   description: string;
   tower_id: number;
+  month: number;
+  year: number;
 }
+
+function ClubReportsPageContent() {
+  const { getToken } = useAuth();
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const clubId = Number(params.id);
+>>>>>>> Stashed changes
 
 function ClubReportsPageContent() {
   const { getToken } = useAuth();
@@ -26,6 +64,27 @@ function ClubReportsPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const months = [
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" },
+  ];
+=======
+>>>>>>> Stashed changes
   // Filter state
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
@@ -38,11 +97,20 @@ function ClubReportsPageContent() {
   const [modalFormData, setModalFormData] = useState<ReportModalData>({
     description: "",
     tower_id: 0,
+<<<<<<< Updated upstream
+=======
+    month: currentDate.getMonth(),
+    year: currentDate.getFullYear(),
+>>>>>>> Stashed changes
   });
   const [submitting, setSubmitting] = useState(false);
   const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
 
   const { reports: allReports, loading: reportsLoading, error: reportsError, refetch } = useClubTowerReports(clubId);
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (isNaN(clubId)) {
@@ -99,6 +167,41 @@ function ClubReportsPageContent() {
     }
   };
 
+  // Handle auto-opening the modal from URL parameters
+  useEffect(() => {
+    const action = searchParams.get("action");
+    const towerIdParam = searchParams.get("towerId");
+
+    if (action === "new" && towerIdParam && towers.length > 0) {
+      const towerId = parseInt(towerIdParam);
+      const tower = towers.find((t) => t.id === towerId);
+
+      if (tower) {
+        const now = new Date();
+
+        // Get month and year from query params, or default to current date
+        const monthParam = searchParams.get("month");
+        const yearParam = searchParams.get("year");
+
+        const month = monthParam ? parseInt(monthParam) : now.getMonth();
+        const year = yearParam ? parseInt(yearParam) : now.getFullYear();
+
+        // Open the add modal with the specified tower pre-selected
+        setModalFormData({
+          description: "",
+          tower_id: towerId,
+          month: month,
+          year: year,
+        });
+        setIsAddModalOpen(true);
+
+        // Clean up the URL parameters
+        const newUrl = `/club/${clubId}/reports`;
+        router.replace(newUrl);
+      }
+    }
+  }, [searchParams, towers, clubId, router]);
+
   // Filter reports by selected month and year
   const filteredReports = allReports.filter((report) => {
     const reportDate = new Date(report.report_at || report.created_at || "");
@@ -115,10 +218,23 @@ function ClubReportsPageContent() {
     return dateB - dateA;
   });
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+  const formatReportDate = (dateString?: string | Date): string => {
+    if (!dateString) return "No date";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+=======
+>>>>>>> Stashed changes
   const handleSetCurrentMonth = () => {
     const now = new Date();
     setSelectedMonth(now.getMonth());
     setSelectedYear(now.getFullYear());
+<<<<<<< Updated upstream
   };
 
   const openAddModal = () => {
@@ -134,6 +250,44 @@ function ClubReportsPageContent() {
     setModalFormData({
       description: report.description || "",
       tower_id: report.tower_id,
+=======
+  };
+
+  const handleSetNextMonth = () => {
+    if (selectedMonth === 11) {
+      // December -> January of next year
+      setSelectedMonth(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const openAddModal = () => {
+    const now = new Date();
+    setModalFormData({
+      description: "",
+      tower_id: towers.length > 0 ? towers[0].id : 0,
+      month: now.getMonth(),
+      year: now.getFullYear(),
+>>>>>>> Stashed changes
+    });
+  };
+
+<<<<<<< Updated upstream
+=======
+  const openEditModal = (report: TowerReport) => {
+    setEditingReport(report);
+
+    // Extract month and year from the report date
+    const reportDate = new Date(report.report_at || report.created_at || new Date());
+
+    setModalFormData({
+      description: report.description || "",
+      tower_id: report.tower_id,
+      month: reportDate.getMonth(),
+      year: reportDate.getFullYear(),
+>>>>>>> Stashed changes
     });
     setIsEditModalOpen(true);
   };
@@ -142,7 +296,17 @@ function ClubReportsPageContent() {
     setIsAddModalOpen(false);
     setIsEditModalOpen(false);
     setEditingReport(null);
+<<<<<<< Updated upstream
     setModalFormData({ description: "", tower_id: 0 });
+=======
+    const now = new Date();
+    setModalFormData({
+      description: "",
+      tower_id: 0,
+      month: now.getMonth(),
+      year: now.getFullYear(),
+    });
+>>>>>>> Stashed changes
   };
 
   const handleCreateReport = async () => {
@@ -162,6 +326,28 @@ function ClubReportsPageContent() {
         return;
       }
 
+<<<<<<< Updated upstream
+=======
+      // Check if a report already exists for this tower and month/year combination
+      const duplicateReport = allReports.find((report) => {
+        const reportDate = new Date(report.report_at || report.created_at || "");
+        return (
+          report.tower_id === modalFormData.tower_id &&
+          reportDate.getMonth() === modalFormData.month &&
+          reportDate.getFullYear() === modalFormData.year
+        );
+      });
+
+      if (duplicateReport) {
+        const towerName = getTowerName(modalFormData.tower_id);
+        const monthName = months[modalFormData.month];
+        setError(
+          `A report for ${towerName} already exists for ${monthName} ${modalFormData.year}. Please select a different month/year or edit the existing report.`
+        );
+        return;
+      }
+
+>>>>>>> Stashed changes
       setSubmitting(true);
       setError(null);
       const token = await getToken();
@@ -170,10 +356,20 @@ function ClubReportsPageContent() {
         return;
       }
 
+<<<<<<< Updated upstream
+=======
+      // Create a date from the selected month and year (set to the 1st day)
+      const reportDate = new Date(modalFormData.year, modalFormData.month, 1);
+
+>>>>>>> Stashed changes
       const reportPayload = {
         description: modalFormData.description,
         tower_id: modalFormData.tower_id,
         user_id: currentUserId,
+<<<<<<< Updated upstream
+=======
+        report_at: reportDate.toISOString(),
+>>>>>>> Stashed changes
       };
 
       const result = await apiClient.createTowerReport(
@@ -326,6 +522,42 @@ function ClubReportsPageContent() {
 
   if (loading) {
     return (
+<<<<<<< Updated upstream
+=======
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error && !club) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <button
+            onClick={() => router.push(`/club/${clubId}`)}
+            className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
+          >
+            <span>&larr;</span> Back to Club
+          </button>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error || "Club not found"}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+>>>>>>> Stashed changes
+  return (
+    <ClubGuard isContentLoading={clubLoading}>
+>>>>>>> Stashed changes
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -412,6 +644,11 @@ function ClubReportsPageContent() {
                   ))}
                 </select>
               </div>
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 
               <button
                 onClick={handleSetCurrentMonth}
@@ -420,6 +657,16 @@ function ClubReportsPageContent() {
                 Current Month
               </button>
 
+<<<<<<< Updated upstream
+=======
+              <button
+                onClick={handleSetNextMonth}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Next Month
+              </button>
+
+>>>>>>> Stashed changes
               <div className="ml-auto">
                 <button
                   onClick={openAddModal}
@@ -432,6 +679,10 @@ function ClubReportsPageContent() {
 
             <div className="mt-3 text-sm text-gray-600">
               Showing {sortedReports.length} report{sortedReports.length !== 1 ? "s" : ""} for {months[selectedMonth]} {selectedYear}
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
             </div>
           </div>
 
@@ -514,6 +765,13 @@ function ClubReportsPageContent() {
               </table>
             </div>
           )}
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+        </main>
+      </div>
+=======
+>>>>>>> Stashed changes
         </div>
       </main>
 
@@ -525,6 +783,15 @@ function ClubReportsPageContent() {
               <h2 className="text-2xl font-bold text-gray-900">Add Tower Report</h2>
             </div>
             <div className="px-6 py-4 space-y-4">
+<<<<<<< Updated upstream
+=======
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+>>>>>>> Stashed changes
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tower <span className="text-red-600">*</span>
@@ -545,6 +812,49 @@ function ClubReportsPageContent() {
                 </select>
               </div>
 
+<<<<<<< Updated upstream
+=======
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Month <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={modalFormData.month}
+                    onChange={(e) =>
+                      setModalFormData({ ...modalFormData, month: parseInt(e.target.value) })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {months.map((month, index) => (
+                      <option key={index} value={index}>
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Year <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={modalFormData.year}
+                    onChange={(e) =>
+                      setModalFormData({ ...modalFormData, year: parseInt(e.target.value) })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+>>>>>>> Stashed changes
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description <span className="text-red-600">*</span>
@@ -646,6 +956,10 @@ export default function ClubReportsPage() {
   return (
     <ClubGuard>
       <ClubReportsPageContent />
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     </ClubGuard>
   );
 }
