@@ -1,41 +1,13 @@
 "use client";
 
-<<<<<<< Updated upstream
-import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { useParams, useRouter } from "next/navigation";
-import { apiClient, type Club, type TowerReport, type Tower, type User } from "@/lib/api";
-=======
-<<<<<<< Updated upstream
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-=======
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiClient, type Club, type TowerReport, type Tower, type User } from "@/lib/api";
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
 import { useClubTowerReports } from "@/hooks/useTowerReports";
 
-<<<<<<< Updated upstream
-interface ReportModalData {
-  description: string;
-=======
-<<<<<<< Updated upstream
-interface Tower {
-  id: number;
-  name: string;
-}
-
-interface TowerReport {
-  id: number;
->>>>>>> Stashed changes
-  tower_id: number;
-}
-=======
 interface ReportModalData {
   description: string;
   tower_id: number;
@@ -49,13 +21,6 @@ function ClubReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clubId = Number(params.id);
->>>>>>> Stashed changes
-
-function ClubReportsPageContent() {
-  const { getToken } = useAuth();
-  const params = useParams();
-  const router = useRouter();
-  const clubId = Number(params.id);
 
   const [club, setClub] = useState<Club | null>(null);
   const [towers, setTowers] = useState<Tower[]>([]);
@@ -64,27 +29,6 @@ function ClubReportsPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
-  const months = [
-    { value: 1, label: "January" },
-    { value: 2, label: "February" },
-    { value: 3, label: "March" },
-    { value: 4, label: "April" },
-    { value: 5, label: "May" },
-    { value: 6, label: "June" },
-    { value: 7, label: "July" },
-    { value: 8, label: "August" },
-    { value: 9, label: "September" },
-    { value: 10, label: "October" },
-    { value: 11, label: "November" },
-    { value: 12, label: "December" },
-  ];
-=======
->>>>>>> Stashed changes
   // Filter state
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
@@ -97,20 +41,13 @@ function ClubReportsPageContent() {
   const [modalFormData, setModalFormData] = useState<ReportModalData>({
     description: "",
     tower_id: 0,
-<<<<<<< Updated upstream
-=======
     month: currentDate.getMonth(),
     year: currentDate.getFullYear(),
->>>>>>> Stashed changes
   });
   const [submitting, setSubmitting] = useState(false);
   const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
 
   const { reports: allReports, loading: reportsLoading, error: reportsError, refetch } = useClubTowerReports(clubId);
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 
   useEffect(() => {
     if (isNaN(clubId)) {
@@ -218,39 +155,10 @@ function ClubReportsPageContent() {
     return dateB - dateA;
   });
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-  const formatReportDate = (dateString?: string | Date): string => {
-    if (!dateString) return "No date";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-=======
->>>>>>> Stashed changes
   const handleSetCurrentMonth = () => {
     const now = new Date();
     setSelectedMonth(now.getMonth());
     setSelectedYear(now.getFullYear());
-<<<<<<< Updated upstream
-  };
-
-  const openAddModal = () => {
-    setModalFormData({
-      description: "",
-      tower_id: towers.length > 0 ? towers[0].id : 0,
-    });
-    setIsAddModalOpen(true);
-  };
-
-  const openEditModal = (report: TowerReport) => {
-    setEditingReport(report);
-    setModalFormData({
-      description: report.description || "",
-      tower_id: report.tower_id,
-=======
   };
 
   const handleSetNextMonth = () => {
@@ -270,12 +178,10 @@ function ClubReportsPageContent() {
       tower_id: towers.length > 0 ? towers[0].id : 0,
       month: now.getMonth(),
       year: now.getFullYear(),
->>>>>>> Stashed changes
     });
+    setIsAddModalOpen(true);
   };
 
-<<<<<<< Updated upstream
-=======
   const openEditModal = (report: TowerReport) => {
     setEditingReport(report);
 
@@ -287,7 +193,6 @@ function ClubReportsPageContent() {
       tower_id: report.tower_id,
       month: reportDate.getMonth(),
       year: reportDate.getFullYear(),
->>>>>>> Stashed changes
     });
     setIsEditModalOpen(true);
   };
@@ -296,9 +201,6 @@ function ClubReportsPageContent() {
     setIsAddModalOpen(false);
     setIsEditModalOpen(false);
     setEditingReport(null);
-<<<<<<< Updated upstream
-    setModalFormData({ description: "", tower_id: 0 });
-=======
     const now = new Date();
     setModalFormData({
       description: "",
@@ -306,7 +208,6 @@ function ClubReportsPageContent() {
       month: now.getMonth(),
       year: now.getFullYear(),
     });
->>>>>>> Stashed changes
   };
 
   const handleCreateReport = async () => {
@@ -326,8 +227,6 @@ function ClubReportsPageContent() {
         return;
       }
 
-<<<<<<< Updated upstream
-=======
       // Check if a report already exists for this tower and month/year combination
       const duplicateReport = allReports.find((report) => {
         const reportDate = new Date(report.report_at || report.created_at || "");
@@ -347,7 +246,6 @@ function ClubReportsPageContent() {
         return;
       }
 
->>>>>>> Stashed changes
       setSubmitting(true);
       setError(null);
       const token = await getToken();
@@ -356,20 +254,14 @@ function ClubReportsPageContent() {
         return;
       }
 
-<<<<<<< Updated upstream
-=======
       // Create a date from the selected month and year (set to the 1st day)
       const reportDate = new Date(modalFormData.year, modalFormData.month, 1);
 
->>>>>>> Stashed changes
       const reportPayload = {
         description: modalFormData.description,
         tower_id: modalFormData.tower_id,
         user_id: currentUserId,
-<<<<<<< Updated upstream
-=======
         report_at: reportDate.toISOString(),
->>>>>>> Stashed changes
       };
 
       const result = await apiClient.createTowerReport(
@@ -522,42 +414,6 @@ function ClubReportsPageContent() {
 
   if (loading) {
     return (
-<<<<<<< Updated upstream
-=======
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error && !club) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <button
-            onClick={() => router.push(`/club/${clubId}`)}
-            className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
-          >
-            <span>&larr;</span> Back to Club
-          </button>
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error || "Club not found"}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
->>>>>>> Stashed changes
-  return (
-    <ClubGuard isContentLoading={clubLoading}>
->>>>>>> Stashed changes
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -644,11 +500,6 @@ function ClubReportsPageContent() {
                   ))}
                 </select>
               </div>
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
 
               <button
                 onClick={handleSetCurrentMonth}
@@ -657,8 +508,6 @@ function ClubReportsPageContent() {
                 Current Month
               </button>
 
-<<<<<<< Updated upstream
-=======
               <button
                 onClick={handleSetNextMonth}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -666,7 +515,6 @@ function ClubReportsPageContent() {
                 Next Month
               </button>
 
->>>>>>> Stashed changes
               <div className="ml-auto">
                 <button
                   onClick={openAddModal}
@@ -679,10 +527,6 @@ function ClubReportsPageContent() {
 
             <div className="mt-3 text-sm text-gray-600">
               Showing {sortedReports.length} report{sortedReports.length !== 1 ? "s" : ""} for {months[selectedMonth]} {selectedYear}
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
             </div>
           </div>
 
@@ -765,13 +609,6 @@ function ClubReportsPageContent() {
               </table>
             </div>
           )}
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-        </main>
-      </div>
-=======
->>>>>>> Stashed changes
         </div>
       </main>
 
@@ -783,15 +620,12 @@ function ClubReportsPageContent() {
               <h2 className="text-2xl font-bold text-gray-900">Add Tower Report</h2>
             </div>
             <div className="px-6 py-4 space-y-4">
-<<<<<<< Updated upstream
-=======
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
->>>>>>> Stashed changes
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tower <span className="text-red-600">*</span>
@@ -812,8 +646,6 @@ function ClubReportsPageContent() {
                 </select>
               </div>
 
-<<<<<<< Updated upstream
-=======
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -854,7 +686,6 @@ function ClubReportsPageContent() {
                 </div>
               </div>
 
->>>>>>> Stashed changes
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description <span className="text-red-600">*</span>
@@ -956,10 +787,6 @@ export default function ClubReportsPage() {
   return (
     <ClubGuard>
       <ClubReportsPageContent />
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
     </ClubGuard>
   );
 }
