@@ -20,8 +20,10 @@ function ClubTowersPageContent() {
   const [towerFormData, setTowerFormData] = useState({
     name: "",
     description: "",
+    owner_id: undefined as number | undefined,
   });
   const [editingTowerId, setEditingTowerId] = useState<number | null>(null);
+  const [clubUsers, setClubUsers] = useState<User[]>([]);
   const [creatingTower, setCreatingTower] = useState(false);
   const [deletingTowerId, setDeletingTowerId] = useState<number | null>(null);
   const [towerIssues, setTowerIssues] = useState<Record<number, Issue[]>>({});
@@ -67,17 +69,19 @@ function ClubTowersPageContent() {
       const towersData = await apiClient.getTowersByClubId(clubId, authToken);
       setTowers(towersData);
 
-      // Find current user
+      // Find current user and fetch club users
       if (clerkUser?.id) {
         try {
-          const clubUsers = await apiClient.getClubUsers(clubId, authToken);
+          const clubUsersData = await apiClient.getClubUsers(clubId, authToken);
           const clubUsersList: User[] = [];
-          for (const item of clubUsers) {
+          for (const item of clubUsersData) {
             const userItem = (item as any).user;
             if (userItem) {
               clubUsersList.push(userItem);
             }
           }
+          setClubUsers(clubUsersList);
+
           const matchedUser = clubUsersList.find((u) => u.token === clerkUser.id);
           if (matchedUser) {
             setCurrentUser(matchedUser);
@@ -117,7 +121,7 @@ function ClubTowersPageContent() {
       const result = await apiClient.createTower(clubId, towerFormData, token);
 
       if (result.created) {
-        setTowerFormData({ name: "", description: "" });
+        setTowerFormData({ name: "", description: "", owner_id: undefined });
         await fetchTowers();
       } else {
         setError("Failed to create tower");
@@ -149,7 +153,7 @@ function ClubTowersPageContent() {
       const result = await apiClient.updateTower(clubId, towerId, towerFormData, token);
 
       if (result.updated) {
-        setTowerFormData({ name: "", description: "" });
+        setTowerFormData({ name: "", description: "", owner_id: undefined });
         setEditingTowerId(null);
         await fetchTowers();
       } else {
@@ -195,7 +199,11 @@ function ClubTowersPageContent() {
   };
 
   const startEditingTower = (tower: Tower) => {
-    setTowerFormData({ name: tower.name, description: tower.description || "" });
+    setTowerFormData({
+      name: tower.name,
+      description: tower.description || "",
+      owner_id: tower.owner_id,
+    });
     setEditingTowerId(tower.id);
   };
 
@@ -449,6 +457,30 @@ function ClubTowersPageContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Owner (Optional)
+                </label>
+                <select
+                  value={towerFormData.owner_id || ""}
+                  onChange={(e) =>
+                    setTowerFormData({
+                      ...towerFormData,
+                      owner_id: e.target.value ? Number(e.target.value) : undefined,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">No Owner</option>
+                  {clubUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.first_name && user.last_name
+                        ? `${user.first_name} ${user.last_name}`
+                        : user.name || user.email || `User ${user.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex gap-2">
                 {editingTowerId ? (
                   <>
@@ -461,7 +493,7 @@ function ClubTowersPageContent() {
                     </button>
                     <button
                       onClick={() => {
-                        setTowerFormData({ name: "", description: "" });
+                        setTowerFormData({ name: "", description: "", owner_id: undefined });
                         setEditingTowerId(null);
                       }}
                       className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-2 focus:ring-gray-400"
@@ -500,24 +532,40 @@ function ClubTowersPageContent() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Owner
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {towers.map((tower) => (
-                  <tr key={tower.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {tower.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {tower.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {tower.description || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                {towers.map((tower) => {
+                  const owner = tower.owner_id
+                    ? clubUsers.find((u) => u.id === tower.owner_id)
+                    : null;
+                  const ownerName = owner
+                    ? owner.first_name && owner.last_name
+                      ? `${owner.first_name} ${owner.last_name}`
+                      : owner.name || owner.email || `User ${owner.id}`
+                    : "-";
+
+                  return (
+                    <tr key={tower.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {tower.id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {tower.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {tower.description || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {ownerName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       <button
                         onClick={() => {
                           setSelectedTowerForIssues(tower.id);
@@ -545,7 +593,8 @@ function ClubTowersPageContent() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
