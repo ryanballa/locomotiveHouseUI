@@ -3,20 +3,61 @@ export interface Appointment {
   schedule: string;
   duration: number;
   user_id: number;
+  scheduled_session_id?: number;
 }
 
+/**
+ * Represents a user in the Locomotive House system
+ *
+ * User data is primarily stored in the backend database with first_name/last_name
+ * being synced from Clerk during profile completion. The 'name' field is kept
+ * for backwards compatibility.
+ *
+ * @property id - Database user ID
+ * @property token - Clerk user ID (used as the token/identifier)
+ * @property first_name - User's first name (from Clerk profile, synced to DB)
+ * @property last_name - User's last name (from Clerk profile, synced to DB)
+ * @property email - User's email address (from Clerk, stored in DB)
+ * @property name - Full name or display name (deprecated, use first_name/last_name instead)
+ * @property permission - Permission level: 1 = Admin, 2 = Regular, 3 = Super Admin
+ * @property clubs - Array of club assignments for this user
+ */
 export interface User {
+  /** Database user ID */
   id: number;
+
+  /** Clerk user ID (used as token for authentication) */
   token: string;
-  name?: string;
+
+  /** User's first name (from Clerk profile, synced after profile completion) */
+  first_name?: string;
+
+  /** User's last name (from Clerk profile, synced after profile completion) */
+  last_name?: string;
+
+  /** User's email address */
   email?: string;
+
+  /** Full name or display name (deprecated - use firstName + lastName instead) */
+  name?: string;
+
+  /** Permission level (null, 1=Admin, 2=Regular, 3=Super Admin) */
   permission: number | null;
-  club_id?: number | null;
+
+  /** Array of clubs this user is assigned to */
+  clubs: UserClubRelation[] | null;
 }
 
 export interface Club {
   id: number;
   name: string;
+  description?: string;
+  hero_image?: string;
+}
+
+export interface UserClubRelation {
+  user_id?: number;
+  club_id: number;
 }
 
 export interface Address {
@@ -28,6 +69,95 @@ export interface Address {
   club_id?: number;
 }
 
+export interface Tower {
+  id: number;
+  name: string;
+  description?: string;
+  club_id: number;
+  owner_id?: number;
+}
+
+export interface ScheduledSession {
+  id: number;
+  schedule: string | Date;
+  club_id: number;
+  description?: string;
+}
+
+export interface Notice {
+  id: number;
+  club_id: number;
+  description: string;
+  type?: string;
+  expires_at?: string | Date;
+  is_public?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Represents an application in the system.
+ *
+ * Applications are membership applications submitted to a specific club.
+ * They contain applicant information and responses to club membership questions.
+ *
+ * @property id - Unique identifier for the application (auto-generated, omit when creating)
+ * @property club_id - ID of the club this application belongs to (required, immutable after creation)
+ * @property name - Applicant's name (optional)
+ * @property email - Applicant's email address (optional)
+ * @property birthday - Applicant's date of birth (optional)
+ * @property occupation - Applicant's occupation (optional)
+ * @property interested_scale - Scale of interest (optional)
+ * @property special_interests - Special interests of the applicant (optional)
+ * @property has_home_layout - Whether applicant has a home layout (optional)
+ * @property collection_size - Size of applicant's collection (optional)
+ * @property has_other_model_railroad_associations - Whether applicant is member of other associations (optional)
+ * @property will_agree_to_club_rules - Whether applicant agrees to club rules (optional)
+ * @property created_at - Timestamp when the application was created (auto-generated, omit when creating)
+ * @property updated_at - Timestamp when the application was last updated (auto-generated, omit when creating)
+ */
+export interface Application {
+  id: number;
+  club_id: number;
+  name?: string;
+  email?: string;
+  birthday?: string | Date;
+  occupation?: string;
+  interested_scale?: string;
+  special_interests?: string;
+  has_home_layout?: boolean;
+  collection_size?: string;
+  has_other_model_railroad_associations?: boolean;
+  will_agree_to_club_rules?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TowerReport {
+  id: number;
+  tower_id: number;
+  club_id?: number;
+  user_id?: number;
+  description?: string;
+  report_at?: string | Date;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type IssueStatus = "Open" | "In Progress" | "Done" | "Closed";
+
+export interface Issue {
+  id: number;
+  tower_id: number;
+  user_id: number;
+  title: string;
+  type: string;
+  description?: string;
+  status: IssueStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface ApiResponse<T> {
   result?: T[];
   error?: string;
@@ -36,10 +166,12 @@ interface ApiResponse<T> {
   deleted?: boolean;
   joined?: boolean;
   id?: number;
-  club?: {
-    data?: T[];
-    error?: string;
-  } | T[]; // Can be either { data: [...] } or directly [...]
+  club?:
+    | {
+        data?: T[];
+        error?: string;
+      }
+    | T[]; // Can be either { data: [...] } or directly [...]
   address?: any;
 }
 
@@ -47,7 +179,8 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    this.baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
   }
 
   private async fetch<T>(
@@ -60,7 +193,7 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...options.headers,
         },
       });
@@ -72,20 +205,17 @@ class ApiClient {
         } catch {
           errorData = { error: response.statusText };
         }
-        const errorMessage = errorData.error || errorData.message || `API request failed with status ${response.status}`;
-        console.error('API Error:', {
-          url,
-          status: response.status,
-          error: errorMessage,
-          body: options.body,
-          fullResponse: errorData,
-        });
+        let errorMessage =
+          errorData.error ||
+          errorData.message ||
+          `API request failed with status ${response.status}`;
+
         throw new Error(errorMessage);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('API Error:', error);
+      console.error("API Error:", error);
       throw error;
     }
   }
@@ -94,38 +224,44 @@ class ApiClient {
   async getAppointments(token?: string): Promise<Appointment[]> {
     const headers: HeadersInit = {};
     if (token) {
-      headers['authorization'] = `Bearer ${token}`;
+      headers["authorization"] = `Bearer ${token}`;
     }
 
-    const response = await this.fetch<Appointment>('/appointments/', {
-      method: 'GET',
+    const response = await this.fetch<Appointment>("/appointments/", {
+      method: "GET",
       headers,
     });
 
     return response.result || [];
   }
 
-  async getClubAppointments(clubId: number, token?: string): Promise<Appointment[]> {
+  async getClubAppointments(
+    clubId: number,
+    token?: string
+  ): Promise<Appointment[]> {
     const headers: HeadersInit = {};
     if (token) {
-      headers['authorization'] = `Bearer ${token}`;
+      headers["authorization"] = `Bearer ${token}`;
     }
 
-    const response = await this.fetch<Appointment>(`/clubs/${clubId}/appointments`, {
-      method: 'GET',
-      headers,
-    });
+    const response = await this.fetch<Appointment>(
+      `/clubs/${clubId}/appointments`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
 
     // Backend returns { appointments: [...] } for club-scoped appointments
     return (response as any).appointments || response.result || [];
   }
 
   async createAppointment(
-    data: Omit<Appointment, 'id'>,
+    data: Omit<Appointment, "id">,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const response = await this.fetch<Appointment>('/appointments/', {
-      method: 'POST',
+    const response = await this.fetch<Appointment>("/appointments/", {
+      method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -140,11 +276,11 @@ class ApiClient {
 
   async updateAppointment(
     id: number,
-    data: Partial<Omit<Appointment, 'id'>>,
+    data: Partial<Omit<Appointment, "id">>,
     token: string
   ): Promise<{ updated: boolean }> {
     const response = await this.fetch<Appointment>(`/appointments/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -161,7 +297,7 @@ class ApiClient {
     token: string
   ): Promise<{ deleted: boolean }> {
     const response = await this.fetch<Appointment>(`/appointments/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -172,10 +308,32 @@ class ApiClient {
     };
   }
 
+  async getScheduledSessionAppointments(
+    clubId: number,
+    sessionId: number,
+    token?: string
+  ): Promise<Appointment[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Appointment>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}/appointments`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    // Backend returns { appointments: [...] } for this endpoint
+    return (response as any).appointments || response.result || [];
+  }
+
   // Users API
   async getUsers(token: string): Promise<User[]> {
-    const response = await this.fetch<User>('/users/', {
-      method: 'GET',
+    const response = await this.fetch<User>("/users", {
+      method: "GET",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -186,46 +344,68 @@ class ApiClient {
 
   async getCurrentUser(token: string): Promise<User | null> {
     try {
-      const response = await this.fetch<User>('/users/me', {
-        method: 'GET',
+      const response = await this.fetch<User>("/users/me", {
+        method: "GET",
         headers: {
           authorization: `Bearer ${token}`,
         },
       });
 
       // Handle different response formats
+      let user: any = null;
+
       if ((response as any).user) {
-        return (response as any).user as User;
+        user = (response as any).user;
+      } else if (response.result && response.result.length > 0) {
+        user = response.result[0];
       }
-      if (response.result && response.result.length > 0) {
-        return response.result[0];
+
+      if (!user) {
+        return null;
       }
-      return null;
+
+      // Use the snake_case fields from backend
+      const convertedUser: User = {
+        id: user.id,
+        token: user.token,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        name: user.name,
+        permission: user.permission,
+        clubs: user.clubs,
+      };
+
+      return convertedUser;
     } catch (error) {
-      console.error('Error fetching current user:', error);
+      console.error("Error fetching current user:", error);
       return null;
     }
   }
 
-  async getClerkUserInfo(clerkUserId: string): Promise<{ name?: string; email?: string }> {
+  async getClerkUserInfo(
+    clerkUserId: string
+  ): Promise<{ name?: string; email?: string }> {
     try {
-      const response = await fetch(`/api/clerk-user/${encodeURIComponent(clerkUserId)}`);
+      const response = await fetch(
+        `/api/clerk-user/${encodeURIComponent(clerkUserId)}`
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch Clerk user info');
+        throw new Error("Failed to fetch Clerk user info");
       }
       return await response.json();
     } catch (error) {
-      console.error('Error fetching Clerk user info:', error);
+      console.error("Error fetching Clerk user info:", error);
       return {};
     }
   }
 
   async createUser(
-    data: Omit<User, 'id'>,
+    data: Omit<User, "id">,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const response = await this.fetch<User>('/users/', {
-      method: 'POST',
+    const response = await this.fetch<User>("/users/", {
+      method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -240,11 +420,11 @@ class ApiClient {
 
   async updateUser(
     id: number,
-    data: Partial<Omit<User, 'id'>>,
+    data: Partial<Omit<User, "id">>,
     token: string
   ): Promise<{ updated: boolean; clubId?: number | null }> {
-    const response = await this.fetch<User>(`/users/${id}/`, {
-      method: 'PUT',
+    const response = await this.fetch<User>(`/users/${id}`, {
+      method: "PUT",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -252,7 +432,16 @@ class ApiClient {
     });
 
     // Handle different response formats
-    const updated = response.updated || (response as any).assigned || (response.result && response.result.length > 0) || ((response as any).user && !Array.isArray((response as any).user) && (response as any).user.id) || ((response as any).user && Array.isArray((response as any).user) && (response as any).user.length > 0);
+    const updated =
+      response.updated ||
+      (response as any).assigned ||
+      (response.result && response.result.length > 0) ||
+      ((response as any).user &&
+        !Array.isArray((response as any).user) &&
+        (response as any).user.id) ||
+      ((response as any).user &&
+        Array.isArray((response as any).user) &&
+        (response as any).user.length > 0);
 
     // Extract club_id from the clubs array if present
     let clubId: number | null | undefined = undefined;
@@ -274,8 +463,8 @@ class ApiClient {
     clubId: number,
     token: string
   ): Promise<{ removed: boolean }> {
-    const response = await this.fetch<any>(`/users/${userId}/clubs/${clubId}`, {
-      method: 'DELETE',
+    const response = await this.fetch<any>(`/clubs/${clubId}/users/${userId}`, {
+      method: "DELETE",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -289,10 +478,44 @@ class ApiClient {
     };
   }
 
+  async assignUserToClub(
+    userId: number,
+    clubId: number,
+    permission: number,
+    token: string
+  ): Promise<{ updated: boolean; clubId?: number }> {
+    const response = (await this.fetch<any>(
+      `/clubs/${clubId}/users/${userId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          permission: permission,
+        }),
+      }
+    )) as {
+      updated?: boolean;
+      created?: boolean;
+      assigned?: boolean;
+      user_id: number;
+      club_id: number;
+      permission: number;
+      data?: any;
+    };
+
+    return {
+      updated:
+        response.updated || response.created || response.assigned || false,
+      clubId: response.club_id,
+    };
+  }
+
   // Clubs API
   async getClubs(token: string): Promise<Club[]> {
-    const response = await this.fetch<Club>('/clubs/', {
-      method: 'GET',
+    const response = await this.fetch<Club>("/clubs/", {
+      method: "GET",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -302,11 +525,11 @@ class ApiClient {
   }
 
   async createClub(
-    data: Omit<Club, 'id'>,
+    data: Omit<Club, "id">,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const response = await this.fetch<Club>('/clubs/', {
-      method: 'POST',
+    const response = await this.fetch<Club>("/clubs/", {
+      method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -314,7 +537,9 @@ class ApiClient {
     });
 
     // The API returns { club: { data: [...] } } format
-    const created = !!((response as any).club?.data && (response as any).club.data.length > 0);
+    const created = !!(
+      (response as any).club?.data && (response as any).club.data.length > 0
+    );
     const id = created ? (response as any).club?.data?.[0]?.id : undefined;
 
     return {
@@ -325,11 +550,11 @@ class ApiClient {
 
   async updateClub(
     id: number,
-    data: Partial<Omit<Club, 'id'>>,
+    data: Partial<Omit<Club, "id">>,
     token: string
   ): Promise<{ updated: boolean }> {
     const response = await this.fetch<Club>(`/clubs/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -337,19 +562,20 @@ class ApiClient {
     });
 
     // The API returns { club: [...] } format (array directly)
-    const updated = !!(response.club && Array.isArray(response.club) && response.club.length > 0);
+    const updated = !!(
+      response.club &&
+      Array.isArray(response.club) &&
+      response.club.length > 0
+    );
 
     return {
       updated,
     };
   }
 
-  async deleteClub(
-    id: number,
-    token: string
-  ): Promise<{ deleted: boolean }> {
+  async deleteClub(id: number, token: string): Promise<{ deleted: boolean }> {
     const response = await this.fetch<Club>(`/clubs/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -360,18 +586,24 @@ class ApiClient {
     };
   }
 
-  async getClubById(id: number, token: string): Promise<Club | null> {
+  async getClubById(id: number, token?: string): Promise<Club | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
     const response = await this.fetch<Club>(`/clubs/${id}`, {
-      method: 'GET',
-      headers: {
-        authorization: `Bearer ${token}`,
-      },
+      method: "GET",
+      headers,
     });
 
     // Handle different response formats
     if ((response as any).club) {
       // If club is a single object (not an array)
-      if (!Array.isArray((response as any).club) && typeof (response as any).club === 'object') {
+      if (
+        !Array.isArray((response as any).club) &&
+        typeof (response as any).club === "object"
+      ) {
         return (response as any).club as Club;
       }
       // If club is an array
@@ -379,7 +611,10 @@ class ApiClient {
         return ((response as any).club[0] || null) as Club | null;
       }
       // If club has a nested data array
-      if ((response as any).club.data && (response as any).club.data.length > 0) {
+      if (
+        (response as any).club.data &&
+        (response as any).club.data.length > 0
+      ) {
         return (response as any).club.data[0];
       }
     }
@@ -391,7 +626,7 @@ class ApiClient {
 
   async getClubUsers(clubId: number, token: string): Promise<User[]> {
     const response = await this.fetch<User>(`/clubs/${clubId}/users`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -422,14 +657,22 @@ class ApiClient {
   async validateInviteToken(
     inviteToken: string,
     token: string
-  ): Promise<{ valid: boolean; clubId?: number; clubName?: string; error?: string }> {
+  ): Promise<{
+    valid: boolean;
+    clubId?: number;
+    clubName?: string;
+    error?: string;
+  }> {
     try {
-      const response = await this.fetch<any>(`/clubs/invite/validate?token=${encodeURIComponent(inviteToken)}`, {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await this.fetch<any>(
+        `/clubs/invite/validate?token=${encodeURIComponent(inviteToken)}`,
+        {
+          method: "GET",
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.error) {
         return {
@@ -444,7 +687,7 @@ class ApiClient {
       if (!isValid) {
         return {
           valid: false,
-          error: 'Invalid token response from server',
+          error: "Invalid token response from server",
         };
       }
 
@@ -453,13 +696,16 @@ class ApiClient {
       let clubId: number | undefined;
       let clubName: string | undefined;
 
-      if (club && typeof club === 'object') {
+      if (club && typeof club === "object") {
         clubId = club.id;
         clubName = club.name;
       } else {
         // Fallback to top-level fields
         clubId = (response as any).club_id || (response as any).clubId;
-        clubName = (response as any).club_name || (response as any).clubName || (response as any).name;
+        clubName =
+          (response as any).club_name ||
+          (response as any).clubName ||
+          (response as any).name;
       }
 
       if (clubId && clubName) {
@@ -472,10 +718,11 @@ class ApiClient {
 
       return {
         valid: false,
-        error: 'Missing club information in response',
+        error: "Missing club information in response",
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to validate invite token';
+      const message =
+        err instanceof Error ? err.message : "Failed to validate invite token";
       return {
         valid: false,
         error: message,
@@ -517,23 +764,32 @@ class ApiClient {
         body.rolePermission = rolePermission;
       }
 
-      const response = await this.fetch<any>(`/clubs/${clubId}/join?invite=${encodeURIComponent(inviteToken)}`, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
-      });
+      const response = await this.fetch<any>(
+        `/clubs/${clubId}/join?invite=${encodeURIComponent(inviteToken)}`,
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+          body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
+        }
+      );
 
       // Check if join was successful - backend returns { joined: true, club_id, user_id, club_name }
-      const joined = !response.error && (response.joined || response.created || response.updated || !!(response.result && response.result.length > 0));
+      const joined =
+        !response.error &&
+        (response.joined ||
+          response.created ||
+          response.updated ||
+          !!(response.result && response.result.length > 0));
 
       return {
         joined,
         error: response.error,
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to join club';
+      const message =
+        err instanceof Error ? err.message : "Failed to join club";
       return {
         joined: false,
         error: message,
@@ -545,11 +801,11 @@ class ApiClient {
   async getAddresses(token?: string): Promise<Address[]> {
     const headers: HeadersInit = {};
     if (token) {
-      headers['authorization'] = `Bearer ${token}`;
+      headers["authorization"] = `Bearer ${token}`;
     }
 
-    const response = await this.fetch<Address>('/addresses/', {
-      method: 'GET',
+    const response = await this.fetch<Address>("/addresses/", {
+      method: "GET",
       headers,
     });
 
@@ -559,11 +815,11 @@ class ApiClient {
   async getClubAddresses(clubId: number, token?: string): Promise<Address[]> {
     const headers: HeadersInit = {};
     if (token) {
-      headers['authorization'] = `Bearer ${token}`;
+      headers["authorization"] = `Bearer ${token}`;
     }
 
     const response = await this.fetch<Address>(`/clubs/${clubId}/addresses`, {
-      method: 'GET',
+      method: "GET",
       headers,
     });
 
@@ -572,11 +828,11 @@ class ApiClient {
   }
 
   async createAddress(
-    data: Omit<Address, 'id'>,
+    data: Omit<Address, "id">,
     token: string
   ): Promise<{ created: boolean; id?: number }> {
-    const response = await this.fetch<Address>('/addresses/', {
-      method: 'POST',
+    const response = await this.fetch<Address>("/addresses/", {
+      method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -588,7 +844,10 @@ class ApiClient {
     let id: number | undefined = undefined;
 
     // Check if response.address.data exists (new format)
-    if ((response as any).address?.data && Array.isArray((response as any).address.data)) {
+    if (
+      (response as any).address?.data &&
+      Array.isArray((response as any).address.data)
+    ) {
       const addressData = (response as any).address.data[0];
       if (addressData?.id) {
         created = true;
@@ -599,13 +858,25 @@ class ApiClient {
     else if (response.created) {
       created = true;
       id = response.id;
-    } else if ((response as any).address && !Array.isArray((response as any).address) && (response as any).address.id) {
+    } else if (
+      (response as any).address &&
+      !Array.isArray((response as any).address) &&
+      (response as any).address.id
+    ) {
       created = true;
       id = (response as any).address.id;
-    } else if ((response as any).address && Array.isArray((response as any).address) && (response as any).address.length > 0) {
+    } else if (
+      (response as any).address &&
+      Array.isArray((response as any).address) &&
+      (response as any).address.length > 0
+    ) {
       created = true;
       id = (response as any).address[0]?.id;
-    } else if ((response as any).result && Array.isArray((response as any).result) && (response as any).result.length > 0) {
+    } else if (
+      (response as any).result &&
+      Array.isArray((response as any).result) &&
+      (response as any).result.length > 0
+    ) {
       created = true;
       id = (response as any).result[0]?.id;
     }
@@ -618,11 +889,11 @@ class ApiClient {
 
   async updateAddress(
     id: number,
-    data: Partial<Omit<Address, 'id'>>,
+    data: Partial<Omit<Address, "id">>,
     token: string
   ): Promise<{ updated: boolean }> {
     const response = await this.fetch<Address>(`/addresses/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -633,13 +904,23 @@ class ApiClient {
     let updated = false;
 
     // Check if response.address.data exists
-    if ((response as any).address?.data && Array.isArray((response as any).address.data)) {
+    if (
+      (response as any).address?.data &&
+      Array.isArray((response as any).address.data)
+    ) {
       updated = (response as any).address.data.length > 0;
     } else if (response.updated) {
       updated = true;
-    } else if ((response as any).address && !Array.isArray((response as any).address) && (response as any).address.id) {
+    } else if (
+      (response as any).address &&
+      !Array.isArray((response as any).address) &&
+      (response as any).address.id
+    ) {
       updated = true;
-    } else if ((response as any).address && Array.isArray((response as any).address)) {
+    } else if (
+      (response as any).address &&
+      Array.isArray((response as any).address)
+    ) {
       updated = (response as any).address.length > 0;
     }
 
@@ -653,7 +934,7 @@ class ApiClient {
     token: string
   ): Promise<{ deleted: boolean }> {
     const response = await this.fetch<Address>(`/addresses/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -663,13 +944,23 @@ class ApiClient {
     let deleted = false;
 
     // Check if response.address.data exists
-    if ((response as any).address?.data && Array.isArray((response as any).address.data)) {
+    if (
+      (response as any).address?.data &&
+      Array.isArray((response as any).address.data)
+    ) {
       deleted = (response as any).address.data.length > 0;
     } else if (response.deleted) {
       deleted = true;
-    } else if ((response as any).address && !Array.isArray((response as any).address) && (response as any).address.id) {
+    } else if (
+      (response as any).address &&
+      !Array.isArray((response as any).address) &&
+      (response as any).address.id
+    ) {
       deleted = true;
-    } else if ((response as any).address && Array.isArray((response as any).address)) {
+    } else if (
+      (response as any).address &&
+      Array.isArray((response as any).address)
+    ) {
       deleted = (response as any).address.length > 0;
     }
 
@@ -687,7 +978,8 @@ class ApiClient {
   ): Promise<{ created: boolean; token?: string; error?: string }> {
     try {
       const body: any = {
-        expiresAt: typeof expiresAt === 'string' ? expiresAt : expiresAt.toISOString(),
+        expiresAt:
+          typeof expiresAt === "string" ? expiresAt : expiresAt.toISOString(),
       };
 
       // Include role permission if specified
@@ -696,7 +988,7 @@ class ApiClient {
       }
 
       const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
-        method: 'POST',
+        method: "POST",
         headers: {
           authorization: `Bearer ${token}`,
         },
@@ -715,7 +1007,8 @@ class ApiClient {
         token: (response as any).token,
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create invite token';
+      const message =
+        err instanceof Error ? err.message : "Failed to create invite token";
       return {
         created: false,
         error: message,
@@ -729,7 +1022,7 @@ class ApiClient {
   ): Promise<Array<{ token: string; expiresAt: string; createdAt?: string }>> {
     try {
       const response = await this.fetch<any>(`/clubs/${clubId}/invite-tokens`, {
-        method: 'GET',
+        method: "GET",
         headers: {
           authorization: `Bearer ${token}`,
         },
@@ -747,7 +1040,7 @@ class ApiClient {
         createdAt: token.created_at,
       }));
     } catch (err) {
-      console.error('Error fetching invite tokens:', err);
+      console.error("Error fetching invite tokens:", err);
       return [];
     }
   }
@@ -761,7 +1054,7 @@ class ApiClient {
       const response = await this.fetch<any>(
         `/clubs/${clubId}/invite-tokens/${encodeURIComponent(inviteToken)}`,
         {
-          method: 'DELETE',
+          method: "DELETE",
           headers: {
             authorization: `Bearer ${token}`,
           },
@@ -779,12 +1072,997 @@ class ApiClient {
         deleted: !!(response as any).deleted,
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete invite token';
+      const message =
+        err instanceof Error ? err.message : "Failed to delete invite token";
       return {
         deleted: false,
         error: message,
       };
     }
+  }
+
+  // Towers API
+  async getTowersByClubId(clubId: number, token?: string): Promise<Tower[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers`, {
+      method: "GET",
+      headers,
+    });
+
+    // Backend returns { result: [...] } for club-scoped towers
+    return response.result || [];
+  }
+
+  async getTowerById(
+    clubId: number,
+    towerId: number,
+    token?: string
+  ): Promise<Tower | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Tower>(
+      `/clubs/${clubId}/towers/${towerId}`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    // Handle different response formats
+    if ((response as any).tower) {
+      return (response as any).tower;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  async createTower(
+    clubId: number,
+    data: Omit<Tower, "id" | "club_id">,
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    const towerData = {
+      ...data,
+      club_id: clubId,
+    };
+
+    const response = await this.fetch<Tower>(`/clubs/${clubId}/towers`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(towerData),
+    });
+
+    // Handle different response formats
+    let created = false;
+    let id: number | undefined = undefined;
+
+    if (response.created) {
+      created = true;
+      id = response.id;
+    } else if (
+      (response as any).tower?.data &&
+      Array.isArray((response as any).tower.data)
+    ) {
+      const towerData = (response as any).tower.data[0];
+      if (towerData?.id) {
+        created = true;
+        id = towerData.id;
+      }
+    } else if (
+      (response as any).result &&
+      Array.isArray((response as any).result) &&
+      (response as any).result.length > 0
+    ) {
+      created = true;
+      id = (response as any).result[0]?.id;
+    }
+
+    return {
+      created: !!created,
+      id,
+    };
+  }
+
+  async updateTower(
+    clubId: number,
+    towerId: number,
+    data: Partial<Omit<Tower, "id">>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const response = await this.fetch<Tower>(
+      `/clubs/${clubId}/towers/${towerId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    // Handle different response formats
+    let updated = false;
+
+    if (response.updated) {
+      updated = true;
+    } else if (
+      (response as any).tower?.data &&
+      Array.isArray((response as any).tower.data)
+    ) {
+      updated = (response as any).tower.data.length > 0;
+    } else if (
+      (response as any).tower &&
+      !Array.isArray((response as any).tower)
+    ) {
+      updated = true;
+    }
+
+    return {
+      updated: !!updated,
+    };
+  }
+
+  async deleteTower(
+    clubId: number,
+    towerId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Tower>(
+      `/clubs/${clubId}/towers/${towerId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Handle different response formats
+    let deleted = false;
+
+    if (response.deleted) {
+      deleted = true;
+    } else if (
+      (response as any).tower?.data &&
+      Array.isArray((response as any).tower.data)
+    ) {
+      deleted = (response as any).tower.data.length > 0;
+    } else if (
+      (response as any).tower &&
+      !Array.isArray((response as any).tower)
+    ) {
+      deleted = true;
+    }
+
+    return {
+      deleted: !!deleted,
+    };
+  }
+
+  // Tower Reports API
+  async getTowerReportsByClubId(
+    clubId: number,
+    token?: string
+  ): Promise<TowerReport[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<TowerReport>(`/clubs/${clubId}/reports`, {
+      method: "GET",
+      headers,
+    });
+
+    // Backend returns { result: [...] } for club-scoped reports
+    return response.result || [];
+  }
+
+  async getTowerReportsByTowerId(
+    clubId: number,
+    towerId: number,
+    token?: string
+  ): Promise<TowerReport[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<TowerReport>(
+      `/clubs/${clubId}/towers/${towerId}/reports`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    return response.result || [];
+  }
+
+  async getTowerReportById(
+    clubId: number,
+    towerId: number,
+    reportId: number,
+    token?: string
+  ): Promise<TowerReport | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<TowerReport>(
+      `/clubs/${clubId}/towers/${towerId}/reports/${reportId}`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    // Handle different response formats
+    if ((response as any).report) {
+      return (response as any).report;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  async createTowerReport(
+    clubId: number,
+    towerId: number,
+    data: Omit<TowerReport, "id" | "club_id" | "created_at" | "updated_at"> & {
+      user_id: number;
+    },
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    // Send description, report_at, tower_id, and user_id to backend
+    const reportData = {
+      tower_id: towerId,
+      user_id: data.user_id,
+      ...(data.description && { description: data.description }),
+      ...(data.report_at && { report_at: data.report_at }),
+    };
+
+    const response = await this.fetch<TowerReport>(
+      `/clubs/${clubId}/towers/${towerId}/reports`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(reportData),
+      }
+    );
+
+    // Handle different response formats
+    let created = false;
+    let id: number | undefined = undefined;
+
+    if (response.created) {
+      created = true;
+      id = response.id;
+    } else if (
+      (response as any).report?.data &&
+      Array.isArray((response as any).report.data)
+    ) {
+      const reportData = (response as any).report.data[0];
+      if (reportData?.id) {
+        created = true;
+        id = reportData.id;
+      }
+    } else if (
+      (response as any).result &&
+      Array.isArray((response as any).result) &&
+      (response as any).result.length > 0
+    ) {
+      created = true;
+      id = (response as any).result[0]?.id;
+    }
+
+    return {
+      created: !!created,
+      id,
+    };
+  }
+
+  async updateTowerReport(
+    clubId: number,
+    towerId: number,
+    reportId: number,
+    data: Partial<
+      Omit<
+        TowerReport,
+        "id" | "tower_id" | "club_id" | "created_at" | "updated_at"
+      >
+    >,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const response = await this.fetch<TowerReport>(
+      `/clubs/${clubId}/towers/${towerId}/reports/${reportId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    // Handle different response formats
+    let updated = false;
+
+    if (response.updated) {
+      updated = true;
+    } else if (
+      (response as any).report?.data &&
+      Array.isArray((response as any).report.data)
+    ) {
+      updated = (response as any).report.data.length > 0;
+    } else if (
+      (response as any).report &&
+      !Array.isArray((response as any).report)
+    ) {
+      updated = true;
+    }
+
+    return {
+      updated: !!updated,
+    };
+  }
+
+  async deleteTowerReport(
+    clubId: number,
+    towerId: number,
+    reportId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<TowerReport>(
+      `/clubs/${clubId}/towers/${towerId}/reports/${reportId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Handle different response formats
+    let deleted = false;
+
+    if (response.deleted) {
+      deleted = true;
+    } else if (
+      (response as any).report?.data &&
+      Array.isArray((response as any).report.data)
+    ) {
+      deleted = (response as any).report.data.length > 0;
+    } else if (
+      (response as any).report &&
+      !Array.isArray((response as any).report)
+    ) {
+      deleted = true;
+    }
+
+    return {
+      deleted: !!deleted,
+    };
+  }
+
+  // Issues API
+  /**
+   * Fetch all issues for a specific tower
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param token - Authentication token
+   * @returns Array of issues for the tower
+   */
+  async getIssuesByTowerId(
+    clubId: number,
+    towerId: number,
+    token?: string
+  ): Promise<Issue[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    return response.result || [];
+  }
+
+  /**
+   * Fetch a single issue by ID
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param issueId - The issue ID
+   * @param token - Authentication token
+   * @returns Single issue or null if not found
+   */
+  async getIssueById(
+    clubId: number,
+    towerId: number,
+    issueId: number,
+    token?: string
+  ): Promise<Issue | null> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues/${issueId}`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    if ((response as any).issue) {
+      return (response as any).issue;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  /**
+   * Create a new issue for a tower
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param data - Issue data (title, type, description, status, user_id)
+   * @param token - Authentication token
+   * @returns Object with created flag and issue ID
+   */
+  async createIssue(
+    clubId: number,
+    towerId: number,
+    data: Omit<Issue, "id" | "tower_id" | "created_at" | "updated_at">,
+    token: string
+  ): Promise<{ created: boolean; id?: number }> {
+    const issueData = {
+      ...data,
+      tower_id: towerId,
+    };
+
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(issueData),
+      }
+    );
+
+    // Handle different response formats
+    let created = false;
+    let id: number | undefined = undefined;
+
+    if (response.created) {
+      created = true;
+      id = response.id;
+    } else if (
+      (response as any).issue?.data &&
+      Array.isArray((response as any).issue.data)
+    ) {
+      const issueData = (response as any).issue.data[0];
+      if (issueData?.id) {
+        created = true;
+        id = issueData.id;
+      }
+    } else if (
+      (response as any).result &&
+      Array.isArray((response as any).result) &&
+      (response as any).result.length > 0
+    ) {
+      created = true;
+      id = (response as any).result[0]?.id;
+    }
+
+    return {
+      created: !!created,
+      id,
+    };
+  }
+
+  /**
+   * Update an existing issue
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param issueId - The issue ID to update
+   * @param data - Partial issue data to update
+   * @param token - Authentication token
+   * @returns Object with updated flag
+   */
+  async updateIssue(
+    clubId: number,
+    towerId: number,
+    issueId: number,
+    data: Partial<Omit<Issue, "id" | "tower_id" | "created_at" | "updated_at">>,
+    token: string
+  ): Promise<{ updated: boolean }> {
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues/${issueId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    // Handle different response formats
+    let updated = false;
+
+    if (response.updated) {
+      updated = true;
+    } else if (
+      (response as any).issue?.data &&
+      Array.isArray((response as any).issue.data)
+    ) {
+      updated = (response as any).issue.data.length > 0;
+    } else if (
+      (response as any).issue &&
+      !Array.isArray((response as any).issue)
+    ) {
+      updated = true;
+    }
+
+    return {
+      updated: !!updated,
+    };
+  }
+
+  /**
+   * Delete an issue
+   * @param clubId - The club ID
+   * @param towerId - The tower ID
+   * @param issueId - The issue ID to delete
+   * @param token - Authentication token
+   * @returns Object with deleted flag
+   */
+  async deleteIssue(
+    clubId: number,
+    towerId: number,
+    issueId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Issue>(
+      `/clubs/${clubId}/towers/${towerId}/issues/${issueId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Handle different response formats
+    let deleted = false;
+
+    if (response.deleted) {
+      deleted = true;
+    } else if (
+      (response as any).issue?.data &&
+      Array.isArray((response as any).issue.data)
+    ) {
+      deleted = (response as any).issue.data.length > 0;
+    } else if (
+      (response as any).issue &&
+      !Array.isArray((response as any).issue)
+    ) {
+      deleted = true;
+    }
+
+    return {
+      deleted: !!deleted,
+    };
+  }
+
+  /**
+   * Fetch all issues across all clubs and towers
+   * Note: This is a convenience method that fetches all clubs and their towers' issues
+   * @param token - Authentication token (required for nested API calls)
+   * @returns Array of all issues with their tower and club information
+   */
+  /**
+   * Fetch all issues for a specific club (across all towers)
+   * @param clubId - The club ID
+   * @param token - Authentication token
+   * @returns Array of issues with tower names
+   */
+  async getIssuesByClubId(
+    clubId: number,
+    token: string
+  ): Promise<(Issue & { towerName?: string })[]> {
+    try {
+      const towers = await this.getTowersByClubId(clubId, token);
+      const allIssues: (Issue & { towerName?: string })[] = [];
+
+      for (const tower of towers) {
+        const issues = await this.getIssuesByTowerId(clubId, tower.id, token);
+        allIssues.push(
+          ...issues.map((issue) => ({
+            ...issue,
+            towerName: tower.name,
+          }))
+        );
+      }
+
+      return allIssues;
+    } catch (error) {
+      console.error("Error fetching club issues:", error);
+      return [];
+    }
+  }
+
+  async getAllIssues(
+    token: string
+  ): Promise<
+    (Issue & { clubId?: number; clubName?: string; towerName?: string })[]
+  > {
+    try {
+      // Fetch all clubs
+      const clubs = await this.getClubs(token);
+      const allIssues: (Issue & {
+        clubId?: number;
+        clubName?: string;
+        towerName?: string;
+      })[] = [];
+
+      // For each club, fetch towers and then their issues
+      for (const club of clubs) {
+        const towers = await this.getTowersByClubId(club.id, token);
+        for (const tower of towers) {
+          const issues = await this.getIssuesByTowerId(
+            club.id,
+            tower.id,
+            token
+          );
+          // Enrich issues with club and tower info
+          allIssues.push(
+            ...issues.map((issue) => ({
+              ...issue,
+              clubId: club.id,
+              clubName: club.name,
+              towerName: tower.name,
+            }))
+          );
+        }
+      }
+
+      return allIssues;
+    } catch (error) {
+      console.error("Error fetching all issues:", error);
+      return [];
+    }
+  }
+
+  // Scheduled Sessions API
+  async getScheduledSessionsByClubId(
+    clubId: number,
+    token?: string
+  ): Promise<ScheduledSession[]> {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
+
+    return response.result || [];
+  }
+
+  async getScheduledSessionById(
+    clubId: number,
+    sessionId: number,
+    token: string
+  ): Promise<ScheduledSession | null> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+    return null;
+  }
+
+  async createScheduledSession(
+    clubId: number,
+    data: Omit<ScheduledSession, "id">,
+    token: string
+  ): Promise<{ created: boolean; id?: number; session?: ScheduledSession }> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          schedule: data.schedule,
+          description: data.description,
+        }),
+      }
+    );
+
+    return {
+      created: response.created || false,
+      id: response.id,
+      session: response.result?.[0],
+    };
+  }
+
+  async updateScheduledSession(
+    clubId: number,
+    sessionId: number,
+    data: Partial<Omit<ScheduledSession, "id" | "club_id">>,
+    token: string
+  ): Promise<{ updated: boolean; session?: ScheduledSession }> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      updated: response.updated || false,
+      session: response.result?.[0],
+    };
+  }
+
+  async deleteScheduledSession(
+    clubId: number,
+    sessionId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<ScheduledSession>(
+      `/clubs/${clubId}/scheduled-sessions/${sessionId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      deleted: response.deleted || false,
+    };
+  }
+
+  async getNoticesByClubId(
+    clubId: number,
+    token?: string,
+    isPublic?: boolean
+  ): Promise<Notice[]> {
+    const queryParam = isPublic ? "?public=true" : "";
+    const response = await this.fetch<Notice>(
+      `/clubs/${clubId}/notices${queryParam}`,
+      {
+        method: "GET",
+        headers: token
+          ? {
+              authorization: `Bearer ${token}`,
+            }
+          : {},
+      }
+    );
+
+    return response.result || [];
+  }
+
+  async createNotice(
+    clubId: number,
+    data: Omit<Notice, "id" | "club_id" | "created_at" | "updated_at">,
+    token: string
+  ): Promise<{ created: boolean; id?: number; notice?: Notice }> {
+    const response = await this.fetch<Notice>(`/clubs/${clubId}/notices`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    return {
+      created: response.created || false,
+      id: response.id,
+      notice: response.result?.[0],
+    };
+  }
+
+  async updateNotice(
+    clubId: number,
+    noticeId: number,
+    data: Partial<Omit<Notice, "id" | "club_id" | "created_at" | "updated_at">>,
+    token: string
+  ): Promise<{ updated: boolean; notice?: Notice }> {
+    // Backend should automatically update the updated_at timestamp when a notice is modified
+    const response = await this.fetch<Notice>(
+      `/clubs/${clubId}/notices/${noticeId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      updated: response.updated || false,
+      notice: response.result?.[0],
+    };
+  }
+
+  async deleteNotice(
+    clubId: number,
+    noticeId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Notice>(
+      `/clubs/${clubId}/notices/${noticeId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      deleted: response.deleted || false,
+    };
+  }
+
+  // Applications API
+  async getApplicationsByClubId(
+    clubId: number,
+    token: string
+  ): Promise<Application[]> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.result || [];
+  }
+
+  async getApplicationById(
+    clubId: number,
+    applicationId: number,
+    token: string
+  ): Promise<Application | null> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications/${applicationId}`,
+      {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if ((response as any).application) {
+      return (response as any).application;
+    } else if (response.result && response.result.length > 0) {
+      return response.result[0];
+    }
+
+    return null;
+  }
+
+  async createApplication(
+    clubId: number,
+    data: Omit<Application, "id" | "club_id" | "created_at" | "updated_at">
+  ): Promise<{ created: boolean; id?: number; application?: Application }> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      created: response.created || false,
+      id: response.id,
+      application: response.result?.[0],
+    };
+  }
+
+  async updateApplication(
+    clubId: number,
+    applicationId: number,
+    data: Partial<
+      Omit<Application, "id" | "club_id" | "created_at" | "updated_at">
+    >,
+    token: string
+  ): Promise<{ updated: boolean; application?: Application }> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications/${applicationId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    return {
+      updated: response.updated || false,
+      application: response.result?.[0],
+    };
+  }
+
+  async deleteApplication(
+    clubId: number,
+    applicationId: number,
+    token: string
+  ): Promise<{ deleted: boolean }> {
+    const response = await this.fetch<Application>(
+      `/clubs/${clubId}/applications/${applicationId}`,
+      {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      deleted: response.deleted || false,
+    };
   }
 }
 

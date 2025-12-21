@@ -17,7 +17,11 @@ function AdminClubsPageContent() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    hero_image: ""
+  });
 
   const { isAdmin } = useAdminCheck();
 
@@ -70,9 +74,13 @@ function AdminClubsPageContent() {
         return;
       }
 
-      const result = await apiClient.createClub({ name: formData.name }, token);
+      const result = await apiClient.createClub({
+        name: formData.name,
+        description: formData.description || undefined,
+        hero_image: formData.hero_image || undefined,
+      }, token);
       if (result.created) {
-        setFormData({ name: "" });
+        setFormData({ name: "", description: "", hero_image: "" });
         await fetchClubs();
       } else {
         setError("Failed to create club");
@@ -100,12 +108,16 @@ function AdminClubsPageContent() {
 
       const result = await apiClient.updateClub(
         id,
-        { name: formData.name },
+        {
+          name: formData.name,
+          description: formData.description || undefined,
+          hero_image: formData.hero_image || undefined,
+        },
         token
       );
       if (result.updated) {
         setEditingId(null);
-        setFormData({ name: "" });
+        setFormData({ name: "", description: "", hero_image: "" });
         await fetchClubs();
       } else {
         setError("Failed to update club");
@@ -144,13 +156,17 @@ function AdminClubsPageContent() {
 
   const startEditing = (club: Club) => {
     setEditingId(club.id);
-    setFormData({ name: club.name });
+    setFormData({
+      name: club.name,
+      description: club.description || "",
+      hero_image: club.hero_image || "",
+    });
     setError(null);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
-    setFormData({ name: "" });
+    setFormData({ name: "", description: "", hero_image: "" });
     setError(null);
   };
 
@@ -177,22 +193,57 @@ function AdminClubsPageContent() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Create New Club
           </h2>
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ name: e.target.value })}
-              placeholder="Enter club name"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isCreating || editingId !== null}
-            />
-            <button
-              onClick={handleCreate}
-              disabled={isCreating || editingId !== null || !formData.name.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCreating ? "Creating..." : "Create Club"}
-            </button>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Club Name <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter club name"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isCreating || editingId !== null}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Enter club description"
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isCreating || editingId !== null}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Hero Image URL
+              </label>
+              <input
+                type="url"
+                value={formData.hero_image}
+                onChange={(e) => setFormData({ ...formData, hero_image: e.target.value })}
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isCreating || editingId !== null}
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleCreate}
+                disabled={
+                  isCreating || editingId !== null || !formData.name.trim()
+                }
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreating ? "Creating..." : "Create Club"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -216,6 +267,12 @@ function AdminClubsPageContent() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Club Name
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hero Image
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Details
                   </th>
@@ -230,13 +287,15 @@ function AdminClubsPageContent() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {club.id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       {editingId === club.id ? (
                         <input
                           type="text"
                           value={formData.name}
-                          onChange={(e) => setFormData({ name: e.target.value })}
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           autoFocus
                         />
                       ) : (
@@ -245,13 +304,53 @@ function AdminClubsPageContent() {
                         </div>
                       )}
                     </td>
+                    <td className="px-6 py-4 max-w-xs">
+                      {editingId === club.id ? (
+                        <textarea
+                          value={formData.description}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
+                          rows={2}
+                          className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-600 truncate">
+                          {club.description || "-"}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 max-w-xs">
+                      {editingId === club.id ? (
+                        <input
+                          type="url"
+                          value={formData.hero_image}
+                          onChange={(e) =>
+                            setFormData({ ...formData, hero_image: e.target.value })
+                          }
+                          className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      ) : club.hero_image ? (
+                        <a
+                          href={club.hero_image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 underline truncate block"
+                        >
+                          View Image
+                        </a>
+                      ) : (
+                        <div className="text-sm text-gray-400">-</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <button
                         onClick={() => router.push(`/admin/clubs/${club.id}`)}
                         disabled={editingId !== null}
                         className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        View Users
+                        View Club
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -281,7 +380,9 @@ function AdminClubsPageContent() {
                           </button>
                           <button
                             onClick={() => handleDelete(club.id)}
-                            disabled={deletingId === club.id || editingId !== null}
+                            disabled={
+                              deletingId === club.id || editingId !== null
+                            }
                             className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {deletingId === club.id ? "Deleting..." : "Delete"}

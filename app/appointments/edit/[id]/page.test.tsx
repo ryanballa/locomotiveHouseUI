@@ -20,6 +20,7 @@ vi.mock('@clerk/nextjs', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
   useParams: vi.fn(),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
 vi.mock('@/lib/api', () => ({
@@ -100,7 +101,7 @@ describe('EditAppointment Page', () => {
 
       // Wait for component to load
       await waitFor(() => {
-        expect(screen.getByText(/edit appointment/i)).toBeInTheDocument();
+        expect(screen.getByText(/edit session/i)).toBeInTheDocument();
       });
     });
 
@@ -260,7 +261,7 @@ describe('EditAppointment Page', () => {
         expect(screen.getByLabelText(/select date/i)).toBeInTheDocument();
       });
 
-      const submitButton = screen.getByRole('button', { name: /update appointment/i });
+      const submitButton = screen.getByRole('button', { name: /update session/i });
       expect(submitButton).toBeInTheDocument();
       expect(submitButton).toBeEnabled();
     });

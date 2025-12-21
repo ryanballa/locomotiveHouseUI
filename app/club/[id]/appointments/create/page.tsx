@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
@@ -22,6 +22,7 @@ function CreateClubAppointmentContent() {
   const { user } = useUser();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const clubId = Number(params.id);
   const {
     hasAccessToClub,
@@ -38,6 +39,27 @@ function CreateClubAppointmentContent() {
   const [error, setError] = useState<string | null>(null);
   const [lhUserId, setLhUserId] = useState<number | null>(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+
+  // Initialize form data from query parameters if provided
+  const [scheduledSessionId, setScheduledSessionId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const queryDate = searchParams.get("date");
+    const queryTime = searchParams.get("time");
+    const queryScheduledSessionId = searchParams.get("scheduledSessionId");
+
+    if (queryDate || queryTime) {
+      setFormData((prev) => ({
+        ...prev,
+        date: queryDate || prev.date,
+        time: queryTime || prev.time,
+      }));
+    }
+
+    if (queryScheduledSessionId) {
+      setScheduledSessionId(parseInt(queryScheduledSessionId, 10));
+    }
+  }, [searchParams]);
 
   // Verify user has access to this club and fetch user ID
   useEffect(() => {
@@ -121,13 +143,20 @@ function CreateClubAppointmentContent() {
       // Parse the 12-hour time format
       const [year, month, day] = formData.date.split("-").map(Number);
       const { hour, minute } = parse12HourTime(formData.time);
-      const scheduleDateTime = new Date(year, month - 1, day, hour, minute);
+      const scheduleDateTime = new Date(
+        Date.UTC(year, month - 1, day, hour, minute)
+      );
 
-      const appointmentData = {
+      const appointmentData: any = {
         schedule: scheduleDateTime.toISOString(),
         duration: formData.duration,
         user_id: lhUserId,
       };
+
+      // Include scheduled_session_id if this appointment was created from a scheduled session
+      if (scheduledSessionId) {
+        appointmentData.scheduled_session_id = scheduledSessionId;
+      }
 
       const result = await apiClient.createAppointment(appointmentData, token);
 
@@ -153,10 +182,10 @@ function CreateClubAppointmentContent() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Create Appointment
+              Create Session
             </h1>
             <p className="text-gray-600">
-              Schedule an appointment with customizable duration
+              Schedule a session with customizable duration
             </p>
           </div>
           <button
@@ -193,12 +222,12 @@ function CreateClubAppointmentContent() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
-              {formData.date && (
+              {/* {formData.date && (
                 <p className="mt-2 text-sm text-gray-600">
                   {getDayName(new Date(formData.date + "T00:00:00"))}:{" "}
                   {formatOpeningHours(new Date(formData.date + "T00:00:00"))}
                 </p>
-              )}
+              )} */}
             </div>
 
             <div>
@@ -261,7 +290,7 @@ function CreateClubAppointmentContent() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-sm font-medium text-blue-900 mb-1">
                 Appointment Details
               </h3>
@@ -282,7 +311,7 @@ function CreateClubAppointmentContent() {
                   </li>
                 )}
               </ul>
-            </div>
+            </div> */}
 
             <div className="flex gap-4">
               <button
@@ -294,7 +323,7 @@ function CreateClubAppointmentContent() {
                   ? "Creating..."
                   : !lhUserId
                   ? "User Not Set Up"
-                  : "Create Appointment"}
+                  : "Create Session"}
               </button>
               <button
                 type="button"
@@ -312,6 +341,8 @@ function CreateClubAppointmentContent() {
 }
 
 export default function CreateClubAppointment() {
+  // CreateClubAppointmentContent has its own loading state, so we rely on ClubGuard's default
+  // isContentLoading=true to show loading spinner during initial club check
   return (
     <ClubGuard>
       <CreateClubAppointmentContent />

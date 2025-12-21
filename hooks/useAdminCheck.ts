@@ -94,6 +94,11 @@ export function useAdminCheck(): UseAdminCheckReturn {
         message: "You do not have permission to access this resource.",
       };
     }
+    // Cleanup function: prevent state updates if component unmounts or dependencies change
+    return () => {
+      isActive = false;
+    };
+  }, [isSignedIn]);
 
     return {
       currentUser: minimalUser,

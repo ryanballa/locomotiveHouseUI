@@ -3,6 +3,7 @@ import { useAuth } from "@clerk/nextjs";
 import { apiClient, type Club } from "@/lib/api";
 import { useSessionUser } from "./useSessionUser";
 import { getCookie, setCookie } from "@/lib/cookieUtils";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface UseUserClubsReturn {
   clubs: Club[];
@@ -10,6 +11,11 @@ interface UseUserClubsReturn {
   loading: boolean;
   error: string | null;
   selectClub: (clubId: number) => void;
+}
+
+interface CurrentUser {
+  id: number;
+  name: string;
 }
 
 /**
@@ -24,6 +30,10 @@ export function useUserClubs(): UseUserClubsReturn {
   const { user, isLoading: userLoading } = useSessionUser();
   const [clubs, setClubs] = useState<Club[]>([]);
   const [currentClubId, setCurrentClubId] = useState<number | null>(null);
+  const [currentClubsData, setCurrentClubsData] = useLocalStorage<Club[]>(
+    "assignedClubs",
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -58,7 +68,21 @@ export function useUserClubs(): UseUserClubsReturn {
       return;
     }
 
+    // Set data based on storage
+    if (currentClubId && currentClubsData.find((c) => c.id === currentClubId)) {
+      setClubs(currentClubsData);
+      setLoading(false);
+      return;
+    }
+
     let isActive = true;
+
+    // const getClubData = () => {
+    //   const storedName = localStorage.getItem("selectedClubName");
+    //   if (storedName) {
+    //     setCurrentClubName(storedName);
+    //   }
+    // };
 
     const fetchUserClubs = async () => {
       try {
@@ -91,7 +115,7 @@ export function useUserClubs(): UseUserClubsReturn {
         if (savedClubId) {
           const parsedSavedId = parseInt(savedClubId, 10);
           // Only use saved ID if it's in the list of accessible clubs
-          if (allClubs.some((club) => club.id === parsedSavedId)) {
+          if (assignedClubs.some((club) => club.id === parsedSavedId)) {
             setCurrentClubId(parsedSavedId);
           } else {
             // Saved club is not accessible, use user's primary club
@@ -103,7 +127,8 @@ export function useUserClubs(): UseUserClubsReturn {
         }
       } catch (err) {
         if (!isActive) return;
-        const errorMessage = err instanceof Error ? err.message : "Failed to load clubs";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load clubs";
         console.error("Error fetching user clubs:", err);
         setError(errorMessage);
         setClubs([]);

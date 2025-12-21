@@ -3,7 +3,10 @@
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api";
-import { FRIDAY_EVENING_CONFIG } from "@/lib/fridayEveningConfig";
+import {
+  FRIDAY_EVENING_CONFIG,
+  isFridayExcluded,
+} from "@/lib/fridayEveningConfig";
 import type { Appointment, User } from "@/lib/api";
 
 interface Attendee {
@@ -51,8 +54,12 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
   const [signingUp, setSigningUp] = useState<number | null>(null); // Friday index being signed up
   const [unassigning, setUnassigning] = useState<number | null>(null); // Friday index being unassigned
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [currentUserName, setCurrentUserName] = useState<string | undefined>(undefined);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
+  const [currentUserName, setCurrentUserName] = useState<string | undefined>(
+    undefined
+  );
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(
+    undefined
+  );
 
   /**
    * Fetch appointments and get current user ID
@@ -88,27 +95,20 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
         // Get all users to map attendee names
         const allUsers = await apiClient.getUsers(userToken);
 
-        // Enhance users with Clerk info if they don't have names
-        const enhancedUsers = await Promise.all(
-          allUsers.map(async (user) => {
-            // If user already has a name and email, return as-is
-            if (user.name && user.email) {
-              return user;
-            }
+        // Use firstName, lastName, and email from backend (synced from Clerk during profile completion)
+        const enhancedUsers = allUsers.map((user) => {
+          // Build name from firstName and lastName if available
+          const name =
+            user.first_name && user.last_name
+              ? `${user.first_name} ${user.last_name}`
+              : user.name;
 
-            // Try to get Clerk info for users missing data
-            if (user.token) {
-              const clerkInfo = await apiClient.getClerkUserInfo(user.token);
-              return {
-                ...user,
-                name: user.name || clerkInfo.name,
-                email: user.email || clerkInfo.email,
-              };
-            }
-
-            return user;
-          })
-        );
+          return {
+            ...user,
+            name,
+            email: user.email, // Already from backend
+          };
+        });
 
         const userMap = new Map(enhancedUsers.map((user) => [user.id, user]));
 
@@ -132,7 +132,9 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
           });
 
           // Get unique users attending
-          const attendeeIds = new Set(eveningAppointments.map((apt) => apt.user_id));
+          const attendeeIds = new Set(
+            eveningAppointments.map((apt) => apt.user_id)
+          );
           const attendeeList = Array.from(attendeeIds)
             .map((userId) => {
               const user = userMap.get(userId);
@@ -265,7 +267,9 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
     if (!friday.userAppointmentId) return; // No appointment to unassign
 
     // Confirm before unassigning
-    if (!confirm('Are you sure you want to unassign yourself from this Friday?')) {
+    if (
+      !confirm("Are you sure you want to unassign yourself from this Friday?")
+    ) {
       return;
     }
 
@@ -274,11 +278,14 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
 
       const userToken = await getToken();
       if (!userToken) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
-      const result = await apiClient.deleteAppointment(friday.userAppointmentId, userToken);
+      const result = await apiClient.deleteAppointment(
+        friday.userAppointmentId,
+        userToken
+      );
 
       if (result.deleted) {
         // Update local state to reflect unassignment
@@ -286,19 +293,24 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
         const currentData = updatedFridayData[fridayIndex];
 
         // Remove user from attendees
-        currentData.attendees = currentData.attendees.filter((id) => id !== currentUserId);
-        currentData.attendeeDetails = currentData.attendeeDetails.filter((attendee) => attendee.id !== currentUserId);
+        currentData.attendees = currentData.attendees.filter(
+          (id) => id !== currentUserId
+        );
+        currentData.attendeeDetails = currentData.attendeeDetails.filter(
+          (attendee) => attendee.id !== currentUserId
+        );
         currentData.isUserAttending = false;
         currentData.userAppointmentId = undefined;
 
         setFridayData(updatedFridayData);
       } else {
-        const errorMsg = (result as any).error || 'Failed to unassign. Please try again.';
+        const errorMsg =
+          (result as any).error || "Failed to unassign. Please try again.";
         setError(errorMsg);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to unassign';
-      console.error('Unassign error:', message);
+      const message = err instanceof Error ? err.message : "Failed to unassign";
+      console.error("Unassign error:", message);
       setError(message);
     } finally {
       setUnassigning(null);
@@ -343,7 +355,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                   <h3 className={`text-lg font-semibold ${textColor}`}>
                     {formatDateToUTC(friday.fridayDate)}
                   </h3>
-                  <p className={`text-sm ${textColor}`}>7 PM - Close</p>
+                  <p className={`text-sm ${textColor}`}>7PM - Close</p>
                 </div>
                 <div
                   className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeColor}`}
@@ -358,17 +370,30 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                 {attendeeCount > 0 ? (
                   <>
                     <p className={`text-sm ${textColor} mb-2`}>
-                      {attendeeCount >= FRIDAY_EVENING_CONFIG.minAttendanceForGreen
-                        ? '✓ Enough people to visit!'
-                        : `Need ${FRIDAY_EVENING_CONFIG.minAttendanceForGreen - attendeeCount} more`}
+                      {attendeeCount >=
+                      FRIDAY_EVENING_CONFIG.minAttendanceForGreen
+                        ? "✓ Enough people to visit!"
+                        : `Need ${
+                            FRIDAY_EVENING_CONFIG.minAttendanceForGreen -
+                            attendeeCount
+                          } more`}
                     </p>
                     <div className={`text-sm ${textColor}`}>
-                      <p className="font-medium mb-1">Attending:</p>
+                      <p className={`text-sm font-semibold ${textColor} mb-1`}>
+                        Attending:
+                      </p>
                       <ul className="space-y-1">
                         {friday.attendeeDetails.map((attendee) => (
-                          <li key={attendee.id} className="flex items-center gap-2">
+                          <li
+                            key={attendee.id}
+                            className="flex items-center gap-2"
+                          >
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
-                            <span>{attendee.name || attendee.email || `User ${attendee.id}`}</span>
+                            <span>
+                              {attendee.name ||
+                                attendee.email ||
+                                `User ${attendee.id}`}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -381,7 +406,11 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                 )}
               </div>
 
-              {!friday.isUserAttending ? (
+              {isFridayExcluded(friday.fridayDate) ? (
+                <div className="w-full px-4 py-2 bg-gray-300 text-gray-600 font-medium rounded-lg text-center cursor-not-allowed opacity-50">
+                  Not Available
+                </div>
+              ) : !friday.isUserAttending ? (
                 <button
                   onClick={() => handleSignup(index)}
                   disabled={signingUp === index}
@@ -408,7 +437,7 @@ export function FridayEveningCard({ clubId }: { clubId: number }) {
                       Unassigning...
                     </>
                   ) : (
-                    '✓ You\'re signed up!'
+                    "✓ You're signed up!"
                   )}
                 </button>
               )}
@@ -458,9 +487,13 @@ function formatDateToString(date: Date): string {
  * Format date using UTC timezone to avoid DST issues
  */
 function formatDateToUTC(date: Date): string {
-  const weekday = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }))
-    .toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
-  const month = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  const weekday = new Date(
+    date.toLocaleString("en-US", { timeZone: "UTC" })
+  ).toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  const month = date.toLocaleDateString("en-US", {
+    month: "short",
+    timeZone: "UTC",
+  });
   const day = date.getUTCDate();
   return `${weekday}, ${month} ${day}`;
 }

@@ -53,16 +53,13 @@ export default function AddressesPage() {
       // Find the selected user
       const selectedUser = users.find((u) => u.id === formData.user_id);
 
-      if (selectedUser && selectedUser.club_id) {
-        // User has a club_id, so show that club
-        const userClub = clubs.find((c) => c.id === selectedUser.club_id);
-        if (userClub) {
-          setUserClubs([userClub]);
-        } else {
-          setUserClubs([]);
-        }
+      if (selectedUser && selectedUser.clubs && selectedUser.clubs.length > 0) {
+        // User has clubs assigned, map the club relations to full club objects
+        const userClubIds = selectedUser.clubs.map((c) => c.club_id);
+        const userClubObjects = clubs.filter((club) => userClubIds.includes(club.id));
+        setUserClubs(userClubObjects);
       } else {
-        // User doesn't have a club assigned - they can't create addresses
+        // User doesn't have clubs assigned - they can't create addresses
         setUserClubs([]);
       }
     } else {
@@ -80,42 +77,56 @@ export default function AddressesPage() {
         return;
       }
 
-      const [addressesData, usersData, clubsData] = await Promise.all([
+      const [addressesData, usersData] = await Promise.all([
         apiClient.getAddresses(token),
         apiClient.getUsers(token),
-        apiClient.getClubs(token),
       ]);
 
-      // Enrich users with Clerk data (email) and extract club_id
-      const enrichedUsers = await Promise.all(
-        usersData.map(async (user) => {
-          const clerkInfo = await apiClient.getClerkUserInfo(user.token);
-
-          // Extract club_id from clubs array - use the first club if multiple
-          const clubId = (user as any).clubs && (user as any).clubs.length > 0
-            ? (user as any).clubs[0].club_id
-            : user.club_id;
-
-          return {
-            ...user,
-            club_id: clubId,
-            email: clerkInfo.email,
-            name: user.name || clerkInfo.name,
-          };
-        })
-      );
+      // Use first_name, last_name, and email from backend (synced from Clerk during profile completion)
+      const enrichedUsers = usersData.map((user) => ({
+        ...user,
+        clubs: user.clubs,
+        // first_name and last_name are now stored in backend after profile completion
+        // email is also stored in backend
+        name: user.name || (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : undefined),
+      }));
 
       setAddresses(addressesData);
       setUsers(enrichedUsers);
-      setClubs(clubsData);
 
       // Find and set current user info by matching Clerk ID
+      let currentUserData: User | null = null;
       if (clerkUserId && enrichedUsers.length > 0) {
         const matchedUser = enrichedUsers.find((u) => u.token === clerkUserId);
         if (matchedUser) {
           setCurrentUser(matchedUser);
+          currentUserData = matchedUser;
         }
       }
+
+      // Determine clubs based on user permission level
+      let clubsData: {id: number; name: string}[];
+      const userIsAdmin = currentUserData && (currentUserData.permission === 1 || currentUserData.permission === 3);
+
+      if (userIsAdmin) {
+        // Admins can see all clubs - always fetch fresh
+        clubsData = await apiClient.getClubs(token);
+      } else {
+        // Non-admins get clubs from localStorage (assigned clubs)
+        try {
+          const storedClubs = localStorage.getItem("assignedClubs");
+          clubsData = storedClubs ? JSON.parse(storedClubs) : [];
+          // If localStorage is empty or invalid, fetch from API as fallback
+          if (!Array.isArray(clubsData) || clubsData.length === 0) {
+            clubsData = await apiClient.getClubs(token);
+          }
+        } catch (e) {
+          // Fallback to fetching if localStorage fails
+          clubsData = await apiClient.getClubs(token);
+        }
+      }
+
+      setClubs(clubsData);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load data";
