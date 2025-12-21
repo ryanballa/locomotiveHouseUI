@@ -2,24 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { apiClient, type Club, type TowerReport, type Tower, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
-import { ClubGuard } from "@/components/ClubGuard";
+import { AdminGuard } from "@/components/AdminGuard";
 import { useClubTowerReports } from "@/hooks/useTowerReports";
 
 interface ReportModalData {
   description: string;
   tower_id: number;
-  month: number;
-  year: number;
 }
 
-function ClubReportsPageContent() {
+function ReportsPageContent() {
   const { getToken } = useAuth();
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const clubId = Number(params.id);
 
   const [club, setClub] = useState<Club | null>(null);
@@ -41,8 +38,6 @@ function ClubReportsPageContent() {
   const [modalFormData, setModalFormData] = useState<ReportModalData>({
     description: "",
     tower_id: 0,
-    month: currentDate.getMonth(),
-    year: currentDate.getFullYear(),
   });
   const [submitting, setSubmitting] = useState(false);
   const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
@@ -104,41 +99,6 @@ function ClubReportsPageContent() {
     }
   };
 
-  // Handle auto-opening the modal from URL parameters
-  useEffect(() => {
-    const action = searchParams.get("action");
-    const towerIdParam = searchParams.get("towerId");
-
-    if (action === "new" && towerIdParam && towers.length > 0) {
-      const towerId = parseInt(towerIdParam);
-      const tower = towers.find((t) => t.id === towerId);
-
-      if (tower) {
-        const now = new Date();
-
-        // Get month and year from query params, or default to current date
-        const monthParam = searchParams.get("month");
-        const yearParam = searchParams.get("year");
-
-        const month = monthParam ? parseInt(monthParam) : now.getMonth();
-        const year = yearParam ? parseInt(yearParam) : now.getFullYear();
-
-        // Open the add modal with the specified tower pre-selected
-        setModalFormData({
-          description: "",
-          tower_id: towerId,
-          month: month,
-          year: year,
-        });
-        setIsAddModalOpen(true);
-
-        // Clean up the URL parameters
-        const newUrl = `/club/${clubId}/reports`;
-        router.replace(newUrl);
-      }
-    }
-  }, [searchParams, towers, clubId, router]);
-
   // Filter reports by selected month and year
   const filteredReports = allReports.filter((report) => {
     const reportDate = new Date(report.report_at || report.created_at || "");
@@ -161,38 +121,19 @@ function ClubReportsPageContent() {
     setSelectedYear(now.getFullYear());
   };
 
-  const handleSetNextMonth = () => {
-    if (selectedMonth === 11) {
-      // December -> January of next year
-      setSelectedMonth(0);
-      setSelectedYear(selectedYear + 1);
-    } else {
-      setSelectedMonth(selectedMonth + 1);
-    }
-  };
-
   const openAddModal = () => {
-    const now = new Date();
     setModalFormData({
       description: "",
       tower_id: towers.length > 0 ? towers[0].id : 0,
-      month: now.getMonth(),
-      year: now.getFullYear(),
     });
     setIsAddModalOpen(true);
   };
 
   const openEditModal = (report: TowerReport) => {
     setEditingReport(report);
-
-    // Extract month and year from the report date
-    const reportDate = new Date(report.report_at || report.created_at || new Date());
-
     setModalFormData({
       description: report.description || "",
       tower_id: report.tower_id,
-      month: reportDate.getMonth(),
-      year: reportDate.getFullYear(),
     });
     setIsEditModalOpen(true);
   };
@@ -201,13 +142,7 @@ function ClubReportsPageContent() {
     setIsAddModalOpen(false);
     setIsEditModalOpen(false);
     setEditingReport(null);
-    const now = new Date();
-    setModalFormData({
-      description: "",
-      tower_id: 0,
-      month: now.getMonth(),
-      year: now.getFullYear(),
-    });
+    setModalFormData({ description: "", tower_id: 0 });
   };
 
   const handleCreateReport = async () => {
@@ -227,25 +162,6 @@ function ClubReportsPageContent() {
         return;
       }
 
-      // Check if a report already exists for this tower and month/year combination
-      const duplicateReport = allReports.find((report) => {
-        const reportDate = new Date(report.report_at || report.created_at || "");
-        return (
-          report.tower_id === modalFormData.tower_id &&
-          reportDate.getMonth() === modalFormData.month &&
-          reportDate.getFullYear() === modalFormData.year
-        );
-      });
-
-      if (duplicateReport) {
-        const towerName = getTowerName(modalFormData.tower_id);
-        const monthName = months[modalFormData.month];
-        setError(
-          `A report for ${towerName} already exists for ${monthName} ${modalFormData.year}. Please select a different month/year or edit the existing report.`
-        );
-        return;
-      }
-
       setSubmitting(true);
       setError(null);
       const token = await getToken();
@@ -254,14 +170,10 @@ function ClubReportsPageContent() {
         return;
       }
 
-      // Create a date from the selected month and year (set to the 1st day)
-      const reportDate = new Date(modalFormData.year, modalFormData.month, 1);
-
       const reportPayload = {
         description: modalFormData.description,
         tower_id: modalFormData.tower_id,
         user_id: currentUserId,
-        report_at: reportDate.toISOString(),
       };
 
       const result = await apiClient.createTowerReport(
@@ -431,10 +343,10 @@ function ClubReportsPageContent() {
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <button
-            onClick={() => router.push(`/club/${clubId}`)}
+            onClick={() => router.push(`/admin/clubs/${clubId}`)}
             className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
           >
-            <span>&larr;</span> Back to Club
+            <span>&larr;</span> Back to Club Details
           </button>
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error || "Club not found"}
@@ -450,10 +362,10 @@ function ClubReportsPageContent() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
-          onClick={() => router.push(`/club/${clubId}`)}
+          onClick={() => router.push(`/admin/clubs/${clubId}`)}
           className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-800 transition flex items-center gap-2"
         >
-          <span>&larr;</span> Back to Club
+          <span>&larr;</span> Back to Club Details
         </button>
 
         <div className="mb-8">
@@ -506,13 +418,6 @@ function ClubReportsPageContent() {
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Current Month
-              </button>
-
-              <button
-                onClick={handleSetNextMonth}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Next Month
               </button>
 
               <div className="ml-auto">
@@ -620,12 +525,6 @@ function ClubReportsPageContent() {
               <h2 className="text-2xl font-bold text-gray-900">Add Tower Report</h2>
             </div>
             <div className="px-6 py-4 space-y-4">
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tower <span className="text-red-600">*</span>
@@ -644,46 +543,6 @@ function ClubReportsPageContent() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Month <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                    value={modalFormData.month}
-                    onChange={(e) =>
-                      setModalFormData({ ...modalFormData, month: parseInt(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {months.map((month, index) => (
-                      <option key={index} value={index}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Year <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                    value={modalFormData.year}
-                    onChange={(e) =>
-                      setModalFormData({ ...modalFormData, year: parseInt(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {yearOptions.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               <div>
@@ -783,10 +642,10 @@ function ClubReportsPageContent() {
   );
 }
 
-export default function ClubReportsPage() {
+export default function ReportsPage() {
   return (
-    <ClubGuard>
-      <ClubReportsPageContent />
-    </ClubGuard>
+    <AdminGuard>
+      <ReportsPageContent />
+    </AdminGuard>
   );
 }

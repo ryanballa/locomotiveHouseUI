@@ -29,6 +29,7 @@ export function NoticesSection({
     description: "",
     type: "",
     expires_at: "",
+    is_public: false,
   });
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -49,6 +50,7 @@ export function NoticesSection({
           description: formData.description,
           type: formData.type || undefined,
           expires_at: formData.expires_at || undefined,
+          is_public: formData.is_public,
         },
         token
       );
@@ -56,7 +58,7 @@ export function NoticesSection({
       if (result.created) {
         const updatedNotices = await apiClient.getNoticesByClubId(clubId, token);
         onNoticesUpdate(updatedNotices);
-        setFormData({ description: "", type: "", expires_at: "" });
+        setFormData({ description: "", type: "", expires_at: "", is_public: false });
         setIsCreating(false);
       }
     } catch (err) {
@@ -82,6 +84,7 @@ export function NoticesSection({
           description: formData.description,
           type: formData.type || undefined,
           expires_at: formData.expires_at || undefined,
+          is_public: formData.is_public,
         },
         token
       );
@@ -90,7 +93,7 @@ export function NoticesSection({
         // Refetch notices to get the updated timestamp from the backend
         const updatedNotices = await apiClient.getNoticesByClubId(clubId, token);
         onNoticesUpdate(updatedNotices);
-        setFormData({ description: "", type: "", expires_at: "" });
+        setFormData({ description: "", type: "", expires_at: "", is_public: false });
         setEditingId(null);
       }
     } catch (err) {
@@ -132,12 +135,13 @@ export function NoticesSection({
       description: notice.description,
       type: notice.type || "",
       expires_at: notice.expires_at ? new Date(notice.expires_at).toISOString().split("T")[0] : "",
+      is_public: notice.is_public || false,
     });
     setEditingId(notice.id);
   };
 
   const cancelEdit = () => {
-    setFormData({ description: "", type: "", expires_at: "" });
+    setFormData({ description: "", type: "", expires_at: "", is_public: false });
     setEditingId(null);
     setIsCreating(false);
   };
@@ -218,6 +222,24 @@ export function NoticesSection({
               </div>
             </div>
 
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_public"
+                checked={formData.is_public}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_public: e.target.checked })
+                }
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label
+                htmlFor="is_public"
+                className="ml-2 text-sm font-medium text-gray-700"
+              >
+                Make this notice public (visible to non-members)
+              </label>
+            </div>
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={cancelEdit}
@@ -257,11 +279,18 @@ export function NoticesSection({
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
-                  {notice.type && (
-                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded mb-2">
-                      {notice.type}
-                    </span>
-                  )}
+                  <div className="flex gap-2 mb-2">
+                    {notice.type && (
+                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                        {notice.type}
+                      </span>
+                    )}
+                    {notice.is_public && (
+                      <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+                        Public
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-gray-500">
                     Expires: {formatDate(notice.expires_at)}
                   </div>

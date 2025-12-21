@@ -90,6 +90,7 @@ export interface Notice {
   description: string;
   type?: string;
   expires_at?: string | Date;
+  is_public?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -474,6 +475,40 @@ class ApiClient {
 
     return {
       removed: !!removed,
+    };
+  }
+
+  async assignUserToClub(
+    userId: number,
+    clubId: number,
+    permission: number,
+    token: string
+  ): Promise<{ updated: boolean; clubId?: number }> {
+    const response = (await this.fetch<any>(
+      `/clubs/${clubId}/users/${userId}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          permission: permission,
+        }),
+      }
+    )) as {
+      updated?: boolean;
+      created?: boolean;
+      assigned?: boolean;
+      user_id: number;
+      club_id: number;
+      permission: number;
+      data?: any;
+    };
+
+    return {
+      updated:
+        response.updated || response.created || response.assigned || false,
+      clubId: response.club_id,
     };
   }
 
@@ -1836,16 +1871,23 @@ class ApiClient {
     };
   }
 
-  async getNoticesByClubId(clubId: number, token?: string, isPublic?: boolean): Promise<Notice[]> {
-    const queryParam = isPublic ? '?public=true' : '';
-    const response = await this.fetch<Notice>(`/clubs/${clubId}/notices${queryParam}`, {
-      method: "GET",
-      headers: token
-        ? {
-            authorization: `Bearer ${token}`,
-          }
-        : {},
-    });
+  async getNoticesByClubId(
+    clubId: number,
+    token?: string,
+    isPublic?: boolean
+  ): Promise<Notice[]> {
+    const queryParam = isPublic ? "?public=true" : "";
+    const response = await this.fetch<Notice>(
+      `/clubs/${clubId}/notices${queryParam}`,
+      {
+        method: "GET",
+        headers: token
+          ? {
+              authorization: `Bearer ${token}`,
+            }
+          : {},
+      }
+    );
 
     return response.result || [];
   }
@@ -1981,7 +2023,9 @@ class ApiClient {
   async updateApplication(
     clubId: number,
     applicationId: number,
-    data: Partial<Omit<Application, "id" | "club_id" | "created_at" | "updated_at">>,
+    data: Partial<
+      Omit<Application, "id" | "club_id" | "created_at" | "updated_at">
+    >,
     token: string
   ): Promise<{ updated: boolean; application?: Application }> {
     const response = await this.fetch<Application>(
