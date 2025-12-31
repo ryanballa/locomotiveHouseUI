@@ -23,7 +23,7 @@ function AdminClubsPageContent() {
     hero_image: ""
   });
 
-  const { isAdmin } = useAdminCheck();
+  const { isAdmin, isSuperAdmin } = useAdminCheck();
 
   useEffect(() => {
     if (isAdmin) {
@@ -60,6 +60,11 @@ function AdminClubsPageContent() {
   };
 
   const handleCreate = async () => {
+    if (!isSuperAdmin) {
+      setError("Only Super Admins can create clubs");
+      return;
+    }
+
     if (!formData.name.trim()) {
       setError("Club name is required");
       return;
@@ -189,63 +194,83 @@ function AdminClubsPageContent() {
         )}
 
         {/* Create Club Form */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Create New Club
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Club Name <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter club name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter club description"
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hero Image URL
-              </label>
-              <input
-                type="url"
-                value={formData.hero_image}
-                onChange={(e) => setFormData({ ...formData, hero_image: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={handleCreate}
-                disabled={
-                  isCreating || editingId !== null || !formData.name.trim()
-                }
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCreating ? "Creating..." : "Create Club"}
-              </button>
+        {isSuperAdmin ? (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Create New Club
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Club Name <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter club name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter club description"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hero Image URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.hero_image}
+                  onChange={(e) => setFormData({ ...formData, hero_image: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleCreate}
+                  disabled={
+                    isCreating || editingId !== null || !formData.name.trim()
+                  }
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreating ? "Creating..." : "Create Club"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg shadow-md p-6 mb-8">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-yellow-800">
+                  Super Admin Access Required
+                </h3>
+                <p className="mt-2 text-sm text-yellow-700">
+                  Only Super Admins can create new clubs. You have Admin permissions which allow you to manage existing clubs, but club creation is restricted to Super Admins.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Clubs List */}
         {pageLoading ? (
