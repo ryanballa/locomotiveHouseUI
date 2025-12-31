@@ -410,8 +410,9 @@ function ClubReportsPageContent() {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  // Generate year options (current year and 5 years back)
-  const yearOptions = Array.from({ length: 6 }, (_, i) => currentDate.getFullYear() - i);
+  // Generate year options (2 years forward and 5 years back from current year)
+  const currentYear = currentDate.getFullYear();
+  const yearOptions = Array.from({ length: 8 }, (_, i) => currentYear + 2 - i);
 
   if (loading) {
     return (
