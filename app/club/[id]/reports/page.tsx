@@ -120,7 +120,8 @@ function ClubReportsPageContent() {
         const monthParam = searchParams.get("month");
         const yearParam = searchParams.get("year");
 
-        const month = monthParam ? parseInt(monthParam) : now.getMonth();
+        // Convert month from 1-indexed (URL parameter) to 0-indexed (JavaScript Date)
+        const month = monthParam ? parseInt(monthParam) - 1 : now.getMonth();
         const year = yearParam ? parseInt(yearParam) : now.getFullYear();
 
         // Open the add modal with the specified tower pre-selected
