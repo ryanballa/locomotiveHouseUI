@@ -118,6 +118,8 @@ function ClubTowersPageContent() {
         return;
       }
 
+      console.log("Creating tower with data:", towerFormData);
+      console.log("Owner ID type:", typeof towerFormData.owner_id, "Value:", towerFormData.owner_id);
       const result = await apiClient.createTower(clubId, towerFormData, token);
 
       if (result.created) {
@@ -150,6 +152,8 @@ function ClubTowersPageContent() {
         return;
       }
 
+      console.log("Updating tower with data:", towerFormData);
+      console.log("Owner ID type:", typeof towerFormData.owner_id, "Value:", towerFormData.owner_id);
       const result = await apiClient.updateTower(clubId, towerId, towerFormData, token);
 
       if (result.updated) {
