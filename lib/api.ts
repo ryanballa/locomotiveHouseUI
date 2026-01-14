@@ -1135,16 +1135,12 @@ class ApiClient {
       club_id: clubId,
     };
 
-    console.log("API createTower - towerData before stringify:", towerData);
-    const jsonBody = JSON.stringify(towerData);
-    console.log("API createTower - JSON body:", jsonBody);
-
     const response = await this.fetch<Tower>(`/clubs/${clubId}/towers`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
       },
-      body: jsonBody,
+      body: JSON.stringify(towerData),
     });
 
     // Handle different response formats
@@ -1184,10 +1180,6 @@ class ApiClient {
     data: Partial<Omit<Tower, "id">>,
     token: string
   ): Promise<{ updated: boolean }> {
-    console.log("API updateTower - data before stringify:", data);
-    const jsonBody = JSON.stringify(data);
-    console.log("API updateTower - JSON body:", jsonBody);
-
     const response = await this.fetch<Tower>(
       `/clubs/${clubId}/towers/${towerId}`,
       {
@@ -1195,7 +1187,7 @@ class ApiClient {
         headers: {
           authorization: `Bearer ${token}`,
         },
-        body: jsonBody,
+        body: JSON.stringify(data),
       }
     );
 
