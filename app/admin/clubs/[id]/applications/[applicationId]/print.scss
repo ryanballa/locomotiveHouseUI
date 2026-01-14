@@ -1,0 +1,173 @@
+// Print stylesheet for application view
+@media print {
+  // Hide navigation and non-essential elements
+  .no-print,
+  nav,
+  header,
+  footer,
+  .navbar {
+    display: none !important;
+  }
+
+  // Show print-only elements
+  .print-only {
+    display: block !important;
+  }
+
+  // Reset page margins and background
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+
+  // Main content styling
+  main {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20mm !important;
+  }
+
+  // Application view container
+  .application-view {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  // Page break control
+  .application-section {
+    page-break-inside: avoid;
+    margin-bottom: 20pt;
+  }
+
+  // Header styling
+  .application-header {
+    margin-bottom: 20pt;
+    padding-bottom: 10pt;
+    border-bottom: 2pt solid #000 !important;
+
+    h1 {
+      font-size: 24pt;
+      margin-bottom: 8pt;
+      color: #000 !important;
+    }
+  }
+
+  // Section headings
+  .application-section h2 {
+    font-size: 16pt;
+    margin-bottom: 10pt;
+    padding-bottom: 5pt;
+    border-bottom: 1pt solid #000 !important;
+    color: #000 !important;
+    page-break-after: avoid;
+  }
+
+  // Field styling
+  .application-field {
+    margin-bottom: 10pt;
+    page-break-inside: avoid;
+
+    .field-label {
+      font-size: 10pt;
+      font-weight: 600;
+      color: #333 !important;
+      margin-bottom: 2pt;
+    }
+
+    .field-value {
+      font-size: 11pt;
+      color: #000 !important;
+      line-height: 1.4;
+    }
+  }
+
+  // Grid layout adjustments for print
+  .grid {
+    display: block !important;
+
+    > div {
+      margin-bottom: 10pt;
+    }
+  }
+
+  // Ensure proper spacing between grid columns on print
+  @media print and (min-width: 768px) {
+    .grid.md\:grid-cols-2 {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 15pt;
+    }
+  }
+
+  // Text color overrides for print
+  .text-gray-900,
+  .text-gray-700,
+  .text-gray-600 {
+    color: #000 !important;
+  }
+
+  // Ensure important info stands out
+  .text-green-600,
+  .text-red-600 {
+    font-weight: bold !important;
+  }
+
+  .text-green-600 {
+    color: #000 !important;
+    &::before {
+      content: "✓ ";
+    }
+  }
+
+  .text-red-600 {
+    color: #000 !important;
+    &::before {
+      content: "✗ ";
+    }
+  }
+
+  // Print footer
+  .print-only {
+    margin-top: 30pt;
+    padding-top: 10pt;
+    border-top: 1pt solid #000 !important;
+    font-size: 9pt;
+    color: #666 !important;
+    text-align: center;
+  }
+
+  // Preserve whitespace for special interests
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  // Remove any button/interactive elements
+  button,
+  input,
+  select,
+  textarea {
+    display: none !important;
+  }
+
+  // Optimize for print
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  // Page settings
+  @page {
+    margin: 15mm;
+    size: letter portrait;
+  }
+}
+
+// Default state for print-only elements (hidden on screen)
+.print-only {
+  display: none;
+}
