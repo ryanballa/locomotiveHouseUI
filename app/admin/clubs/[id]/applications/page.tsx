@@ -346,7 +346,16 @@ function ClubApplicationsPageContent() {
                       </dl>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/admin/clubs/${clubId}/applications/${application.id}`);
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        View Full Application
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
