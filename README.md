@@ -76,13 +76,13 @@ The client communicates with the backend API using the `apiClient` utility in `l
 
 ### Authentication
 
-All authenticated requests include a Bearer token in the format:
+All authenticated requests include a Bearer token with the raw JWT:
 
 ```
-Authorization: Bearer {"jwt": "clerk-jwt-token"}
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsImNhdCI6...
 ```
 
-This matches the format expected by your Cloudflare Workers API.
+This sends the Clerk JWT token directly to your Cloudflare Workers API.
 
 ## Important Notes
 

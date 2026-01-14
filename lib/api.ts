@@ -63,7 +63,7 @@ export interface UserClubRelation {
 export interface Address {
   id: number;
   number: number;
-  description: string;
+  description?: string;
   in_use: boolean;
   user_id: number;
   club_id?: number;

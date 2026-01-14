@@ -138,10 +138,6 @@ function ClubAddressesContent() {
       setError("Address number must be between 003 and 9999");
       return false;
     }
-    if (!formData.description.trim()) {
-      setError("Description is required");
-      return false;
-    }
     if (formData.user_id === 0) {
       setError("User assignment is required");
       return false;
@@ -150,7 +146,10 @@ function ClubAddressesContent() {
   };
 
   const handleCreate = async () => {
+    console.log("handleCreate called with formData:", formData);
+
     if (!validateForm()) {
+      console.log("Validation failed");
       return;
     }
 
@@ -179,13 +178,17 @@ function ClubAddressesContent() {
         return;
       }
 
+      console.log("Sending create request with data:", formData);
       const result = await apiClient.createAddress(formData, token);
+      console.log("Create result:", result);
+
       if (result.created) {
+        // Keep user_id so user can quickly create another address for the same user
         setFormData({
           number: 3,
           description: "",
           in_use: false,
-          user_id: 0,
+          user_id: formData.user_id,
           club_id: clubId,
         });
         await fetchData();
@@ -193,6 +196,7 @@ function ClubAddressesContent() {
         setError("Failed to create address");
       }
     } catch (err) {
+      console.error("Create address error:", err);
       setError(err instanceof Error ? err.message : "Failed to create address");
     } finally {
       setIsCreating(false);
@@ -292,7 +296,7 @@ function ClubAddressesContent() {
     setEditingId(address.id);
     setFormData({
       number: address.number,
-      description: address.description,
+      description: address.description || "",
       in_use: address.in_use,
       user_id: address.user_id,
       club_id: address.club_id || clubId,
@@ -424,7 +428,7 @@ function ClubAddressesContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Description (Optional)
               </label>
               <input
                 type="text"
@@ -460,7 +464,6 @@ function ClubAddressesContent() {
             disabled={
               isCreating ||
               editingId !== null ||
-              !formData.description.trim() ||
               loading
             }
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
