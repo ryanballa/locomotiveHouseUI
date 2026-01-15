@@ -121,9 +121,11 @@ export interface Application {
   club_id: number;
   name?: string;
   email?: string;
+  phone?: string;
   birthday?: string | Date;
   occupation?: string;
   interested_scale?: string;
+  interest_length?: string;
   special_interests?: string;
   has_home_layout?: boolean;
   collection_size?: string;
