@@ -269,6 +269,14 @@ function ClubApplicationsPageContent() {
                           </div>
                           <div>
                             <dt className="inline font-medium text-gray-600">
+                              Length of Interest:
+                            </dt>{" "}
+                            <dd className="inline text-gray-900">
+                              {application.interest_length || "Not provided"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="inline font-medium text-gray-600">
                               Collection Size:
                             </dt>{" "}
                             <dd className="inline text-gray-900">

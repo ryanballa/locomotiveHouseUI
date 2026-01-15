@@ -196,6 +196,15 @@ function ApplicationViewContent() {
 
               <div className="application-field">
                 <div className="field-label text-sm font-semibold text-gray-700 mb-1">
+                  Length of Interest
+                </div>
+                <div className="field-value text-gray-900">
+                  {application.interest_length || "Not provided"}
+                </div>
+              </div>
+
+              <div className="application-field">
+                <div className="field-label text-sm font-semibold text-gray-700 mb-1">
                   Collection Size
                 </div>
                 <div className="field-value text-gray-900">

@@ -8,6 +8,7 @@ interface ApplicationFormData {
   birthday: string;
   occupation: string;
   interested_scale: string;
+  interest_length: string;
   special_interests: string;
   has_home_layout: boolean;
   collection_size: string;
@@ -30,6 +31,7 @@ const initialFormData: ApplicationFormData = {
   birthday: "",
   occupation: "",
   interested_scale: "",
+  interest_length: "",
   special_interests: "",
   has_home_layout: false,
   collection_size: "",
@@ -259,6 +261,24 @@ export function ApplicationForm({
                 onChange={handleChange}
                 required
                 placeholder="e.g., HO, N, O, G scale"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="interest_length"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Length of Interest
+              </label>
+              <input
+                type="text"
+                id="interest_length"
+                name="interest_length"
+                value={formData.interest_length}
+                onChange={handleChange}
+                placeholder="e.g., 5 years, Since childhood"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>

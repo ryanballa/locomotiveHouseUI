@@ -124,6 +124,7 @@ export interface Application {
   birthday?: string | Date;
   occupation?: string;
   interested_scale?: string;
+  interest_length?: string;
   special_interests?: string;
   has_home_layout?: boolean;
   collection_size?: string;
