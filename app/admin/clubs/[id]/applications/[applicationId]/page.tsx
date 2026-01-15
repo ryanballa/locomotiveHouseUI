@@ -159,6 +159,15 @@ function ApplicationViewContent() {
 
               <div className="application-field">
                 <div className="field-label text-sm font-semibold text-gray-700 mb-1">
+                  Phone Number
+                </div>
+                <div className="field-value text-gray-900">
+                  {application.phone || "Not provided"}
+                </div>
+              </div>
+
+              <div className="application-field">
+                <div className="field-label text-sm font-semibold text-gray-700 mb-1">
                   Date of Birth
                 </div>
                 <div className="field-value text-gray-900">
