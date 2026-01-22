@@ -2,19 +2,37 @@
 
 import { useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiClient, type Address, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
 import { ClubGuard } from "@/components/ClubGuard";
 import { useClubCheck } from "@/hooks/useClubCheck";
+
+type AddressFilter = "addresses" | "consists";
 
 function ClubAddressesContent() {
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const clubId = Number(params.id);
   const { hasAccessToClub, loading: clubCheckLoading } = useClubCheck();
+
+  // Get filter from URL, default to "addresses"
+  const filterParam = searchParams.get("filter");
+  const activeFilter: AddressFilter = filterParam === "consists" ? "consists" : "addresses";
+
+  const setFilter = (filter: AddressFilter) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    if (filter === "addresses") {
+      newParams.delete("filter");
+    } else {
+      newParams.set("filter", filter);
+    }
+    const queryString = newParams.toString();
+    router.push(`/club/${clubId}/addresses${queryString ? `?${queryString}` : ""}`);
+  };
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -30,6 +48,9 @@ function ClubAddressesContent() {
     in_use: false,
     user_id: 0,
     club_id: clubId,
+    road_number: "",
+    manufacturer: "",
+    road: "",
   });
 
   // Get current user's Clerk ID
@@ -190,6 +211,9 @@ function ClubAddressesContent() {
           in_use: false,
           user_id: formData.user_id,
           club_id: clubId,
+          road_number: "",
+          manufacturer: "",
+          road: "",
         });
         await fetchData();
       } else {
@@ -240,6 +264,9 @@ function ClubAddressesContent() {
           in_use: false,
           user_id: 0,
           club_id: clubId,
+          road_number: "",
+          manufacturer: "",
+          road: "",
         });
         await fetchData();
       } else {
@@ -300,6 +327,9 @@ function ClubAddressesContent() {
       in_use: address.in_use,
       user_id: address.user_id,
       club_id: address.club_id || clubId,
+      road_number: (address as any).road_number || "",
+      manufacturer: (address as any).manufacturer || "",
+      road: (address as any).road || "",
     });
     setError(null);
   };
@@ -312,6 +342,9 @@ function ClubAddressesContent() {
       in_use: false,
       user_id: 0,
       club_id: clubId,
+      road_number: "",
+      manufacturer: "",
+      road: "",
     });
     setError(null);
   };
@@ -342,6 +375,15 @@ function ClubAddressesContent() {
     return isAdmin || address.user_id === currentUserLhId;
   };
 
+  // Filter addresses based on active filter
+  // Consists are numbers 1-127, addresses are 128+
+  const filteredAddresses = addresses.filter((address) => {
+    if (activeFilter === "consists") {
+      return address.number >= 1 && address.number <= 127;
+    }
+    return address.number > 127;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -350,10 +392,12 @@ function ClubAddressesContent() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Address Management
+              {activeFilter === "consists" ? "Consist" : "Address"} Management
             </h1>
             <p className="text-gray-600">
-              Create, edit, and manage addresses assigned to users (003-9999)
+              {activeFilter === "consists"
+                ? "Create, edit, and manage consists (001-127)"
+                : "Create, edit, and manage addresses assigned to users (128-9999)"}
             </p>
           </div>
           <button
@@ -459,6 +503,57 @@ function ClubAddressesContent() {
             </div>
           </div>
 
+          {/* Additional fields for addresses only (number > 127) */}
+          {formData.number > 127 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Road (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.road}
+                  onChange={(e) =>
+                    setFormData({ ...formData, road: e.target.value })
+                  }
+                  placeholder="e.g., UP, BNSF, NS"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Road Number (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.road_number}
+                  onChange={(e) =>
+                    setFormData({ ...formData, road_number: e.target.value })
+                  }
+                  placeholder="e.g., 1234"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Manufacturer (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.manufacturer}
+                  onChange={(e) =>
+                    setFormData({ ...formData, manufacturer: e.target.value })
+                  }
+                  placeholder="e.g., Athearn, Kato"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isCreating || editingId !== null}
+                />
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleCreate}
             disabled={
@@ -476,14 +571,52 @@ function ClubAddressesContent() {
           </button>
         </div>
 
+        {/* Filter Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+              <button
+                onClick={() => setFilter("addresses")}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeFilter === "addresses"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Addresses
+                <span className="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-gray-100 text-gray-900">
+                  {addresses.filter((a) => a.number > 127).length}
+                </span>
+              </button>
+              <button
+                onClick={() => setFilter("consists")}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeFilter === "consists"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Consists
+                <span className="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-gray-100 text-gray-900">
+                  {addresses.filter((a) => a.number >= 1 && a.number <= 127).length}
+                </span>
+              </button>
+            </nav>
+          </div>
+        </div>
+
         {/* Addresses List */}
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : addresses.length === 0 ? (
+        ) : filteredAddresses.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-500 text-lg">No addresses created yet.</p>
+            <p className="text-gray-500 text-lg">
+              {addresses.length === 0
+                ? "No addresses created yet."
+                : `No ${activeFilter === "consists" ? "consists" : "addresses"} found.`}
+            </p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -511,7 +644,7 @@ function ClubAddressesContent() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {addresses.map((address) => (
+                {filteredAddresses.map((address) => (
                   <tr key={address.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {address.id}
