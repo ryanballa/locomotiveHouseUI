@@ -5,6 +5,7 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient, type Address, type User } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
+import { Dialog } from "@/components/Dialog";
 
 type AddressFilter = "addresses" | "consists";
 
@@ -38,6 +39,8 @@ export default function AddressesPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     number: 3,
@@ -259,6 +262,7 @@ export default function AddressesPage() {
     }
 
     try {
+      setIsUpdating(true);
       setError(null);
       const token = await getToken();
       if (!token) {
@@ -269,6 +273,7 @@ export default function AddressesPage() {
       const result = await apiClient.updateAddress(id, formData, token);
       if (result.updated) {
         setEditingId(null);
+        setIsEditModalOpen(false);
         setFormData({
           number: 3,
           description: "",
@@ -285,6 +290,8 @@ export default function AddressesPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update address");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -341,10 +348,12 @@ export default function AddressesPage() {
       road: (address as any).road || "",
     });
     setError(null);
+    setIsEditModalOpen(true);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
+    setIsEditModalOpen(false);
     setFormData({
       number: 3,
       description: "",
@@ -448,7 +457,7 @@ export default function AddressesPage() {
                 max={9999}
                 placeholder="e.g., 003"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
+                disabled={isCreating}
               />
             </div>
             <div>
@@ -461,7 +470,7 @@ export default function AddressesPage() {
                   setFormData({ ...formData, user_id: parseInt(e.target.value), club_id: 0 })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
+                disabled={isCreating}
               >
                 <option value={0}>Select a user...</option>
                 {users.map((user) => (
@@ -493,7 +502,7 @@ export default function AddressesPage() {
                     setFormData({ ...formData, club_id: parseInt(e.target.value) })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
+                  disabled={isCreating}
                 >
                   <option value={0}>Select a club...</option>
                   {userClubs.map((club) => (
@@ -516,7 +525,7 @@ export default function AddressesPage() {
                 }
                 placeholder="e.g., Main Entry"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isCreating || editingId !== null}
+                disabled={isCreating}
               />
             </div>
             <div>
@@ -528,7 +537,7 @@ export default function AddressesPage() {
                     setFormData({ ...formData, in_use: e.target.checked })
                   }
                   className="h-4 w-4 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
+                  disabled={isCreating}
                 />
                 <span className="ml-2 text-sm font-medium text-gray-700">
                   In Use
@@ -552,7 +561,7 @@ export default function AddressesPage() {
                   }
                   placeholder="e.g., UP, BNSF, NS"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
+                  disabled={isCreating}
                 />
               </div>
               <div>
@@ -567,7 +576,7 @@ export default function AddressesPage() {
                   }
                   placeholder="e.g., 1234"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
+                  disabled={isCreating}
                 />
               </div>
               <div>
@@ -582,7 +591,7 @@ export default function AddressesPage() {
                   }
                   placeholder="e.g., Athearn, Kato"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isCreating || editingId !== null}
+                  disabled={isCreating}
                 />
               </div>
             </div>
@@ -590,7 +599,7 @@ export default function AddressesPage() {
 
           <button
             onClick={handleCreate}
-            disabled={isCreating || editingId !== null || loading}
+            disabled={isCreating || loading}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCreating ? "Creating..." : loading ? "Loading..." : "Create Address"}
@@ -676,124 +685,43 @@ export default function AddressesPage() {
                       {address.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingId === address.id ? (
-                        <input
-                          type="number"
-                          value={formData.number}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              number: parseInt(e.target.value),
-                            })
-                          }
-                          min={3}
-                          max={9999}
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-20"
-                          autoFocus
-                        />
-                      ) : (
-                        <div className="text-sm font-medium text-gray-900">
-                          {String(address.number).padStart(3, "0")}
-                        </div>
-                      )}
+                      <div className="text-sm font-medium text-gray-900">
+                        {String(address.number).padStart(3, "0")}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      {editingId === address.id ? (
-                        <input
-                          type="text"
-                          value={formData.description}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              description: e.target.value,
-                            })
-                          }
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                        />
-                      ) : (
-                        <div className="text-sm text-gray-900">
-                          {address.description}
-                        </div>
-                      )}
+                      <div className="text-sm text-gray-900">
+                        {address.description}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingId === address.id ? (
-                        <select
-                          value={formData.user_id}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              user_id: parseInt(e.target.value),
-                            })
-                          }
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value={0}>Select a user...</option>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {getUserDisplay(user)}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="text-sm text-gray-900">
-                          {getUserName(address.user_id)}
-                        </div>
-                      )}
+                      <div className="text-sm text-gray-900">
+                        {getUserName(address.user_id)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      {editingId === address.id ? (
-                        <input
-                          type="checkbox"
-                          checked={formData.in_use}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              in_use: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                      ) : (
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            address.in_use
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {address.in_use ? "Yes" : "No"}
-                        </span>
-                      )}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          address.in_use
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {address.in_use ? "Yes" : "No"}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {editingId === address.id ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleUpdate(address.id)}
-                            className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-500"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEditing}
-                            className="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-gray-500"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : canEditAddress(address) ? (
+                      {canEditAddress(address) ? (
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => startEditing(address)}
-                            disabled={editingId !== null}
-                            className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(address.id)}
-                            disabled={deletingId === address.id || editingId !== null}
+                            disabled={deletingId === address.id}
                             className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {deletingId === address.id ? "Deleting..." : "Delete"}
@@ -810,6 +738,185 @@ export default function AddressesPage() {
           </div>
         )}
       </main>
+
+      {/* Edit Address Modal */}
+      <Dialog
+        isOpen={isEditModalOpen}
+        onClose={cancelEditing}
+        title="Edit Address"
+        size="lg"
+        primaryAction={{
+          label: "Save Changes",
+          onClick: () => editingId && handleUpdate(editingId),
+          isLoading: isUpdating,
+          variant: "primary",
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: cancelEditing,
+        }}
+      >
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Address Number (003-9999)
+            </label>
+            <input
+              type="number"
+              value={formData.number}
+              onChange={(e) =>
+                setFormData({ ...formData, number: parseInt(e.target.value) })
+              }
+              min={3}
+              max={9999}
+              placeholder="e.g., 003"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isUpdating}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Assigned User
+            </label>
+            <select
+              value={formData.user_id}
+              onChange={(e) =>
+                setFormData({ ...formData, user_id: parseInt(e.target.value), club_id: 0 })
+              }
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isUpdating}
+            >
+              <option value={0}>Select a user...</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {getUserDisplay(user)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Club
+            </label>
+            {formData.user_id === 0 ? (
+              <div className="px-4 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-500 text-sm">
+                Select a user first
+              </div>
+            ) : userClubs.length === 0 ? (
+              <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-700 text-sm">
+                Selected user has no club assigned
+              </div>
+            ) : (
+              <select
+                value={formData.club_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, club_id: parseInt(e.target.value) })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isUpdating}
+              >
+                <option value={0}>Select a club...</option>
+                {userClubs.map((club) => (
+                  <option key={club.id} value={club.id}>
+                    {club.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description (Optional)
+            </label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              placeholder="e.g., Main Entry"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isUpdating}
+            />
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.in_use}
+              onChange={(e) =>
+                setFormData({ ...formData, in_use: e.target.checked })
+              }
+              className="h-4 w-4 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              disabled={isUpdating}
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">
+              In Use
+            </span>
+          </label>
+        </div>
+
+        {/* Additional fields for addresses only (number > 127) */}
+        {formData.number > 127 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Road (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.road}
+                onChange={(e) =>
+                  setFormData({ ...formData, road: e.target.value })
+                }
+                placeholder="e.g., UP, BNSF, NS"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isUpdating}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Road Number (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.road_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, road_number: e.target.value })
+                }
+                placeholder="e.g., 1234"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isUpdating}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Manufacturer (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.manufacturer}
+                onChange={(e) =>
+                  setFormData({ ...formData, manufacturer: e.target.value })
+                }
+                placeholder="e.g., Athearn, Kato"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isUpdating}
+              />
+            </div>
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }
