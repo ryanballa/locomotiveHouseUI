@@ -206,6 +206,9 @@ function ClubApplicationsPageContent() {
                         {application.email && (
                           <span>📧 {application.email}</span>
                         )}
+                        {application.phone && (
+                          <span>📞 {application.phone}</span>
+                        )}
                         {application.birthday && (
                           <span>
                             🎂{" "}
@@ -231,6 +234,14 @@ function ClubApplicationsPageContent() {
                           Personal Information
                         </h4>
                         <dl className="space-y-1 text-sm">
+                          <div>
+                            <dt className="inline font-medium text-gray-600">
+                              Phone:
+                            </dt>{" "}
+                            <dd className="inline text-gray-900">
+                              {application.phone || "Not provided"}
+                            </dd>
+                          </div>
                           <div>
                             <dt className="inline font-medium text-gray-600">
                               Occupation:
@@ -265,6 +276,14 @@ function ClubApplicationsPageContent() {
                             </dt>{" "}
                             <dd className="inline text-gray-900">
                               {application.interested_scale || "Not provided"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="inline font-medium text-gray-600">
+                              Length of Interest:
+                            </dt>{" "}
+                            <dd className="inline text-gray-900">
+                              {application.interest_length || "Not provided"}
                             </dd>
                           </div>
                           <div>
